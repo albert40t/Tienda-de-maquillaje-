@@ -18,6 +18,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   
   // --- POS State ---
   const [search, setSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -90,26 +91,52 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   // --- Views ---
 
   if (view === 'new_sale') {
-    const filteredProducts = products.filter(p => 
-      p.name.toLowerCase().includes(search.toLowerCase()) || 
-      p.category.toLowerCase().includes(search.toLowerCase())
-    );
+    const categories = Array.from(new Set(products.map(p => p.category)));
+
+    const filteredProducts = products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
+      const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
+      return matchesSearch && matchesCategory;
+    });
 
     return (
       <div className="h-full flex flex-col bg-gray-50 animate-in slide-in-from-right-8 duration-300 relative">
-        <div className="bg-white px-4 py-3 shadow-sm flex items-center space-x-3 z-10">
-          <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-            <ArrowLeft size={20} />
-          </button>
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar producto..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-xl text-sm focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-            />
+        <div className="bg-white px-4 py-3 shadow-sm flex flex-col space-y-3 z-10">
+          <div className="flex items-center space-x-3">
+            <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
+              <ArrowLeft size={20} />
+            </button>
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Buscar producto..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-xl text-sm focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+              />
+            </div>
+          </div>
+          
+          {/* Categories (Pills) */}
+          <div className="overflow-x-auto hide-scrollbar -mx-4 px-4">
+            <div className="flex space-x-2 pb-1">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedCategory === null ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+              >
+                Todos
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedCategory === category ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

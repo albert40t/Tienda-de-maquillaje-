@@ -1,16 +1,25 @@
-import { useState } from 'react';
+import { useState, Suspense, lazy } from 'react';
 import BottomNav from './components/BottomNav';
-import Home from './components/pages/Home';
-import POS from './components/pages/POS';
-import Inventory from './components/pages/Inventory';
-import CategoryInventory from './components/pages/CategoryInventory';
-import Customers from './components/pages/Customers';
-import Settings from './components/pages/Settings';
-import StoreFront from './components/pages/StoreFront';
 import { mockProducts, mockCustomers, mockSales } from './data/mockData';
 import { Product, BusinessInfo, Customer, Sale } from './types';
 
+// Lazy load pages for Code Splitting (Performance Optimization)
+const Home = lazy(() => import('./components/pages/Home'));
+const POS = lazy(() => import('./components/pages/POS'));
+const Inventory = lazy(() => import('./components/pages/Inventory'));
+const CategoryInventory = lazy(() => import('./components/pages/CategoryInventory'));
+const Customers = lazy(() => import('./components/pages/Customers'));
+const Settings = lazy(() => import('./components/pages/Settings'));
+const StoreFront = lazy(() => import('./components/pages/StoreFront'));
+
 export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store';
+
+// Loading fallback for Suspense
+const LoadingSpinner = () => (
+  <div className="flex-1 flex items-center justify-center h-full">
+    <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+  </div>
+);
 
 export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -23,7 +32,10 @@ export default function App() {
     name: 'Stely Beauty',
     address: 'Av. Principal, Local 4',
     phone: '+58 412-1234567',
-    email: 'contacto@stelybeauty.com'
+    email: 'contacto@stelybeauty.com',
+    instagram: 'https://instagram.com',
+    tiktok: 'https://tiktok.com',
+    facebook: 'https://facebook.com'
   });
 
   const handleCategorySelect = (category: string) => {
@@ -46,7 +58,7 @@ export default function App() {
       case 'settings':
         return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} />;
       case 'store':
-        return <StoreFront products={products} exchangeRate={exchangeRate} onBack={() => setCurrentPage('home')} />;
+        return <StoreFront products={products} exchangeRate={exchangeRate} onBack={() => setCurrentPage('home')} businessInfo={businessInfo} />;
       default:
         return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} />;
     }
@@ -66,7 +78,9 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className={`flex-1 overflow-y-auto ${currentPage !== 'store' ? 'pb-28' : ''}`}>
-        {renderPage()}
+        <Suspense fallback={<LoadingSpinner />}>
+          {renderPage()}
+        </Suspense>
       </main>
 
       {/* Bottom Navigation */}

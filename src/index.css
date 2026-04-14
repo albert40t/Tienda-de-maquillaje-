@@ -5,25 +5,36 @@
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Playfair Display", ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
   
-  --color-primary-50: #fdf2f8;
-  --color-primary-100: #fce7f3;
-  --color-primary-200: #fbcfe8;
-  --color-primary-300: #f9a8d4;
-  --color-primary-400: #f472b6;
-  --color-primary-500: #ec4899;
-  --color-primary-600: #db2777;
-  --color-primary-700: #be185d;
-  --color-primary-800: #9d174d;
-  --color-primary-900: #831843;
+  /* Dusty Rose / Nude Palette */
+  --color-primary-50: #fdf8f7;
+  --color-primary-100: #f9ebea;
+  --color-primary-200: #f2d5d3;
+  --color-primary-300: #e8baba;
+  --color-primary-400: #db9a9a;
+  --color-primary-500: #c87979;
+  --color-primary-600: #b05c5c;
+  --color-primary-700: #934a4a;
+  --color-primary-800: #7a4040;
+  --color-primary-900: #663838;
 }
 
 body {
-  background-color: #fafafa;
-  color: #1f2937;
+  background-color: #FCFBF8; /* Pearl/Cream */
+  color: #2C2A29; /* Softer black */
 }
 
 /* Hide scrollbar for clean app-like feel */
 ::-webkit-scrollbar {
   width: 0px;
   background: transparent;
+}
+
+@keyframes heartBurst {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.4); }
+  100% { transform: scale(1); }
+}
+
+.animate-heart-burst {
+  animation: heartBurst 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
 }

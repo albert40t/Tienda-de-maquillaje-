@@ -1,16 +1,17 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook } from 'lucide-react';
-import { Product, CartItem } from '../../types';
+import { Product, CartItem, BusinessInfo } from '../../types';
 
 interface StoreFrontProps {
   products: Product[];
   exchangeRate: number;
   onBack: () => void;
+  businessInfo: BusinessInfo;
 }
 
 type CheckoutStep = 'cart' | 'details' | 'payment' | 'summary';
 
-export default function StoreFront({ products, exchangeRate, onBack }: StoreFrontProps) {
+export default function StoreFront({ products, exchangeRate, onBack, businessInfo }: StoreFrontProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [step, setStep] = useState<CheckoutStep>('cart');
@@ -26,6 +27,7 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
 
   // Store UI State
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
@@ -41,6 +43,15 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0); // percentage
   const [sortBy, setSortBy] = useState<'newest' | 'price_asc' | 'price_desc'>('newest');
+  const [cartAnimation, setCartAnimation] = useState(false);
+
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
     if (e.currentTarget.scrollTop > 300) {
@@ -95,19 +106,21 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
     return () => clearInterval(interval);
   }, [carouselItems.length]);
 
-  const categories = Array.from(new Set(products.map(p => p.category)));
+  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))), [products]);
 
-  const filteredProducts = products.filter(p => {
-    const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.category.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'favorites' 
-      ? favorites.includes(p.id)
-      : selectedCategory ? p.category === selectedCategory : true;
-    return matchesSearch && matchesCategory;
-  }).sort((a, b) => {
-    if (sortBy === 'price_asc') return a.price - b.price;
-    if (sortBy === 'price_desc') return b.price - a.price;
-    return 0; // 'newest' - assuming original array order is newest
-  });
+  const filteredProducts = useMemo(() => {
+    return products.filter(p => {
+      const matchesSearch = p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || p.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+      const matchesCategory = selectedCategory === 'favorites' 
+        ? favorites.includes(p.id)
+        : selectedCategory ? p.category === selectedCategory : true;
+      return matchesSearch && matchesCategory;
+    }).sort((a, b) => {
+      if (sortBy === 'price_asc') return a.price - b.price;
+      if (sortBy === 'price_desc') return b.price - a.price;
+      return 0; // 'newest' - assuming original array order is newest
+    });
+  }, [products, debouncedSearchQuery, selectedCategory, favorites, sortBy]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -124,9 +137,9 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
   };
 
   const getProductBadge = (product: Product) => {
-    if (product.stock > 0 && product.stock <= 5) return { text: '¡ÚLTIMOS!', color: 'bg-red-500' };
-    if (product.price < 10) return { text: 'OFERTA', color: 'bg-pink-500' };
-    if (product.id.charCodeAt(0) % 3 === 0) return { text: 'NUEVO', color: 'bg-purple-500' };
+    if (product.stock > 0 && product.stock <= 5) return { text: 'POCAS UNIDADES', color: 'bg-black text-white' };
+    if (product.price < 10) return { text: 'OFERTA', color: 'bg-[#D4AF37] text-white' }; // Gold
+    if (product.id.charCodeAt(0) % 3 === 0) return { text: 'BESTSELLER', color: 'bg-white text-black border border-gray-200' };
     return null;
   };
 
@@ -138,6 +151,10 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
       }
       return [...prev, { ...product, quantity: 1 }];
     });
+    
+    // Trigger cart animation
+    setCartAnimation(true);
+    setTimeout(() => setCartAnimation(false), 300);
   };
 
   const updateQuantity = (id: string, delta: number) => {
@@ -465,11 +482,11 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
         <h1 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">Stely Beauty</h1>
         <button 
           onClick={() => { setIsCartOpen(true); setStep('cart'); }} 
-          className="p-2 -mr-2 relative text-gray-900 hover:opacity-70 transition-opacity"
+          className={`p-2 -mr-2 relative hover:opacity-70 transition-all duration-300 ${cartAnimation ? 'scale-125 text-pink-500' : 'text-gray-900 scale-100'}`}
         >
           <ShoppingBag size={24} />
           {itemCount > 0 && (
-            <span className="absolute top-0 right-0 w-5 h-5 bg-pink-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white">
+            <span className={`absolute top-0 right-0 w-5 h-5 bg-pink-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white transition-transform duration-300 ${cartAnimation ? 'scale-125' : 'scale-100'}`}>
               {itemCount}
             </span>
           )}
@@ -482,11 +499,9 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto relative pb-20"
       >
-        {/* Banner & Controls (Scrolls away) */}
-        <div className="bg-white pb-4">
-          {/* Carousel Banner */}
+        {/* Carousel Banner */}
         <div 
-          className="relative overflow-hidden h-32 touch-pan-y"
+          className="relative overflow-hidden h-40 touch-pan-y"
           onTouchStart={onTouchStart}
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEndHandler}
@@ -496,89 +511,94 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
               key={index}
               className={`absolute inset-0 px-6 py-6 flex flex-col justify-center transition-opacity duration-1000 ${item.bg} ${index === carouselIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
             >
-              <h2 className="text-2xl font-serif font-bold text-gray-900 mb-1">{item.title}</h2>
-              <p className="text-gray-700 text-sm">{item.subtitle}</p>
+              <div className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-multiply transition-transform duration-[10000ms] ease-linear" style={{ transform: index === carouselIndex ? 'scale(1.1)' : 'scale(1)' }}></div>
+              <div className="relative z-10">
+                <h2 className="text-3xl font-serif font-bold text-gray-900 mb-2">{item.title}</h2>
+                <p className="text-gray-800 text-sm font-medium max-w-[80%]">{item.subtitle}</p>
+              </div>
             </div>
           ))}
           {/* Carousel Indicators */}
           <div className="absolute bottom-3 left-0 right-0 flex justify-center space-x-1.5 z-20">
             {carouselItems.map((_, idx) => (
-              <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === carouselIndex ? 'w-4 bg-gray-900' : 'w-1.5 bg-gray-400/50'}`} />
+              <div key={idx} className={`h-1.5 rounded-full transition-all duration-300 ${idx === carouselIndex ? 'w-4 bg-gray-900' : 'w-1.5 bg-white/60'}`} />
             ))}
           </div>
         </div>
 
-        {/* Search Bar & Controls */}
-        <div className="px-6 mt-4 space-y-4">
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-            <input
-              type="text"
-              placeholder="Buscar maquillaje, brochas..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-100 rounded-2xl text-sm focus:bg-white focus:border-pink-300 focus:ring-2 focus:ring-pink-100 outline-none transition-all"
-            />
-            {searchQuery && (
-              <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                <X size={16} />
-              </button>
-            )}
-          </div>
-          
-          <div className="flex items-center justify-between gap-2">
-            <div className="relative flex-1">
-              <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <SlidersHorizontal size={14} className="text-gray-500" />
-              </div>
-              <select 
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as any)}
-                className="w-full appearance-none bg-gray-50 border border-gray-100 text-gray-700 py-2 pl-9 pr-8 rounded-full text-xs font-bold outline-none focus:ring-2 focus:ring-pink-200 transition-all"
-              >
-                <option value="newest">Más recientes</option>
-                <option value="price_asc">Menor precio</option>
-                <option value="price_desc">Mayor precio</option>
-              </select>
-              <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
-                <ChevronRight size={14} className="text-gray-400 rotate-90" />
-              </div>
+        {/* Search & Categories */}
+        <div className="pt-4 pb-2">
+          {/* Search Bar & Controls */}
+          <div className="px-6 space-y-4">
+            <div className="relative">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+              <input
+                type="text"
+                placeholder="Buscar maquillaje, brochas..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-white/50 border border-gray-200/50 rounded-2xl text-sm focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-100 outline-none transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <X size={16} />
+                </button>
+              )}
             </div>
             
-            <button 
-              onClick={() => setSelectedCategory(selectedCategory === 'favorites' ? null : 'favorites')}
-              className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all border ${selectedCategory === 'favorites' ? 'bg-pink-50 border-pink-200 text-pink-600' : 'bg-gray-50 border-gray-100 text-gray-600 hover:bg-gray-100'}`}
-            >
-              <Heart size={14} className={selectedCategory === 'favorites' ? 'fill-current' : ''} />
-              <span>Favoritos ({favorites.length})</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Categories (Pills) */}
-        <div className="px-6 mt-5 overflow-x-auto hide-scrollbar">
-          <div className="flex space-x-2 pb-2">
-            <button
-              onClick={() => setSelectedCategory(null)}
-              className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === null ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-            >
-              Todos
-            </button>
-            {categories.map(category => (
-              <button
-                key={category}
-                onClick={() => setSelectedCategory(category)}
-                className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === category ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            <div className="flex items-center justify-between gap-2">
+              <div className="relative flex-1">
+                <div className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <SlidersHorizontal size={14} className="text-gray-500" />
+                </div>
+                <select 
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value as any)}
+                  className="w-full appearance-none bg-white/50 border border-gray-200/50 text-gray-700 py-2 pl-9 pr-8 rounded-full text-xs font-bold outline-none focus:ring-2 focus:ring-primary-200 transition-all shadow-sm"
+                >
+                  <option value="newest">Más recientes</option>
+                  <option value="price_asc">Menor precio</option>
+                  <option value="price_desc">Mayor precio</option>
+                </select>
+                <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none">
+                  <ChevronRight size={14} className="text-gray-400 rotate-90" />
+                </div>
+              </div>
+              
+              <button 
+                onClick={() => setSelectedCategory(selectedCategory === 'favorites' ? null : 'favorites')}
+                className={`flex items-center space-x-1.5 px-4 py-2 rounded-full text-xs font-bold transition-all border shadow-sm ${selectedCategory === 'favorites' ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-white/50 border-gray-200/50 text-gray-600 hover:bg-white'}`}
               >
-                {category}
+                <Heart size={14} className={selectedCategory === 'favorites' ? 'fill-current' : ''} />
+                <span>Favoritos ({favorites.length})</span>
               </button>
-            ))}
+            </div>
+          </div>
+
+          {/* Categories (Pills) */}
+          <div className="px-6 mt-5 overflow-x-auto hide-scrollbar">
+            <div className="flex space-x-2 pb-2">
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === null ? 'bg-gray-900 text-white shadow-md' : 'bg-white/60 border border-gray-200/50 text-gray-600 hover:bg-white'}`}
+              >
+                Todos
+              </button>
+              {categories.map(category => (
+                <button
+                  key={category}
+                  onClick={() => setSelectedCategory(category)}
+                  className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === category ? 'bg-gray-900 text-white shadow-md' : 'bg-white/60 border border-gray-200/50 text-gray-600 hover:bg-white'}`}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
-      </div>
 
-      {/* Product Grid */}
-      <div className="flex-1 overflow-y-auto px-6 py-6">
+        {/* Product Grid */}
+        <div className="px-6 py-6">
         {filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 font-medium">No se encontraron productos.</p>
@@ -591,13 +611,13 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
               
               return (
                 <div key={product.id} className="group flex flex-col cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                  <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-gray-100 mb-4">
-                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-gray-100 mb-3">
+                    <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                     
                     {/* Badges */}
                     {badge && product.stock > 0 && (
-                      <div className="absolute top-2 left-2 z-10">
-                        <span className={`${badge.color} text-white text-[10px] font-bold px-2 py-1 rounded-full uppercase tracking-wider shadow-sm`}>
+                      <div className="absolute top-3 left-3 z-10">
+                        <span className={`${badge.color} text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm`}>
                           {badge.text}
                         </span>
                       </div>
@@ -606,10 +626,20 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
                     {/* Favorite Button */}
                     <button 
                       onClick={(e) => toggleFavorite(product.id, e)}
-                      className="absolute top-2 right-2 z-10 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-full flex items-center justify-center text-gray-400 hover:text-pink-500 transition-colors"
+                      className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/40 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 hover:text-primary-600 transition-colors"
                     >
-                      <Heart size={16} className={isFavorite ? 'fill-pink-500 text-pink-500' : ''} />
+                      <Heart size={16} className={isFavorite ? 'fill-primary-600 text-primary-600 animate-heart-burst' : ''} />
                     </button>
+
+                    {/* Glassmorphism Add Button */}
+                    {product.stock > 0 && (
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+                        className="absolute bottom-3 right-3 z-10 w-10 h-10 bg-white/30 backdrop-blur-md border border-white/40 text-gray-900 rounded-full flex items-center justify-center hover:bg-white/50 transition-colors shadow-sm"
+                      >
+                        <Plus size={20} />
+                      </button>
+                    )}
 
                     {product.stock === 0 && (
                       <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-20">
@@ -617,19 +647,16 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
                       </div>
                     )}
                   </div>
-                  <div className="flex flex-col flex-1">
-                    <span className="text-[10px] font-bold text-pink-500 uppercase tracking-wider mb-1">{product.category}</span>
-                    <h3 className="text-sm font-bold text-gray-900 leading-tight mb-1 line-clamp-2">{product.name}</h3>
-                    <div className="mt-auto pt-2 flex items-center justify-between">
-                      <span className="text-base font-bold text-gray-900">${product.price.toFixed(2)}</span>
-                      <button 
-                        disabled={product.stock === 0}
-                        onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        className="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center disabled:bg-gray-200 disabled:text-gray-400 hover:bg-gray-800 transition-colors active:scale-95"
-                      >
-                        <Plus size={16} />
-                      </button>
+                  <div className="flex flex-col flex-1 px-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="text-[10px] font-bold text-primary-600 uppercase tracking-widest">{product.category}</span>
+                      <div className="flex items-center text-[10px] text-gray-500 font-medium">
+                        <span className="text-[#D4AF37] mr-0.5">★</span>
+                        <span>4.8</span>
+                      </div>
                     </div>
+                    <h3 className="text-sm font-serif font-bold text-gray-900 leading-tight mb-1 line-clamp-2">{product.name}</h3>
+                    <span className="text-sm font-medium text-gray-900">${product.price.toFixed(2)}</span>
                   </div>
                 </div>
               );
@@ -647,18 +674,24 @@ export default function StoreFront({ products, exchangeRate, onBack }: StoreFron
           </p>
           
           <div className="flex justify-center items-center space-x-5 mb-8">
-            <a href="#" className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-colors shadow-sm">
-              <Instagram size={22} />
-            </a>
-            <a href="#" className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-colors shadow-sm">
-              {/* TikTok Custom SVG */}
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
-              </svg>
-            </a>
-            <a href="#" className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-colors shadow-sm">
-              <Facebook size={22} />
-            </a>
+            {businessInfo.instagram && (
+              <a href={businessInfo.instagram} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-colors shadow-sm">
+                <Instagram size={22} />
+              </a>
+            )}
+            {businessInfo.tiktok && (
+              <a href={businessInfo.tiktok} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-colors shadow-sm">
+                {/* TikTok Custom SVG */}
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                  <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                </svg>
+              </a>
+            )}
+            {businessInfo.facebook && (
+              <a href={businessInfo.facebook} target="_blank" rel="noopener noreferrer" className="w-12 h-12 rounded-full bg-gray-50 flex items-center justify-center text-gray-600 hover:bg-pink-50 hover:text-pink-500 transition-colors shadow-sm">
+                <Facebook size={22} />
+              </a>
+            )}
           </div>
           
           <div className="border-t border-gray-100 pt-6">

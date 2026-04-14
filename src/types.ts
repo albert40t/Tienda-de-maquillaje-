@@ -52,4 +52,7 @@ export interface BusinessInfo {
   address: string;
   phone: string;
   email: string;
+  instagram?: string;
+  tiktok?: string;
+  facebook?: string;
 }

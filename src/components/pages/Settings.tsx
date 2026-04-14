@@ -94,6 +94,42 @@ export default function Settings({ businessInfo, setBusinessInfo }: SettingsProp
                 placeholder="contacto@empresa.com"
               />
             </div>
+            
+            <div className="pt-4 border-t border-gray-100">
+              <h3 className="text-sm font-bold text-gray-900 mb-4">Redes Sociales</h3>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Instagram URL</label>
+                  <input 
+                    type="url" 
+                    value={formData.instagram || ''}
+                    onChange={e => setFormData({...formData, instagram: e.target.value})}
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                    placeholder="https://instagram.com/tu_cuenta"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">TikTok URL</label>
+                  <input 
+                    type="url" 
+                    value={formData.tiktok || ''}
+                    onChange={e => setFormData({...formData, tiktok: e.target.value})}
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                    placeholder="https://tiktok.com/@tu_cuenta"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Facebook URL</label>
+                  <input 
+                    type="url" 
+                    value={formData.facebook || ''}
+                    onChange={e => setFormData({...formData, facebook: e.target.value})}
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                    placeholder="https://facebook.com/tu_pagina"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 
