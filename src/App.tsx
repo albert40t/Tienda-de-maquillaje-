@@ -53,7 +53,7 @@ export default function App() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden relative">
+    <div className="flex flex-col h-[100dvh] max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden relative">
       {/* Header */}
       {currentPage !== 'store' && (
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between">
@@ -65,7 +65,7 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 overflow-y-auto ${currentPage !== 'store' ? 'pb-20' : ''}`}>
+      <main className={`flex-1 overflow-y-auto ${currentPage !== 'store' ? 'pb-28' : ''}`}>
         {renderPage()}
       </main>
 

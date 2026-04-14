@@ -16,7 +16,7 @@ export default function BottomNav({ currentPage, onNavigate }: BottomNavProps) {
   ] as const;
 
   return (
-    <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-4 py-3 flex justify-between items-center z-20 pb-safe">
+    <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-between items-center z-20">
       {navItems.map((item) => {
         const Icon = item.icon;
         const isActive = currentPage === item.id || (currentPage === 'category-inventory' && item.id === 'inventory');
