@@ -2,8 +2,6 @@ import React, { useState, Suspense, lazy, useEffect } from 'react';
 import BottomNav from './components/BottomNav';
 import { mockProducts, mockCustomers, mockSales } from './data/mockData';
 import { Product, BusinessInfo, Customer, Sale } from './types';
-import { supabase } from './lib/supabase';
-import { Session } from '@supabase/supabase-js';
 
 // Lazy load pages for Code Splitting (Performance Optimization)
 const Home = lazy(() => import('./components/pages/Home'));
@@ -13,8 +11,9 @@ const CategoryInventory = lazy(() => import('./components/pages/CategoryInventor
 const Customers = lazy(() => import('./components/pages/Customers'));
 const Settings = lazy(() => import('./components/pages/Settings'));
 const StoreFront = lazy(() => import('./components/pages/StoreFront'));
+const AdminUsers = lazy(() => import('./components/pages/AdminUsers'));
 
-export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store';
+export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store' | 'admin-users';
 
 // Loading fallback for Suspense
 const LoadingSpinner = () => (
@@ -24,11 +23,10 @@ const LoadingSpinner = () => (
 );
 
 export default function App() {
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<{ email: string; role: string } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
   const [authError, setAuthError] = useState('');
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
@@ -47,19 +45,23 @@ export default function App() {
     facebook: 'https://facebook.com'
   });
 
+  // Initialize LocalStorage Auth
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
+    const initAuth = () => {
+      const storedUsers = localStorage.getItem('app_users');
+      if (!storedUsers) {
+        // Create default admin on first load
+        const defaultUsers = [{ email: 'admin@tienda.com', password: '1232026', role: 'admin' }];
+        localStorage.setItem('app_users', JSON.stringify(defaultUsers));
+      }
+
+      const activeSession = localStorage.getItem('app_session');
+      if (activeSession) {
+        setSession(JSON.parse(activeSession));
+      }
       setIsAuthLoading(false);
-    });
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-    });
-
-    return () => subscription.unsubscribe();
+    };
+    initAuth();
   }, []);
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -70,32 +72,31 @@ export default function App() {
     const cleanEmail = email.trim();
 
     try {
-      if (authMode === 'signup') {
-        const { error } = await supabase.auth.signUp({
-          email: cleanEmail,
-          password,
-        });
-        if (error) throw error;
-        alert('Revisa tu correo para verificar tu cuenta.');
+      const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
+      const user = storedUsers.find((u: any) => u.email === cleanEmail && u.password === password);
+
+      if (user) {
+        const newSession = { email: user.email, role: user.role };
+        localStorage.setItem('app_session', JSON.stringify(newSession));
+        setSession(newSession);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: cleanEmail,
-          password,
-        });
-        if (error) throw error;
+        setAuthError('Credenciales incorrectas');
       }
     } catch (error: any) {
-      setAuthError(error.message || 'Error de autenticación');
+      setAuthError('Error al iniciar sesión');
     } finally {
       setIsAuthLoading(false);
     }
   };
 
   const handleSignOut = async () => {
-    await supabase.auth.signOut();
+    localStorage.removeItem('app_session');
+    setSession(null);
+    setEmail('');
+    setPassword('');
   };
 
-  if (isAuthLoading && !session) {
+  if (isAuthLoading) {
     return (
       <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden justify-center items-center">
         <LoadingSpinner />
@@ -144,18 +145,9 @@ export default function App() {
               disabled={isAuthLoading}
               className="w-full bg-primary-600 text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-colors disabled:opacity-50 mt-6"
             >
-              {isAuthLoading ? 'Cargando...' : authMode === 'signin' ? 'Iniciar Sesión' : 'Registrarse'}
+              {isAuthLoading ? 'Cargando...' : 'Iniciar Sesión'}
             </button>
           </form>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
-              className="text-sm text-primary-600 font-medium hover:underline"
-            >
-              {authMode === 'signin' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
-            </button>
-          </div>
         </div>
       </div>
     );
@@ -182,6 +174,8 @@ export default function App() {
         return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} />;
       case 'store':
         return <StoreFront products={products} exchangeRate={exchangeRate} onBack={() => setCurrentPage('home')} businessInfo={businessInfo} />;
+      case 'admin-users':
+        return <AdminUsers onBack={() => setCurrentPage('settings')} />;
       default:
         return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} />;
     }
@@ -194,6 +188,14 @@ export default function App() {
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between">
           <h1 className="font-serif text-xl font-bold text-primary-800 tracking-tight">{businessInfo.name}</h1>
           <div className="flex items-center space-x-3">
+            {session.role === 'admin' && currentPage !== 'admin-users' && (
+              <button 
+                onClick={() => setCurrentPage('admin-users')}
+                className="text-xs text-primary-600 hover:text-primary-800 font-medium bg-primary-50 px-2 py-1 rounded-md"
+              >
+                Usuarios
+              </button>
+            )}
             <button 
               onClick={handleSignOut}
               className="text-xs text-gray-500 hover:text-gray-900 font-medium"
