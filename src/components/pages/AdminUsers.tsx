@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowLeft, Plus, Trash2 } from 'lucide-react';
+import { supabase } from '../../lib/supabase';
 
 interface AdminUsersProps {
   onBack: () => void;
@@ -12,17 +13,31 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
   const [newRole, setNewRole] = useState('worker');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadUsers();
   }, []);
 
-  const loadUsers = () => {
-    const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
-    setUsers(storedUsers);
+  const loadUsers = async () => {
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('empleados')
+        .select('*')
+        .order('created_at', { ascending: true });
+        
+      if (error) throw error;
+      if (data) setUsers(data);
+    } catch (err: any) {
+      setError('Error al cargar usuarios. Asegúrate de haber creado la tabla "empleados" en Supabase.');
+      console.error(err);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleAddUser = (e: React.FormEvent) => {
+  const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -32,36 +47,56 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
       return;
     }
 
-    const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
-    
-    if (storedUsers.some((u: any) => u.email === newEmail)) {
-      setError('Este correo ya está registrado');
-      return;
-    }
+    try {
+      // Verificar si ya existe
+      const { data: existing } = await supabase
+        .from('empleados')
+        .select('email')
+        .eq('email', newEmail)
+        .single();
 
-    const newUser = { email: newEmail, password: newPassword, role: newRole };
-    const updatedUsers = [...storedUsers, newUser];
-    
-    localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-    setUsers(updatedUsers);
-    setNewEmail('');
-    setNewPassword('');
-    setSuccess('Usuario creado exitosamente');
-    
-    setTimeout(() => setSuccess(''), 3000);
+      if (existing) {
+        setError('Este correo ya está registrado');
+        return;
+      }
+
+      // Insertar nuevo usuario
+      const { error: insertError } = await supabase
+        .from('empleados')
+        .insert([{ email: newEmail, password: newPassword, role: newRole }]);
+
+      if (insertError) throw insertError;
+
+      setSuccess('Usuario creado exitosamente');
+      setNewEmail('');
+      setNewPassword('');
+      loadUsers();
+      
+      setTimeout(() => setSuccess(''), 3000);
+    } catch (err: any) {
+      setError('Error al crear usuario: ' + err.message);
+    }
   };
 
-  const handleDeleteUser = (emailToDelete: string) => {
+  const handleDeleteUser = async (emailToDelete: string) => {
     if (emailToDelete === 'admin@tienda.com') {
       alert('No puedes eliminar al administrador principal');
       return;
     }
 
     if (confirm(`¿Estás seguro de eliminar al usuario ${emailToDelete}?`)) {
-      const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
-      const updatedUsers = storedUsers.filter((u: any) => u.email !== emailToDelete);
-      localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-      setUsers(updatedUsers);
+      try {
+        const { error } = await supabase
+          .from('empleados')
+          .delete()
+          .eq('email', emailToDelete);
+
+        if (error) throw error;
+        
+        loadUsers();
+      } catch (err: any) {
+        alert('Error al eliminar: ' + err.message);
+      }
     }
   };
 

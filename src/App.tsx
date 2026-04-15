@@ -2,6 +2,7 @@ import React, { useState, Suspense, lazy, useEffect } from 'react';
 import BottomNav from './components/BottomNav';
 import { mockProducts, mockCustomers, mockSales } from './data/mockData';
 import { Product, BusinessInfo, Customer, Sale } from './types';
+import { supabase } from './lib/supabase';
 
 // Lazy load pages for Code Splitting (Performance Optimization)
 const Home = lazy(() => import('./components/pages/Home'));
@@ -45,16 +46,9 @@ export default function App() {
     facebook: 'https://facebook.com'
   });
 
-  // Initialize LocalStorage Auth
+  // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
     const initAuth = () => {
-      const storedUsers = localStorage.getItem('app_users');
-      if (!storedUsers) {
-        // Create default admin on first load
-        const defaultUsers = [{ email: 'admin@tienda.com', password: '1232026', role: 'admin' }];
-        localStorage.setItem('app_users', JSON.stringify(defaultUsers));
-      }
-
       const activeSession = localStorage.getItem('app_session');
       if (activeSession) {
         setSession(JSON.parse(activeSession));
@@ -72,18 +66,23 @@ export default function App() {
     const cleanEmail = email.trim();
 
     try {
-      const storedUsers = JSON.parse(localStorage.getItem('app_users') || '[]');
-      const user = storedUsers.find((u: any) => u.email === cleanEmail && u.password === password);
+      // Consultar la tabla personalizada 'empleados' en Supabase
+      const { data: user, error } = await supabase
+        .from('empleados')
+        .select('*')
+        .eq('email', cleanEmail)
+        .eq('password', password)
+        .single();
 
-      if (user) {
+      if (error || !user) {
+        setAuthError('Credenciales incorrectas o el usuario no existe');
+      } else {
         const newSession = { email: user.email, role: user.role };
         localStorage.setItem('app_session', JSON.stringify(newSession));
         setSession(newSession);
-      } else {
-        setAuthError('Credenciales incorrectas');
       }
     } catch (error: any) {
-      setAuthError('Error al iniciar sesión');
+      setAuthError('Error al conectar con la base de datos');
     } finally {
       setIsAuthLoading(false);
     }
