@@ -1,6 +1,5 @@
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import BottomNav from './components/BottomNav';
-import { mockProducts, mockCustomers, mockSales } from './data/mockData';
 import { Product, BusinessInfo, Customer, Sale } from './types';
 import { supabase } from './lib/supabase';
 
@@ -33,9 +32,9 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(38.50);
-  const [products, setProducts] = useState<Product[]>(mockProducts);
-  const [customers, setCustomers] = useState<Customer[]>(mockCustomers);
-  const [sales, setSales] = useState<Sale[]>(mockSales);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
     name: 'Stely Beauty',
     address: 'Av. Principal, Local 4',
@@ -57,6 +56,76 @@ export default function App() {
     };
     initAuth();
   }, []);
+
+  // Fetch data and setup realtime subscriptions
+  useEffect(() => {
+    if (!session) return;
+
+    const fetchData = async () => {
+      const { data: pData } = await supabase.from('productos').select('*');
+      const { data: cData } = await supabase.from('clientes').select('*');
+      const { data: sData } = await supabase.from('ventas').select('*');
+      
+      if (pData && pData.length > 0) {
+        setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
+      } else {
+        setProducts([]);
+      }
+      
+      if (cData && cData.length > 0) {
+        setCustomers(cData.map(c => ({ ...c, totalPurchases: c.total_purchases } as Customer)));
+      } else {
+        setCustomers([]);
+      }
+      
+      if (sData && sData.length > 0) {
+        setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
+      } else {
+        setSales([]);
+      }
+    };
+
+    fetchData();
+
+    const channel = supabase.channel('schema-db-changes')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setProducts(prev => {
+            if (prev.find(p => p.id === payload.new.id)) return prev;
+            return [...prev, { ...payload.new, costPrice: payload.new.cost_price } as Product];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setProducts(prev => prev.map(p => p.id === payload.new.id ? { ...payload.new, costPrice: payload.new.cost_price } as Product : p));
+        } else if (payload.eventType === 'DELETE') {
+          setProducts(prev => prev.filter(p => p.id !== payload.old.id));
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setSales(prev => {
+            if (prev.find(s => s.id === payload.new.id)) return prev;
+            return [{ ...payload.new, paymentMethods: payload.new.payment_methods, customerId: payload.new.customer_id } as Sale, ...prev];
+          });
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setCustomers(prev => {
+            if (prev.find(c => c.id === payload.new.id)) return prev;
+            return [...prev, { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setCustomers(prev => prev.map(c => c.id === payload.new.id ? { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer : c));
+        } else if (payload.eventType === 'DELETE') {
+          setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -157,12 +226,29 @@ export default function App() {
     setCurrentPage('category-inventory');
   };
 
+  const handleProcessSale = async (sale: Sale) => {
+    // Optimistic update
+    setSales(prev => [sale, ...prev]);
+    
+    // Supabase insert
+    await supabase.from('ventas').insert({
+      id: sale.id,
+      date: sale.date,
+      items: sale.items,
+      total: sale.total,
+      discount: sale.discount,
+      payment_methods: sale.paymentMethods,
+      customer_id: sale.customerId,
+      profit: sale.profit
+    });
+  };
+
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
         return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} />;
       case 'pos':
-        return <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={(sale) => setSales(prev => [sale, ...prev])} />;
+        return <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} />;
       case 'inventory':
         return <Inventory onSelectCategory={handleCategorySelect} products={products} />;
       case 'customers':

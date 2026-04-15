@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ArrowLeft, Search, MoreVertical, Plus, Minus, PackagePlus, X, Tag, Edit2, Trash2, Save, Image as ImageIcon, Camera, Upload, Link as LinkIcon, AlertTriangle } from 'lucide-react';
 import { Product } from '../../types';
+import { supabase } from '../../lib/supabase';
 
 interface CategoryInventoryProps {
   category: string;
@@ -64,10 +65,15 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
     setActiveMenuId(null);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (selectedProduct) {
+      // Optimistic update
       setProducts(prev => prev.filter(p => p.id !== selectedProduct.id));
       setModalMode('none');
+      
+      // Supabase delete
+      await supabase.from('productos').delete().eq('id', selectedProduct.id);
+      
       setSelectedProduct(null);
     }
   };
@@ -83,7 +89,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
     }
   };
 
-  const handleSaveProduct = () => {
+  const handleSaveProduct = async () => {
     if (!formData.name || !formData.price) {
       alert('Por favor, completa los campos requeridos (Nombre y Precio).');
       return;
@@ -102,30 +108,69 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         image: formData.image || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800',
         description: formData.description || '',
       };
+      
+      // Optimistic update
       setProducts(prev => [...prev, newProduct]);
+      
+      // Supabase insert
+      await supabase.from('productos').insert({
+        id: newProduct.id,
+        name: newProduct.name,
+        category: newProduct.category,
+        brand: newProduct.brand,
+        price: newProduct.price,
+        cost_price: newProduct.costPrice,
+        barcode: newProduct.barcode,
+        stock: newProduct.stock,
+        image: newProduct.image,
+        description: newProduct.description
+      });
+      
     } else if (modalMode === 'edit' && selectedProduct) {
-      setProducts(prev => prev.map(p => p.id === selectedProduct.id ? { 
-        ...p, 
+      const updatedProduct = { 
+        ...selectedProduct, 
         ...formData, 
         price: Number(formData.price), 
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
         stock: Number(formData.stock) 
-      } as Product : p));
+      } as Product;
+      
+      // Optimistic update
+      setProducts(prev => prev.map(p => p.id === selectedProduct.id ? updatedProduct : p));
+      
+      // Supabase update
+      await supabase.from('productos').update({
+        name: updatedProduct.name,
+        category: updatedProduct.category,
+        brand: updatedProduct.brand,
+        price: updatedProduct.price,
+        cost_price: updatedProduct.costPrice,
+        barcode: updatedProduct.barcode,
+        stock: updatedProduct.stock,
+        image: updatedProduct.image,
+        description: updatedProduct.description
+      }).eq('id', updatedProduct.id);
     }
     
     setModalMode('none');
   };
 
-  const handleSaveStock = () => {
+  const handleSaveStock = async () => {
     if (!selectedProduct || stockAmount <= 0) return;
     
+    const newStock = stockAction === 'add' ? selectedProduct.stock + stockAmount : Math.max(0, selectedProduct.stock - stockAmount);
+    
+    // Optimistic update
     setProducts(prev => prev.map(p => {
       if (p.id === selectedProduct.id) {
-        const newStock = stockAction === 'add' ? p.stock + stockAmount : Math.max(0, p.stock - stockAmount);
         return { ...p, stock: newStock };
       }
       return p;
     }));
+    
+    // Supabase update
+    await supabase.from('productos').update({ stock: newStock }).eq('id', selectedProduct.id);
+    
     setModalMode('none');
   };
 
