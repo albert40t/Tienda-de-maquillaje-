@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save } from 'lucide-react';
 import { BusinessInfo } from '../../types';
 

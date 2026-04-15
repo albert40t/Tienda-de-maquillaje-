@@ -1,7 +1,9 @@
-import { useState, Suspense, lazy } from 'react';
+import React, { useState, Suspense, lazy, useEffect } from 'react';
 import BottomNav from './components/BottomNav';
 import { mockProducts, mockCustomers, mockSales } from './data/mockData';
 import { Product, BusinessInfo, Customer, Sale } from './types';
+import { supabase } from './lib/supabase';
+import { Session } from '@supabase/supabase-js';
 
 // Lazy load pages for Code Splitting (Performance Optimization)
 const Home = lazy(() => import('./components/pages/Home'));
@@ -22,6 +24,13 @@ const LoadingSpinner = () => (
 );
 
 export default function App() {
+  const [session, setSession] = useState<Session | null>(null);
+  const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [authError, setAuthError] = useState('');
+
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(38.50);
@@ -37,6 +46,118 @@ export default function App() {
     tiktok: 'https://tiktok.com',
     facebook: 'https://facebook.com'
   });
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setIsAuthLoading(false);
+    });
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleAuth = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setAuthError('');
+    setIsAuthLoading(true);
+
+    try {
+      if (authMode === 'signup') {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+        if (error) throw error;
+        alert('Revisa tu correo para verificar tu cuenta.');
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+      }
+    } catch (error: any) {
+      setAuthError(error.message || 'Error de autenticación');
+    } finally {
+      setIsAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+  };
+
+  if (isAuthLoading && !session) {
+    return (
+      <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden justify-center items-center">
+        <LoadingSpinner />
+      </div>
+    );
+  }
+
+  if (!session) {
+    return (
+      <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden justify-center px-6">
+        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
+          <div className="text-center mb-8">
+            <h1 className="font-serif text-3xl font-bold text-primary-800 mb-2">Stely Beauty</h1>
+            <p className="text-gray-500 text-sm">Ingresa para gestionar tu tienda</p>
+          </div>
+
+          {authError && (
+            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm mb-4 text-center">
+              {authError}
+            </div>
+          )}
+
+          <form onSubmit={handleAuth} className="space-y-4">
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Contraseña</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none transition-all"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isAuthLoading}
+              className="w-full bg-primary-600 text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-colors disabled:opacity-50 mt-6"
+            >
+              {isAuthLoading ? 'Cargando...' : authMode === 'signin' ? 'Iniciar Sesión' : 'Registrarse'}
+            </button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setAuthMode(authMode === 'signin' ? 'signup' : 'signin')}
+              className="text-sm text-primary-600 font-medium hover:underline"
+            >
+              {authMode === 'signin' ? '¿No tienes cuenta? Regístrate' : '¿Ya tienes cuenta? Inicia sesión'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
@@ -70,8 +191,16 @@ export default function App() {
       {currentPage !== 'store' && (
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between">
           <h1 className="font-serif text-xl font-bold text-primary-800 tracking-tight">{businessInfo.name}</h1>
-          <div className="w-7 h-7 text-xs rounded-full bg-primary-100 flex items-center justify-center text-primary-800 font-medium">
-            {businessInfo.name.substring(0, 2).toUpperCase()}
+          <div className="flex items-center space-x-3">
+            <button 
+              onClick={handleSignOut}
+              className="text-xs text-gray-500 hover:text-gray-900 font-medium"
+            >
+              Salir
+            </button>
+            <div className="w-7 h-7 text-xs rounded-full bg-primary-100 flex items-center justify-center text-primary-800 font-medium">
+              {businessInfo.name.substring(0, 2).toUpperCase()}
+            </div>
           </div>
         </header>
       )}

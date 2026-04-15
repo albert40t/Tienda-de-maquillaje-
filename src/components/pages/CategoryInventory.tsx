@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { ArrowLeft, Search, MoreVertical, Plus, Minus, PackagePlus, X, Tag, Edit2, Trash2, Save, Image as ImageIcon, Camera, Upload, Link as LinkIcon, AlertTriangle } from 'lucide-react';
 import { Product } from '../../types';
 
