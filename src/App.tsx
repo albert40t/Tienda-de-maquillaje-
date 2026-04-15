@@ -67,17 +67,19 @@ export default function App() {
     setAuthError('');
     setIsAuthLoading(true);
 
+    const cleanEmail = email.trim();
+
     try {
       if (authMode === 'signup') {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: cleanEmail,
           password,
         });
         if (error) throw error;
         alert('Revisa tu correo para verificar tu cuenta.');
       } else {
         const { error } = await supabase.auth.signInWithPassword({
-          email,
+          email: cleanEmail,
           password,
         });
         if (error) throw error;
