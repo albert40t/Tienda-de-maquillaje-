@@ -84,6 +84,14 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         setProducts(prev => [...prev, selectedProduct]);
       } else {
         toast.success('Producto eliminado exitosamente');
+        
+        // Log the activity
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('activity_logs').insert({
+          user_email: user?.email || 'usuario@sistema.com',
+          action_type: 'DELETE_PRODUCT',
+          description: `Eliminó el producto "${selectedProduct.name}" de la categoría ${selectedProduct.category}`
+        });
       }
       
       setSelectedProduct(null);
@@ -158,7 +166,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       
       // Supabase insert
       const { error } = await supabase.from('productos').insert({
-        id: newProduct.id,
+        id: String(newProduct.id),
         name: newProduct.name,
         category: newProduct.category,
         brand: newProduct.brand,
@@ -172,11 +180,19 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       
       if (error) {
         console.error("Insert error:", error);
-        toast.error('Error al crear el producto');
+        toast.error(`Error de Supabase: ${error.message}`);
         // Rollback optimistic update
         setProducts(prev => prev.filter(p => p.id !== newProduct.id));
       } else {
         toast.success('Producto creado exitosamente');
+        
+        // Log the activity
+        const { data: { user } } = await supabase.auth.getUser();
+        await supabase.from('activity_logs').insert({
+          user_email: user?.email || 'usuario@sistema.com',
+          action_type: 'CREATE_PRODUCT',
+          description: `Creó el producto "${newProduct.name}" en la categoría ${newProduct.category}`
+        });
       }
       
     } else if (modalMode === 'edit' && selectedProduct) {
@@ -206,7 +222,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
 
       if (error) {
         console.error("Update error:", error);
-        toast.error('Error al actualizar el producto');
+        toast.error(`Error de Supabase: ${error.message}`);
         // Rollback optimistic update
         setProducts(prev => prev.map(p => p.id === selectedProduct.id ? selectedProduct : p));
       } else {
