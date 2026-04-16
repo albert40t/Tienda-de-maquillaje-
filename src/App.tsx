@@ -33,7 +33,10 @@ export default function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [exchangeRate, setExchangeRate] = useState<number>(38.50);
+  const [exchangeRate, setExchangeRate] = useState<number>(() => {
+    const saved = localStorage.getItem('app_exchange_rate');
+    return saved ? parseFloat(saved) : 38.50;
+  });
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -46,6 +49,11 @@ export default function App() {
     tiktok: 'https://tiktok.com',
     facebook: 'https://facebook.com'
   });
+
+  // Save exchange rate when it changes
+  useEffect(() => {
+    localStorage.setItem('app_exchange_rate', exchangeRate.toString());
+  }, [exchangeRate]);
 
   // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
