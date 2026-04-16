@@ -169,15 +169,23 @@ export default function App() {
         .eq('password', cleanPassword)
         .single();
 
-      if (error || !user) {
-        setAuthError('Credenciales incorrectas o el usuario no existe');
+      if (error) {
+        console.error('Login error:', error);
+        if (error.code === 'PGRST116') {
+          setAuthError('Email o contraseña incorrectos');
+        } else {
+          setAuthError('Error de conexión con la base de datos');
+        }
+      } else if (!user) {
+        setAuthError('Usuario no encontrado');
       } else {
         const newSession = { email: user.email, role: user.role };
         localStorage.setItem('app_session', JSON.stringify(newSession));
         setSession(newSession);
       }
-    } catch (error: any) {
-      setAuthError('Error al conectar con la base de datos');
+    } catch (err: any) {
+      console.error('Auth Exception:', err);
+      setAuthError('Ha ocurrido un error inesperado');
     } finally {
       setIsAuthLoading(false);
     }
