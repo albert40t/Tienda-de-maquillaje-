@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Product } from '../../types';

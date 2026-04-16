@@ -196,6 +196,7 @@ export default function App() {
     setSession(null);
     setEmail('');
     setPassword('');
+    setCurrentPage('home');
   };
 
   if (isAuthLoading) {
@@ -290,7 +291,7 @@ export default function App() {
       case 'category-inventory':
         return <CategoryInventory category={selectedCategory} onBack={() => setCurrentPage('inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />;
       case 'settings':
-        return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={setCurrentPage} />;
+        return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={setCurrentPage} onSignOut={handleSignOut} />;
       case 'store':
         return <StoreFront products={products} exchangeRate={exchangeRate} onBack={() => setCurrentPage('home')} businessInfo={businessInfo} />;
       case 'admin-users':

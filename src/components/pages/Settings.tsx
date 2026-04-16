@@ -10,9 +10,10 @@ interface SettingsProps {
   businessInfo: BusinessInfo;
   setBusinessInfo: React.Dispatch<React.SetStateAction<BusinessInfo>>;
   onNavigate: (page: Page) => void;
+  onSignOut: () => void;
 }
 
-export default function Settings({ businessInfo, setBusinessInfo, onNavigate }: SettingsProps) {
+export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut }: SettingsProps) {
   const [activeView, setActiveView] = useState<'main' | 'business'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
   const [isUploading, setIsUploading] = useState(false);
@@ -275,7 +276,10 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate }: 
         ))}
       </div>
 
-      <button className="w-full bg-red-50 text-red-600 font-semibold rounded-2xl p-4 flex items-center justify-center space-x-2 hover:bg-red-100 transition-colors">
+      <button 
+        onClick={onSignOut}
+        className="w-full bg-red-50 text-red-600 font-semibold rounded-2xl p-4 flex items-center justify-center space-x-2 hover:bg-red-100 transition-colors"
+      >
         <LogOut size={18} />
         <span>Cerrar Sesión</span>
       </button>
