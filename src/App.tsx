@@ -157,15 +157,16 @@ export default function App() {
     setAuthError('');
     setIsAuthLoading(true);
 
-    const cleanEmail = email.trim();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
 
     try {
       // Consultar la tabla personalizada 'empleados' en Supabase
       const { data: user, error } = await supabase
         .from('empleados')
         .select('*')
-        .eq('email', cleanEmail)
-        .eq('password', password)
+        .ilike('email', cleanEmail)
+        .eq('password', cleanPassword)
         .single();
 
       if (error || !user) {
