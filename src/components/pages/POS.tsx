@@ -103,6 +103,36 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     setView('menu');
   };
 
+  const generateWhatsAppReceipt = () => {
+    const customer = customers.find(c => c.id === selectedCustomer);
+    const customerPhone = customer?.phone?.replace(/\D/g, '') || '';
+    
+    let message = `*RECIBO DE COMPRA - ${businessInfo?.name || 'Stely Beauty'}*\n`;
+    message += `----------------------------------\n`;
+    message += `*Fecha:* ${new Date().toLocaleString()}\n`;
+    if (customer) message += `*Cliente:* ${customer.name}\n`;
+    message += `----------------------------------\n`;
+    
+    cart.forEach(item => {
+      message += `• ${item.quantity}x ${item.name} - $${(item.price * item.quantity).toFixed(2)}\n`;
+    });
+    
+    message += `----------------------------------\n`;
+    if (discount > 0) message += `*Descuento:* ${discount}%\n`;
+    message += `*TOTAL A PAGAR: $${total.toFixed(2)}*\n`;
+    message += `*Equivalente en Bs.:* ${(total * exchangeRate).toFixed(2)}\n`;
+    message += `----------------------------------\n`;
+    message += `*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}\n\n`;
+    message += `¡Gracias por preferirnos! ✨`;
+
+    const encodedMessage = encodeURIComponent(message);
+    const whatsappUrl = customerPhone 
+      ? `https://api.whatsapp.com/send?phone=${customerPhone}&text=${encodedMessage}`
+      : `https://api.whatsapp.com/send?text=${encodedMessage}`;
+    
+    window.open(whatsappUrl, '_blank');
+  };
+
   // --- Views ---
 
   if (view === 'new_sale') {
@@ -387,7 +417,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                 <button 
                   className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 hover:bg-[#128C7E] transition-colors shadow-md"
                   onClick={() => {
-                    alert('Abriendo WhatsApp...');
+                    generateWhatsAppReceipt();
                     resetPOS();
                   }}
                 >
