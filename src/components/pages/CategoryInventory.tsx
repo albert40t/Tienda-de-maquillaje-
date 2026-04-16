@@ -106,7 +106,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       // 2. Upload to Supabase Storage
       const fileName = `${Date.now()}_${compressedFile.name}`;
       const { data, error } = await supabase.storage
-        .from('productos')
+        .from('products')
         .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: false
@@ -120,7 +120,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
 
       // 3. Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('productos')
+        .from('products')
         .getPublicUrl(fileName);
 
       // 4. Update form data
