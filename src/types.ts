@@ -52,6 +52,7 @@ export interface BusinessInfo {
   address: string;
   phone: string;
   email: string;
+  logo?: string;
   instagram?: string;
   tiktok?: string;
   facebook?: string;

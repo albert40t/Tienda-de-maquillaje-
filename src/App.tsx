@@ -40,20 +40,35 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
-    name: 'Stely Beauty',
-    address: 'Av. Principal, Local 4',
-    phone: '+58 412-1234567',
-    email: 'contacto@stelybeauty.com',
-    instagram: 'https://instagram.com',
-    tiktok: 'https://tiktok.com',
-    facebook: 'https://facebook.com'
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(() => {
+    const saved = localStorage.getItem('app_business_info');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        console.error('Error parsing business info from localStorage', e);
+      }
+    }
+    return {
+      name: 'Stely Beauty',
+      address: 'Av. Principal, Local 4',
+      phone: '+58 412-1234567',
+      email: 'contacto@stelybeauty.com',
+      instagram: 'https://instagram.com',
+      tiktok: 'https://tiktok.com',
+      facebook: 'https://facebook.com'
+    };
   });
 
   // Save exchange rate when it changes
   useEffect(() => {
     localStorage.setItem('app_exchange_rate', exchangeRate.toString());
   }, [exchangeRate]);
+
+  // Save business info when it changes
+  useEffect(() => {
+    localStorage.setItem('app_business_info', JSON.stringify(businessInfo));
+  }, [businessInfo]);
 
   // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
@@ -258,7 +273,7 @@ export default function App() {
       case 'home':
         return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} />;
       case 'pos':
-        return <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} />;
+        return <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />;
       case 'inventory':
         return <Inventory onSelectCategory={handleCategorySelect} products={products} />;
       case 'customers':

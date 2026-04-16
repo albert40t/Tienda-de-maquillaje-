@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
-import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save } from 'lucide-react';
+import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { BusinessInfo } from '../../types';
 import { Page } from '../../App';
+import { supabase } from '../../lib/supabase';
+import { compressImage } from '../../lib/imageUtils';
 
 interface SettingsProps {
   businessInfo: BusinessInfo;
@@ -12,10 +15,52 @@ interface SettingsProps {
 export default function Settings({ businessInfo, setBusinessInfo, onNavigate }: SettingsProps) {
   const [activeView, setActiveView] = useState<'main' | 'business'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleSave = () => {
     setBusinessInfo(formData);
+    toast.success('Información del negocio guardada');
     setActiveView('main');
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      
+      const compressedBlob = await compressImage(file, 800, 0.8);
+      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
+        type: 'image/webp'
+      });
+
+      const fileName = `logo_${Date.now()}_${compressedFile.name}`;
+      const { error } = await supabase.storage
+        .from('products')
+        .upload(fileName, compressedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading logo:', error);
+        toast.error(`Error de Supabase: ${error.message}`);
+        return;
+      }
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('products')
+        .getPublicUrl(fileName);
+
+      setFormData(prev => ({ ...prev, logo: publicUrl }));
+      toast.success('Logo subido exitosamente');
+    } catch (error: any) {
+      console.error('Error uploading logo:', error);
+      toast.error(`Error: ${error.message || 'Desconocido'}`);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const sections = [
@@ -56,6 +101,43 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate }: 
 
         <div className="p-6 space-y-6 flex-1 overflow-y-auto">
           <div className="space-y-4">
+            
+            {/* Logo Upload Section */}
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Logo del Negocio</label>
+              <div className="flex items-center space-x-4">
+                <div className="w-20 h-20 bg-gray-100 rounded-xl flex items-center justify-center border border-gray-200 overflow-hidden relative">
+                  {formData.logo ? (
+                    <>
+                      <img src={formData.logo} alt="Logo" className="w-full h-full object-cover" />
+                      <button 
+                        onClick={() => setFormData(prev => ({ ...prev, logo: undefined }))}
+                        className="absolute top-1 right-1 bg-red-500 text-white rounded-full p-1 hover:bg-red-600 transition-colors"
+                      >
+                        <X size={12} />
+                      </button>
+                    </>
+                  ) : (
+                    <Store size={32} className="text-gray-300" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <label className="flex items-center justify-center w-full bg-white border border-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
+                    {isUploading ? <Loader2 size={18} className="animate-spin mr-2" /> : <Camera size={18} className="mr-2" />}
+                    <span>{isUploading ? 'Subiendo...' : 'Cambiar Logo'}</span>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      onChange={handleLogoUpload}
+                      disabled={isUploading}
+                      className="hidden" 
+                    />
+                  </label>
+                  <p className="text-xs text-gray-500 mt-2">Recomendado: 500x500px (JPG, PNG)</p>
+                </div>
+              </div>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Nombre del Negocio</label>
               <input 

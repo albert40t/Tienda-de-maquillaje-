@@ -1,19 +1,21 @@
 import { useState } from 'react';
 import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Product, CartItem, Customer, PaymentMethod, Sale } from '../../types';
+import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
+import { supabase } from '../../lib/supabase';
 
 interface POSProps {
   exchangeRate: number;
   products: Product[];
   customers?: Customer[];
   sales?: Sale[];
+  businessInfo?: BusinessInfo;
   onProcessSale?: (sale: Sale) => void;
 }
 
 type ViewState = 'menu' | 'new_sale' | 'reports' | 'history';
 
-export default function POS({ exchangeRate, products, customers = [], sales = [], onProcessSale }: POSProps) {
+export default function POS({ exchangeRate, products, customers = [], sales = [], businessInfo, onProcessSale }: POSProps) {
   const [view, setView] = useState<ViewState>('menu');
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   
@@ -498,10 +500,16 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                 {/* Receipt Paper */}
                 <div className="bg-white mx-auto shadow-sm border border-gray-200 p-5 rounded-lg font-mono text-sm relative max-w-sm">
                   <div className="text-center mb-4 border-b-2 border-dashed border-gray-200 pb-4">
-                    <h3 className="font-bold text-lg uppercase tracking-widest text-gray-900">Ticket</h3>
-                    <p className="text-xs text-gray-500 mt-1">Stely Beauty</p>
-                    <p className="text-xs text-gray-400 mt-1">{new Date(selectedSale.date).toLocaleString('es-ES')}</p>
-                    <p className="text-xs text-gray-400">{selectedSale.id}</p>
+                    {businessInfo?.logo && (
+                      <div className="flex justify-center mb-3">
+                        <img src={businessInfo.logo} alt="Logo" className="w-16 h-16 object-cover rounded-md grayscale" />
+                      </div>
+                    )}
+                    <h3 className="font-bold text-lg uppercase tracking-widest text-gray-900">{businessInfo?.name || 'Ticket'}</h3>
+                    {businessInfo?.address && <p className="text-xs text-gray-500 mt-1">{businessInfo.address}</p>}
+                    {businessInfo?.phone && <p className="text-xs text-gray-500">{businessInfo.phone}</p>}
+                    <p className="text-xs text-gray-400 mt-2">{new Date(selectedSale.date).toLocaleString('es-ES')}</p>
+                    <p className="text-xs text-gray-400">Recibo: {selectedSale.id.substring(0, 8)}</p>
                   </div>
                   <div className="space-y-3">
                     {selectedSale.items.map((item, idx) => (
@@ -536,6 +544,13 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                       </div>
                     )}
                   </div>
+                  {(businessInfo?.instagram || businessInfo?.email) && (
+                    <div className="mt-6 pt-4 border-t-2 border-dashed border-gray-200 text-center space-y-1">
+                      <p className="text-xs font-bold text-gray-800">¡Gracias por su compra!</p>
+                      {businessInfo.instagram && <p className="text-[10px] text-gray-500">IG: {businessInfo.instagram.replace('https://instagram.com/', '@')}</p>}
+                      {businessInfo.email && <p className="text-[10px] text-gray-500">{businessInfo.email}</p>}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
