@@ -127,10 +127,17 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
     const encodedMessage = encodeURIComponent(message);
     const whatsappUrl = customerPhone 
-      ? `https://api.whatsapp.com/send?phone=${customerPhone}&text=${encodedMessage}`
-      : `https://api.whatsapp.com/send?text=${encodedMessage}`;
+      ? `https://wa.me/${customerPhone}?text=${encodedMessage}`
+      : `https://wa.me/?text=${encodedMessage}`;
     
-    window.open(whatsappUrl, '_blank');
+    // Crear un link invisible y hacerle click para saltar bloqueadores de popups
+    const link = document.createElement('a');
+    link.href = whatsappUrl;
+    link.target = '_blank';
+    link.rel = 'noopener noreferrer';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // --- Views ---
