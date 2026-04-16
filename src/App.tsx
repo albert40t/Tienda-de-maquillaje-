@@ -1,4 +1,5 @@
 import React, { useState, Suspense, lazy, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import BottomNav from './components/BottomNav';
 import { Product, BusinessInfo, Customer, Sale } from './types';
 import { supabase } from './lib/supabase';
@@ -12,8 +13,9 @@ const Customers = lazy(() => import('./components/pages/Customers'));
 const Settings = lazy(() => import('./components/pages/Settings'));
 const StoreFront = lazy(() => import('./components/pages/StoreFront'));
 const AdminUsers = lazy(() => import('./components/pages/AdminUsers'));
+const ActivityLogs = lazy(() => import('./components/pages/ActivityLogs'));
 
-export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store' | 'admin-users';
+export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store' | 'admin-users' | 'activity-logs';
 
 // Loading fallback for Suspense
 const LoadingSpinner = () => (
@@ -256,11 +258,13 @@ export default function App() {
       case 'category-inventory':
         return <CategoryInventory category={selectedCategory} onBack={() => setCurrentPage('inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />;
       case 'settings':
-        return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} />;
+        return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={setCurrentPage} />;
       case 'store':
         return <StoreFront products={products} exchangeRate={exchangeRate} onBack={() => setCurrentPage('home')} businessInfo={businessInfo} />;
       case 'admin-users':
         return <AdminUsers onBack={() => setCurrentPage('settings')} />;
+      case 'activity-logs':
+        return <ActivityLogs onBack={() => setCurrentPage('settings')} />;
       default:
         return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} />;
     }
@@ -268,6 +272,7 @@ export default function App() {
 
   return (
     <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden">
+      <Toaster position="top-center" />
       {/* Header */}
       {currentPage !== 'store' && (
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between">

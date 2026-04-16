@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale } from '../../types';
 
 interface POSProps {
@@ -58,7 +59,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     setIsCheckoutOpen(true);
   };
 
-  const processSale = () => {
+  const processSale = async () => {
     const newSale: Sale = {
       id: `SALE-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
       date: new Date().toISOString(),
@@ -74,8 +75,20 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
       onProcessSale(newSale);
     }
     
+    // Log activity
+    const sessionStr = localStorage.getItem('app_session');
+    if (sessionStr) {
+      const session = JSON.parse(sessionStr);
+      await supabase.from('activity_logs').insert({
+        user_email: session.email,
+        action_type: 'NEW_SALE',
+        description: `Registró una venta por $${total.toFixed(2)}`
+      });
+    }
+    
     setIsCheckoutOpen(false);
     setIsSuccess(true);
+    toast.success('¡Venta completada exitosamente!');
   };
 
   const resetPOS = () => {

@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save } from 'lucide-react';
 import { BusinessInfo } from '../../types';
+import { Page } from '../../App';
 
 interface SettingsProps {
   businessInfo: BusinessInfo;
   setBusinessInfo: React.Dispatch<React.SetStateAction<BusinessInfo>>;
+  onNavigate: (page: Page) => void;
 }
 
-export default function Settings({ businessInfo, setBusinessInfo }: SettingsProps) {
+export default function Settings({ businessInfo, setBusinessInfo, onNavigate }: SettingsProps) {
   const [activeView, setActiveView] = useState<'main' | 'business'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
 
@@ -170,6 +172,7 @@ export default function Settings({ businessInfo, setBusinessInfo }: SettingsProp
                     key={itemIdx}
                     onClick={() => {
                       if (item.id === 'business') setActiveView('business');
+                      if (item.id === 'notifications') onNavigate('activity-logs');
                     }}
                     className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${
                       itemIdx !== section.items.length - 1 ? 'border-b border-gray-50' : ''

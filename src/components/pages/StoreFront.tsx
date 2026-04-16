@@ -29,6 +29,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [carouselIndex, setCarouselIndex] = useState(0);
   const [showScrollTop, setShowScrollTop] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -107,6 +108,13 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   }, [carouselItems.length]);
 
   const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))), [products]);
+  const availableBrands = useMemo(() => {
+    if (!selectedCategory || selectedCategory === 'favorites') return [];
+    const brands = products
+      .filter(p => p.category === selectedCategory && p.brand)
+      .map(p => p.brand as string);
+    return Array.from(new Set(brands));
+  }, [products, selectedCategory]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
@@ -114,13 +122,14 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
       const matchesCategory = selectedCategory === 'favorites' 
         ? favorites.includes(p.id)
         : selectedCategory ? p.category === selectedCategory : true;
-      return matchesSearch && matchesCategory;
+      const matchesBrand = selectedBrand ? p.brand === selectedBrand : true;
+      return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
       if (sortBy === 'price_asc') return a.price - b.price;
       if (sortBy === 'price_desc') return b.price - a.price;
       return 0; // 'newest' - assuming original array order is newest
     });
-  }, [products, debouncedSearchQuery, selectedCategory, favorites, sortBy]);
+  }, [products, debouncedSearchQuery, selectedCategory, selectedBrand, favorites, sortBy]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -579,7 +588,10 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
           <div className="px-6 mt-5 overflow-x-auto hide-scrollbar">
             <div className="flex space-x-2 pb-2">
               <button
-                onClick={() => setSelectedCategory(null)}
+                onClick={() => {
+                  setSelectedCategory(null);
+                  setSelectedBrand(null);
+                }}
                 className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === null ? 'bg-gray-900 text-white shadow-md' : 'bg-white/60 border border-gray-200/50 text-gray-600 hover:bg-white'}`}
               >
                 Todos
@@ -587,7 +599,10 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
               {categories.map(category => (
                 <button
                   key={category}
-                  onClick={() => setSelectedCategory(category)}
+                  onClick={() => {
+                    setSelectedCategory(category);
+                    setSelectedBrand(null);
+                  }}
                   className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === category ? 'bg-gray-900 text-white shadow-md' : 'bg-white/60 border border-gray-200/50 text-gray-600 hover:bg-white'}`}
                 >
                   {category}
@@ -595,6 +610,29 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
               ))}
             </div>
           </div>
+
+          {/* Brands (Pills) - Only show if a category is selected and has brands */}
+          {selectedCategory && selectedCategory !== 'favorites' && availableBrands.length > 0 && (
+            <div className="px-6 mt-2 overflow-x-auto hide-scrollbar">
+              <div className="flex space-x-2 pb-2">
+                <button
+                  onClick={() => setSelectedBrand(null)}
+                  className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedBrand === null ? 'bg-primary-100 text-primary-700 shadow-sm border border-primary-200' : 'bg-white/40 border border-gray-200/40 text-gray-500 hover:bg-white/60'}`}
+                >
+                  Todas las Marcas
+                </button>
+                {availableBrands.map(brand => (
+                  <button
+                    key={brand}
+                    onClick={() => setSelectedBrand(brand)}
+                    className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedBrand === brand ? 'bg-primary-100 text-primary-700 shadow-sm border border-primary-200' : 'bg-white/40 border border-gray-200/40 text-gray-500 hover:bg-white/60'}`}
+                  >
+                    {brand}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Product Grid */}

@@ -1,15 +1,21 @@
 import { useState } from 'react';
-import { Search, Plus, User, Phone, Gift, Star, ArrowLeft, ShoppingBag, Calendar } from 'lucide-react';
+import { Search, Plus, User, Phone, Gift, Star, ArrowLeft, ShoppingBag, Calendar, Edit2, Trash2, X, Save } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { Customer, Sale } from '../../types';
+import { supabase } from '../../lib/supabase';
 
 interface CustomersProps {
   customers: Customer[];
   sales: Sale[];
 }
 
+type ModalMode = 'none' | 'add' | 'edit' | 'delete';
+
 export default function Customers({ customers, sales }: CustomersProps) {
   const [search, setSearch] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [modalMode, setModalMode] = useState<ModalMode>('none');
+  const [formData, setFormData] = useState<Partial<Customer>>({});
 
   const filteredCustomers = customers.filter(c => 
     c.name.toLowerCase().includes(search.toLowerCase()) || 
@@ -21,7 +27,92 @@ export default function Customers({ customers, sales }: CustomersProps) {
   // 1 point per $1 spent
   const getCustomerPoints = (customerId: string) => Math.floor(getCustomerTotalSpent(customerId));
 
-  if (selectedCustomer) {
+  const openAdd = () => {
+    setFormData({ name: '', phone: '', birthday: '' });
+    setModalMode('add');
+  };
+
+  const openEdit = (customer: Customer) => {
+    setFormData(customer);
+    setModalMode('edit');
+  };
+
+  const openDelete = (customer: Customer) => {
+    setFormData(customer);
+    setModalMode('delete');
+  };
+
+  const handleSave = async () => {
+    if (!formData.name || !formData.phone) {
+      toast.error('Por favor, completa el nombre y teléfono.');
+      return;
+    }
+
+    if (modalMode === 'add') {
+      const newCustomer = {
+        id: `CUST-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
+        name: formData.name,
+        phone: formData.phone,
+        birthday: formData.birthday || null,
+        points: 0,
+        total_purchases: 0
+      };
+
+      const { error } = await supabase.from('clientes').insert(newCustomer);
+      
+      if (error) {
+        toast.error('Error al crear la clienta');
+      } else {
+        toast.success('Clienta creada exitosamente');
+        
+        // Log activity
+        const sessionStr = localStorage.getItem('app_session');
+        if (sessionStr) {
+          const session = JSON.parse(sessionStr);
+          await supabase.from('activity_logs').insert({
+            user_email: session.email,
+            action_type: 'CREATE_CUSTOMER',
+            description: `Registró a la clienta ${newCustomer.name}`
+          });
+        }
+      }
+    } else if (modalMode === 'edit' && formData.id) {
+      const { error } = await supabase.from('clientes').update({
+        name: formData.name,
+        phone: formData.phone,
+        birthday: formData.birthday || null
+      }).eq('id', formData.id);
+
+      if (error) {
+        toast.error('Error al actualizar la clienta');
+      } else {
+        toast.success('Clienta actualizada exitosamente');
+        if (selectedCustomer && selectedCustomer.id === formData.id) {
+          setSelectedCustomer({ ...selectedCustomer, ...formData } as Customer);
+        }
+      }
+    }
+    
+    setModalMode('none');
+  };
+
+  const confirmDelete = async () => {
+    if (formData.id) {
+      const { error } = await supabase.from('clientes').delete().eq('id', formData.id);
+      
+      if (error) {
+        toast.error('Error al eliminar la clienta');
+      } else {
+        toast.success('Clienta eliminada exitosamente');
+        if (selectedCustomer && selectedCustomer.id === formData.id) {
+          setSelectedCustomer(null);
+        }
+      }
+    }
+    setModalMode('none');
+  };
+
+  if (selectedCustomer && modalMode === 'none') {
     const customerSales = getCustomerSales(selectedCustomer.id);
     const totalSpent = getCustomerTotalSpent(selectedCustomer.id);
     const points = getCustomerPoints(selectedCustomer.id);
@@ -40,8 +131,23 @@ export default function Customers({ customers, sales }: CustomersProps) {
 
         <div className="flex-1 overflow-y-auto pb-24">
           {/* Header Profile */}
-          <div className="bg-white p-6 flex flex-col items-center text-center border-b border-gray-100">
-            <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-3xl mb-3">
+          <div className="bg-white p-6 flex flex-col items-center text-center border-b border-gray-100 relative">
+            <div className="absolute top-4 right-4 flex space-x-2">
+              <button 
+                onClick={() => openEdit(selectedCustomer)}
+                className="p-2 bg-gray-50 text-gray-600 rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <Edit2 size={16} />
+              </button>
+              <button 
+                onClick={() => openDelete(selectedCustomer)}
+                className="p-2 bg-red-50 text-red-600 rounded-full hover:bg-red-100 transition-colors"
+              >
+                <Trash2 size={16} />
+              </button>
+            </div>
+            
+            <div className="w-20 h-20 rounded-full bg-primary-100 flex items-center justify-center text-primary-700 font-bold text-3xl mb-3 mt-2">
               {selectedCustomer.name.charAt(0)}
             </div>
             <h2 className="text-xl font-bold text-gray-900">{selectedCustomer.name}</h2>
@@ -130,7 +236,10 @@ export default function Customers({ customers, sales }: CustomersProps) {
       <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-lg font-bold text-gray-900">Directorio de Clientas</h2>
-          <button className="p-2 bg-primary-50 text-primary-600 rounded-full hover:bg-primary-100 transition-colors">
+          <button 
+            onClick={openAdd}
+            className="p-2 bg-primary-50 text-primary-600 rounded-full hover:bg-primary-100 transition-colors"
+          >
             <Plus size={20} />
           </button>
         </div>
@@ -191,6 +300,101 @@ export default function Customers({ customers, sales }: CustomersProps) {
           </div>
         )}
       </div>
+
+      {/* Modals */}
+      {modalMode !== 'none' && (
+        <div className="fixed inset-y-0 left-1/2 -translate-x-1/2 w-full max-w-md z-[100] flex flex-col justify-end">
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in" 
+            onClick={() => setModalMode('none')} 
+          />
+          
+          <div className={`bg-white rounded-t-3xl flex flex-col relative animate-in slide-in-from-bottom-full duration-300 overflow-hidden shadow-2xl ${
+            modalMode === 'delete' ? 'h-auto' : 'h-[80%]'
+          }`}>
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-bold text-gray-900">
+                {modalMode === 'edit' ? 'Editar Clienta' : 
+                 modalMode === 'add' ? 'Nueva Clienta' : 
+                 'Eliminar Clienta'}
+              </h2>
+              <button onClick={() => setModalMode('none')} className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto flex-1 pb-safe">
+              {(modalMode === 'edit' || modalMode === 'add') && (
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Nombre Completo</label>
+                    <input 
+                      type="text" 
+                      value={formData.name || ''}
+                      onChange={e => setFormData({...formData, name: e.target.value})}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                      placeholder="Ej. María Pérez"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Teléfono</label>
+                    <input 
+                      type="tel" 
+                      value={formData.phone || ''}
+                      onChange={e => setFormData({...formData, phone: e.target.value})}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                      placeholder="Ej. +58 412-0000000"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Fecha de Nacimiento (Opcional)</label>
+                    <input 
+                      type="date" 
+                      value={formData.birthday || ''}
+                      onChange={e => setFormData({...formData, birthday: e.target.value})}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                    />
+                  </div>
+                  
+                  <button 
+                    type="button"
+                    onClick={handleSave}
+                    className="w-full bg-primary-600 text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-colors mt-6"
+                  >
+                    Guardar Clienta
+                  </button>
+                </div>
+              )}
+
+              {modalMode === 'delete' && formData && (
+                <div className="flex flex-col items-center text-center py-4">
+                  <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mb-4">
+                    <Trash2 size={32} />
+                  </div>
+                  <h3 className="text-xl font-bold text-gray-900 mb-2">¿Eliminar clienta?</h3>
+                  <p className="text-gray-500 mb-8">
+                    Estás a punto de eliminar a <strong>{formData.name}</strong>. Esta acción no se puede deshacer.
+                  </p>
+                  <div className="flex space-x-3 w-full">
+                    <button
+                      onClick={() => setModalMode('none')}
+                      className="flex-1 py-3.5 bg-gray-100 text-gray-700 font-semibold rounded-2xl hover:bg-gray-200 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={confirmDelete}
+                      className="flex-1 py-3.5 bg-red-600 text-white font-semibold rounded-2xl hover:bg-red-700 transition-colors"
+                    >
+                      Eliminar
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

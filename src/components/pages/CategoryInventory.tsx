@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
-import { ArrowLeft, Search, MoreVertical, Plus, Minus, PackagePlus, X, Tag, Edit2, Trash2, Save, Image as ImageIcon, Camera, Upload, Link as LinkIcon, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Search, MoreVertical, Plus, Minus, PackagePlus, X, Tag, Edit2, Trash2, Save, Image as ImageIcon, Camera, Upload, Link as LinkIcon, AlertTriangle, Loader2 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { Product } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { compressImage } from '../../lib/imageUtils';
 
 interface CategoryInventoryProps {
   category: string;
@@ -25,6 +27,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   const [formData, setFormData] = useState<Partial<Product>>({});
   const [stockAction, setStockAction] = useState<'add' | 'remove'>('add');
   const [stockAmount, setStockAmount] = useState<number>(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   const filteredProducts = products.filter(p => 
     p.category === category && 
@@ -72,20 +75,58 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       setModalMode('none');
       
       // Supabase delete
-      await supabase.from('productos').delete().eq('id', selectedProduct.id);
+      const { error } = await supabase.from('productos').delete().eq('id', selectedProduct.id);
+      
+      if (error) {
+        toast.error('Error al eliminar el producto');
+      } else {
+        toast.success('Producto eliminado exitosamente');
+      }
       
       setSelectedProduct(null);
     }
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setFormData(prev => ({ ...prev, image: reader.result as string }));
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      
+      // 1. Compress the image
+      const compressedBlob = await compressImage(file, 1024, 0.8);
+      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
+        type: 'image/webp'
+      });
+
+      // 2. Upload to Supabase Storage
+      const fileName = `${Date.now()}_${compressedFile.name}`;
+      const { data, error } = await supabase.storage
+        .from('productos')
+        .upload(fileName, compressedFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Error uploading image:', error);
+        alert('Error al subir la imagen. Intenta de nuevo.');
+        return;
+      }
+
+      // 3. Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('productos')
+        .getPublicUrl(fileName);
+
+      // 4. Update form data
+      setFormData(prev => ({ ...prev, image: publicUrl }));
+    } catch (error) {
+      console.error('Error compressing/uploading:', error);
+      alert('Error al procesar la imagen.');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -113,7 +154,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       setProducts(prev => [...prev, newProduct]);
       
       // Supabase insert
-      await supabase.from('productos').insert({
+      const { error } = await supabase.from('productos').insert({
         id: newProduct.id,
         name: newProduct.name,
         category: newProduct.category,
@@ -125,6 +166,12 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         image: newProduct.image,
         description: newProduct.description
       });
+      
+      if (error) {
+        toast.error('Error al crear el producto');
+      } else {
+        toast.success('Producto creado exitosamente');
+      }
       
     } else if (modalMode === 'edit' && selectedProduct) {
       const updatedProduct = { 
@@ -139,7 +186,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       setProducts(prev => prev.map(p => p.id === selectedProduct.id ? updatedProduct : p));
       
       // Supabase update
-      await supabase.from('productos').update({
+      const { error } = await supabase.from('productos').update({
         name: updatedProduct.name,
         category: updatedProduct.category,
         brand: updatedProduct.brand,
@@ -150,6 +197,12 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         image: updatedProduct.image,
         description: updatedProduct.description
       }).eq('id', updatedProduct.id);
+
+      if (error) {
+        toast.error('Error al actualizar el producto');
+      } else {
+        toast.success('Producto actualizado exitosamente');
+      }
     }
     
     setModalMode('none');
@@ -496,6 +549,13 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                         >
                           <X size={16} />
                         </button>
+                      </div>
+                    )}
+
+                    {isUploading && (
+                      <div className="mb-3 flex items-center justify-center p-4 bg-primary-50 text-primary-600 rounded-xl border border-primary-100">
+                        <Loader2 size={20} className="animate-spin mr-2" />
+                        <span className="text-sm font-medium">Optimizando y subiendo imagen...</span>
                       </div>
                     )}
 
