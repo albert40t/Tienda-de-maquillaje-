@@ -78,7 +78,10 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       const { error } = await supabase.from('productos').delete().eq('id', selectedProduct.id);
       
       if (error) {
+        console.error("Delete error:", error);
         toast.error('Error al eliminar el producto');
+        // Rollback optimistic update
+        setProducts(prev => [...prev, selectedProduct]);
       } else {
         toast.success('Producto eliminado exitosamente');
       }
@@ -168,7 +171,10 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       });
       
       if (error) {
+        console.error("Insert error:", error);
         toast.error('Error al crear el producto');
+        // Rollback optimistic update
+        setProducts(prev => prev.filter(p => p.id !== newProduct.id));
       } else {
         toast.success('Producto creado exitosamente');
       }
@@ -199,7 +205,10 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       }).eq('id', updatedProduct.id);
 
       if (error) {
+        console.error("Update error:", error);
         toast.error('Error al actualizar el producto');
+        // Rollback optimistic update
+        setProducts(prev => prev.map(p => p.id === selectedProduct.id ? selectedProduct : p));
       } else {
         toast.success('Producto actualizado exitosamente');
       }
