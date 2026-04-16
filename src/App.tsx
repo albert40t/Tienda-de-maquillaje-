@@ -174,7 +174,7 @@ export default function App() {
         if (error.code === 'PGRST116') {
           setAuthError('Email o contraseña incorrectos');
         } else {
-          setAuthError('Error de conexión con la base de datos');
+          setAuthError(`Error de conexión: ${error.message} (Código: ${error.code || 'Desconocido'})`);
         }
       } else if (!user) {
         setAuthError('Usuario no encontrado');
