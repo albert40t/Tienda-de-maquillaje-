@@ -114,7 +114,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
 
       if (error) {
         console.error('Error uploading image:', error);
-        alert('Error al subir la imagen. Intenta de nuevo.');
+        alert(`Error de Supabase: ${error.message}`);
         return;
       }
 
@@ -125,9 +125,9 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
 
       // 4. Update form data
       setFormData(prev => ({ ...prev, image: publicUrl }));
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error compressing/uploading:', error);
-      alert('Error al procesar la imagen.');
+      alert(`Error al procesar la imagen: ${error.message || 'Desconocido'}`);
     } finally {
       setIsUploading(false);
     }
