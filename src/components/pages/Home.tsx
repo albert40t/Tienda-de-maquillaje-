@@ -80,10 +80,20 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
 
   const [pendingRate, setPendingRate] = useState<number | null>(null);
   const [isConfirmingRate, setIsConfirmingRate] = useState(false);
+  const [localRate, setLocalRate] = useState<string>(exchangeRate.toString());
 
-  const initiateRateUpdate = (val: string) => {
-    const newRate = Number(val);
-    if (isNaN(newRate) || newRate <= 0) return;
+  // Update localRate when global exchangeRate changes (e.g. from Supabase sync)
+  useEffect(() => {
+    setLocalRate(exchangeRate.toString());
+  }, [exchangeRate]);
+
+  const handleRateChange = (val: string) => {
+    setLocalRate(val);
+  };
+
+  const initiateRateUpdate = () => {
+    const newRate = Number(localRate);
+    if (isNaN(newRate) || newRate <= 0 || newRate === exchangeRate) return;
     setPendingRate(newRate);
     setIsConfirmingRate(true);
   };
@@ -138,15 +148,26 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
             <p className="text-sm text-gray-500 font-medium">Tasa del día</p>
           </div>
         </div>
-        <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-gray-200">
-          <span className="text-gray-500 font-medium mr-1">Bs.</span>
-          <input
-            type="number"
-            value={exchangeRate}
-            onChange={(e) => initiateRateUpdate(e.target.value)}
-            className="w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900"
-            step="0.01"
-          />
+        <div className="flex items-center space-x-2">
+          <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-gray-200">
+            <span className="text-gray-500 font-medium mr-1">Bs.</span>
+            <input
+              type="number"
+              value={localRate}
+              onChange={(e) => handleRateChange(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && initiateRateUpdate()}
+              className="w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900"
+              step="0.01"
+            />
+          </div>
+          {Number(localRate) !== exchangeRate && Number(localRate) > 0 && (
+            <button 
+              onClick={initiateRateUpdate}
+              className="p-2 bg-primary-600 text-white rounded-xl shadow-sm hover:bg-primary-700 animate-in fade-in zoom-in duration-200"
+            >
+              <Check size={18} />
+            </button>
+          )}
         </div>
       </div>
 
