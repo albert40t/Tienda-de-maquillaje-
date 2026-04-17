@@ -353,7 +353,8 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-primary-400 uppercase leading-none mb-1">Total</p>
-                <p className="font-black text-xl">${formatUSD(subtotal)}</p>
+                <p className="font-black text-xl leading-none mb-0.5">${formatUSD(subtotal)}</p>
+                <p className="text-[10px] font-bold text-gray-400">Bs. {formatBs(subtotal * exchangeRate)}</p>
               </div>
             </button>
           </div>
