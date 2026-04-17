@@ -23,6 +23,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   // --- POS State ---
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string | null>(null);
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
@@ -146,11 +147,17 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
   if (view === 'new_sale') {
     const categories = Array.from(new Set(products.map(p => p.category)));
+    
+    // Get brands only if Perfumes is selected
+    const brands = selectedCategory === 'Perfumes' 
+      ? Array.from(new Set(products.filter(p => p.category === 'Perfumes' && p.brand).map(p => p.brand!)))
+      : [];
 
     const filteredProducts = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
-      return matchesSearch && matchesCategory;
+      const matchesBrand = selectedBrand ? p.brand === selectedBrand : true;
+      return matchesSearch && matchesCategory && matchesBrand;
     });
 
     return (
@@ -179,10 +186,13 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             </div>
             
             {/* Categories (Pills) */}
-            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sticky top-0">
+            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sticky top-0 bg-white">
               <div className="flex space-x-2.5 pb-2">
                 <button
-                  onClick={() => setSelectedCategory(null)}
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSelectedBrand(null);
+                  }}
                   className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
                     selectedCategory === null 
                       ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105' 
@@ -194,7 +204,10 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                 {categories.map(category => (
                   <button
                     key={category}
-                    onClick={() => setSelectedCategory(category)}
+                    onClick={() => {
+                      setSelectedCategory(category);
+                      setSelectedBrand(null);
+                    }}
                     className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
                       selectedCategory === category 
                         ? 'bg-primary-600 border-primary-600 text-white shadow-lg scale-105' 
@@ -206,6 +219,37 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                 ))}
               </div>
             </div>
+
+            {/* Brands (Sub-categories) - Only shown for Perfumes */}
+            {selectedCategory === 'Perfumes' && brands.length > 0 && (
+              <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 bg-gray-50/50 py-2 border-t border-gray-100">
+                <div className="flex space-x-2">
+                  <button
+                    onClick={() => setSelectedBrand(null)}
+                    className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${
+                      selectedBrand === null 
+                        ? 'bg-white border-gray-400 text-gray-900 shadow-sm' 
+                        : 'bg-transparent border-transparent text-gray-400'
+                    }`}
+                  >
+                    Todas las Marcas
+                  </button>
+                  {brands.map(brand => (
+                    <button
+                      key={brand}
+                      onClick={() => setSelectedBrand(brand)}
+                      className={`shrink-0 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest transition-all border ${
+                        selectedBrand === brand 
+                          ? 'bg-white border-primary-400 text-primary-700 shadow-sm' 
+                          : 'bg-transparent border-transparent text-gray-400 hover:text-gray-600'
+                      }`}
+                    >
+                      {brand}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="flex-1 overflow-y-auto p-2.5 md:p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-4 pb-28 lg:pb-6">
