@@ -40,35 +40,20 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
-  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>(() => {
-    const saved = localStorage.getItem('app_business_info');
-    if (saved) {
-      try {
-        return JSON.parse(saved);
-      } catch (e) {
-        console.error('Error parsing business info from localStorage', e);
-      }
-    }
-    return {
-      name: 'Stely Beauty',
-      address: 'Av. Principal, Local 4',
-      phone: '+58 412-1234567',
-      email: 'contacto@stelybeauty.com',
-      instagram: 'https://instagram.com',
-      tiktok: 'https://tiktok.com',
-      facebook: 'https://facebook.com'
-    };
+  const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
+    name: 'Stely Beauty',
+    address: 'Av. Principal, Local 4',
+    phone: '+58 412-1234567',
+    email: 'contacto@stelybeauty.com',
+    instagram: 'https://instagram.com',
+    tiktok: 'https://tiktok.com',
+    facebook: 'https://facebook.com'
   });
 
   // Save exchange rate when it changes
   useEffect(() => {
     localStorage.setItem('app_exchange_rate', exchangeRate.toString());
   }, [exchangeRate]);
-
-  // Save business info when it changes
-  useEffect(() => {
-    localStorage.setItem('app_business_info', JSON.stringify(businessInfo));
-  }, [businessInfo]);
 
   // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
@@ -90,7 +75,15 @@ export default function App() {
       const { data: pData } = await supabase.from('productos').select('*');
       const { data: cData } = await supabase.from('clientes').select('*');
       const { data: sData } = await supabase.from('ventas').select('*');
+      const { data: bData } = await supabase.from('business_info').select('*').single();
       
+      if (bData) {
+        setBusinessInfo({
+          ...bData,
+          paymentConfig: bData.payment_config
+        });
+      }
+
       if (pData && pData.length > 0) {
         setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
       } else {
@@ -98,7 +91,11 @@ export default function App() {
       }
       
       if (cData && cData.length > 0) {
-        setCustomers(cData.map(c => ({ ...c, totalPurchases: c.total_purchases } as Customer)));
+        setCustomers(cData.map(c => ({ 
+          ...c, 
+          totalPurchases: c.total_purchases,
+          idCard: c.id_card 
+        } as Customer)));
       } else {
         setCustomers([]);
       }
@@ -143,6 +140,14 @@ export default function App() {
           setCustomers(prev => prev.map(c => c.id === payload.new.id ? { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer : c));
         } else if (payload.eventType === 'DELETE') {
           setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_info' }, (payload) => {
+        if (payload.eventType === 'UPDATE') {
+          setBusinessInfo({
+            ...payload.new as any,
+            paymentConfig: (payload.new as any).payment_config
+          });
         }
       })
       .subscribe();

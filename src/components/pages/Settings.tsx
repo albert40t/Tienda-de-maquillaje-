@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X } from 'lucide-react';
+import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { BusinessInfo } from '../../types';
 import { Page } from '../../App';
@@ -14,14 +14,41 @@ interface SettingsProps {
 }
 
 export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut }: SettingsProps) {
-  const [activeView, setActiveView] = useState<'main' | 'business'>('main');
+  const [activeView, setActiveView] = useState<'main' | 'business' | 'payments'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
   const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
-  const handleSave = () => {
-    setBusinessInfo(formData);
-    toast.success('Información del negocio guardada');
-    setActiveView('main');
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      
+      const { error } = await supabase
+        .from('business_info')
+        .upsert({
+          id: 1,
+          name: formData.name,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          logo: formData.logo,
+          instagram: formData.instagram,
+          tiktok: formData.tiktok,
+          facebook: formData.facebook,
+          payment_config: formData.paymentConfig
+        });
+
+      if (error) throw error;
+
+      setBusinessInfo(formData);
+      toast.success('Información del negocio guardada exitosamente');
+      setActiveView('main');
+    } catch (error: any) {
+      console.error('Error saving business info:', error);
+      toast.error(`Error al guardar: ${error.message || 'Error de conexión'}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +65,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
 
       const fileName = `logo_${Date.now()}_${compressedFile.name}`;
       const { error } = await supabase.storage
-        .from('products')
+        .from('productos')
         .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: false
@@ -51,7 +78,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('products')
+        .from('productos')
         .getPublicUrl(fileName);
 
       setFormData(prev => ({ ...prev, logo: publicUrl }));
@@ -70,6 +97,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
       items: [
         { id: 'profile', icon: User, label: 'Perfil de Usuario', color: 'text-blue-500', bg: 'bg-blue-50' },
         { id: 'business', icon: Store, label: 'Información del Negocio', color: 'text-purple-500', bg: 'bg-purple-50' },
+        { id: 'payments', icon: CreditCard, label: 'Métodos de Pago', color: 'text-emerald-500', bg: 'bg-emerald-50' },
       ]
     },
     {
@@ -86,6 +114,179 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
       ]
     }
   ];
+
+  if (activeView === 'payments') {
+    return (
+      <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
+        <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 flex items-center space-x-2">
+          <button 
+            onClick={() => setActiveView('main')}
+            className="p-1.5 -ml-1.5 text-gray-600 hover:bg-gray-50 rounded-full transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="text-lg font-bold text-gray-900">Métodos de Pago</h2>
+        </div>
+
+        <div className="p-6 space-y-8 flex-1 overflow-y-auto">
+          {/* Pago Móvil */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 border-b border-gray-100 pb-2">
+              <Smartphone size={18} className="text-emerald-500" />
+              <h3 className="font-bold text-gray-900">Pago Móvil</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Banco</label>
+                <input 
+                  type="text" 
+                  value={formData.paymentConfig?.pagoMovil?.banco || ''}
+                  onChange={e => setFormData({
+                    ...formData, 
+                    paymentConfig: {
+                      ...formData.paymentConfig,
+                      pagoMovil: { ...(formData.paymentConfig?.pagoMovil || { telf: '', ci: '' }), banco: e.target.value }
+                    }
+                  })}
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  placeholder="Ej. Banesco"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Teléfono</label>
+                  <input 
+                    type="tel" 
+                    value={formData.paymentConfig?.pagoMovil?.telf || ''}
+                    onChange={e => setFormData({
+                      ...formData, 
+                      paymentConfig: {
+                        ...formData.paymentConfig,
+                        pagoMovil: { ...(formData.paymentConfig?.pagoMovil || { banco: '', ci: '' }), telf: e.target.value }
+                      }
+                    })}
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                    placeholder="0412..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cédula</label>
+                  <input 
+                    type="text" 
+                    value={formData.paymentConfig?.pagoMovil?.ci || ''}
+                    onChange={e => setFormData({
+                      ...formData, 
+                      paymentConfig: {
+                        ...formData.paymentConfig,
+                        pagoMovil: { ...(formData.paymentConfig?.pagoMovil || { banco: '', telf: '' }), ci: e.target.value }
+                      }
+                    })}
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                    placeholder="V-0000..."
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Zelle */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 border-b border-gray-100 pb-2">
+              <Globe size={18} className="text-blue-500" />
+              <h3 className="font-bold text-gray-900">Zelle</h3>
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Correo Zelle</label>
+                <input 
+                  type="email" 
+                  value={formData.paymentConfig?.zelle?.email || ''}
+                  onChange={e => setFormData({
+                    ...formData, 
+                    paymentConfig: {
+                      ...formData.paymentConfig,
+                      zelle: { ...(formData.paymentConfig?.zelle || { nombre: '' }), email: e.target.value }
+                    }
+                  })}
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  placeholder="zelle@ejemplo.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Nombre del Titular</label>
+                <input 
+                  type="text" 
+                  value={formData.paymentConfig?.zelle?.nombre || ''}
+                  onChange={e => setFormData({
+                    ...formData, 
+                    paymentConfig: {
+                      ...formData.paymentConfig,
+                      zelle: { ...(formData.paymentConfig?.zelle || { email: '' }), nombre: e.target.value }
+                    }
+                  })}
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  placeholder="Nombre completo"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* PayPal / Binance */}
+          <div className="space-y-4">
+            <div className="flex items-center space-x-2 border-b border-gray-100 pb-2">
+              <CreditCard size={18} className="text-indigo-500" />
+              <h3 className="font-bold text-gray-900">Otros (PayPal / Binance)</h3>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email PayPal</label>
+                <input 
+                  type="email" 
+                  value={formData.paymentConfig?.paypal?.email || ''}
+                  onChange={e => setFormData({
+                    ...formData, 
+                    paymentConfig: {
+                      ...formData.paymentConfig,
+                      paypal: { email: e.target.value }
+                    }
+                  })}
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  placeholder="paypal@ejemplo.com"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Binance Email/ID</label>
+                <input 
+                  type="text" 
+                  value={formData.paymentConfig?.binance?.email || ''}
+                  onChange={e => setFormData({
+                    ...formData, 
+                    paymentConfig: {
+                      ...formData.paymentConfig,
+                      binance: { ...(formData.paymentConfig?.binance || { id: '' }), email: e.target.value }
+                    }
+                  })}
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  placeholder="Email o Pay ID"
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="p-4 bg-white border-t border-gray-100 pb-safe">
+          <button 
+            onClick={handleSave}
+            disabled={isSaving}
+            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-2xl shadow-sm hover:bg-primary-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? <Loader2 size={18} className="animate-spin mr-2" /> : <Save size={18} className="mr-2" />}
+            {isSaving ? 'Guardando...' : 'Guardar Métodos de Pago'}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (activeView === 'business') {
     return (
@@ -221,10 +422,11 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         <div className="p-4 bg-white border-t border-gray-100 pb-safe">
           <button 
             onClick={handleSave}
-            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-2xl shadow-sm hover:bg-primary-700 transition-colors flex items-center justify-center"
+            disabled={isSaving}
+            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-2xl shadow-sm hover:bg-primary-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            <Save size={18} className="mr-2" />
-            Guardar Cambios
+            {isSaving ? <Loader2 size={18} className="animate-spin mr-2" /> : <Save size={18} className="mr-2" />}
+            {isSaving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </div>
       </div>
@@ -255,6 +457,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                     key={itemIdx}
                     onClick={() => {
                       if (item.id === 'business') setActiveView('business');
+                      if (item.id === 'payments') setActiveView('payments');
                       if (item.id === 'notifications') onNavigate('activity-logs');
                     }}
                     className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${

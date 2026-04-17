@@ -79,7 +79,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
 
       const fileName = `cat_${Date.now()}_${compressedFile.name}`;
       const { error } = await supabase.storage
-        .from('products')
+        .from('productos')
         .upload(fileName, compressedFile, {
           cacheControl: '3600',
           upsert: false
@@ -92,7 +92,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
       }
 
       const { data: { publicUrl } } = supabase.storage
-        .from('products')
+        .from('productos')
         .getPublicUrl(fileName);
 
       setFormData(prev => ({ ...prev, image: publicUrl }));

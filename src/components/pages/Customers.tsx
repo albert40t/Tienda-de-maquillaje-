@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Plus, User, Phone, Gift, Star, ArrowLeft, ShoppingBag, Calendar, Edit2, Trash2, X, Save } from 'lucide-react';
+import { Search, Plus, User, Phone, Star, ArrowLeft, ShoppingBag, Calendar, Edit2, Trash2, X, Save, Shield, MapPin } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Customer, Sale } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -28,7 +28,7 @@ export default function Customers({ customers, sales }: CustomersProps) {
   const getCustomerPoints = (customerId: string) => Math.floor(getCustomerTotalSpent(customerId));
 
   const openAdd = () => {
-    setFormData({ name: '', phone: '', birthday: '' });
+    setFormData({ name: '', phone: '', idCard: '', address: '' });
     setModalMode('add');
   };
 
@@ -53,7 +53,8 @@ export default function Customers({ customers, sales }: CustomersProps) {
         id: `CUST-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
         name: formData.name,
         phone: formData.phone,
-        birthday: formData.birthday || null,
+        id_card: formData.idCard || null,
+        address: formData.address || null,
         points: 0,
         total_purchases: 0
       };
@@ -80,7 +81,8 @@ export default function Customers({ customers, sales }: CustomersProps) {
       const { error } = await supabase.from('clientes').update({
         name: formData.name,
         phone: formData.phone,
-        birthday: formData.birthday || null
+        id_card: formData.idCard || null,
+        address: formData.address || null
       }).eq('id', formData.id);
 
       if (error) {
@@ -171,23 +173,34 @@ export default function Customers({ customers, sales }: CustomersProps) {
             </div>
           </div>
 
-          {/* Info */}
-          {selectedCustomer.birthday && (
-            <div className="p-4">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Información Personal</h3>
-              <div className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center space-x-3">
-                <div className="p-2 bg-pink-50 text-pink-500 rounded-xl">
-                  <Gift size={18} />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500 font-medium">Cumpleaños</p>
-                  <p className="text-sm font-semibold text-gray-900">
-                    {new Date(selectedCustomer.birthday).toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}
-                  </p>
-                </div>
+          {/* Additional Info */}
+          <div className="p-4 space-y-3">
+            <h3 className="text-sm font-bold text-gray-900 mb-1">Información de la Clienta</h3>
+            
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 flex items-center space-x-3">
+              <div className="p-2 bg-blue-50 text-blue-500 rounded-xl">
+                <Shield size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Cédula</p>
+                <p className="text-sm font-semibold text-gray-900">
+                  {selectedCustomer.idCard || 'No registrada'}
+                </p>
               </div>
             </div>
-          )}
+
+            <div className="bg-white rounded-2xl p-4 border border-gray-100 flex items-start space-x-3">
+              <div className="p-2 bg-purple-50 text-purple-500 rounded-xl mt-0.5">
+                <MapPin size={18} />
+              </div>
+              <div>
+                <p className="text-xs text-gray-500 font-medium">Dirección</p>
+                <p className="text-sm font-semibold text-gray-900 leading-snug">
+                  {selectedCustomer.address || 'No registrada'}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Purchase History */}
           <div className="p-4 pt-0">
@@ -274,8 +287,8 @@ export default function Customers({ customers, sales }: CustomersProps) {
                   <h3 className="font-semibold text-gray-900">{customer.name}</h3>
                   <div className="flex items-center text-xs text-gray-500 mt-0.5 space-x-2">
                     <span className="flex items-center"><Phone size={12} className="mr-1" /> {customer.phone}</span>
-                    {customer.birthday && (
-                      <span className="flex items-center text-primary-600"><Gift size={12} className="mr-1" /> {new Date(customer.birthday).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })}</span>
+                    {customer.idCard && (
+                      <span className="flex items-center text-gray-400">ID: {customer.idCard}</span>
                     )}
                   </div>
                 </div>
@@ -347,12 +360,22 @@ export default function Customers({ customers, sales }: CustomersProps) {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Fecha de Nacimiento (Opcional)</label>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Cédula (Opcional)</label>
                     <input 
-                      type="date" 
-                      value={formData.birthday || ''}
-                      onChange={e => setFormData({...formData, birthday: e.target.value})}
+                      type="text" 
+                      value={formData.idCard || ''}
+                      onChange={e => setFormData({...formData, idCard: e.target.value})}
                       className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                      placeholder="Ej. V-20123456"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Dirección (Opcional)</label>
+                    <textarea 
+                      value={formData.address || ''}
+                      onChange={e => setFormData({...formData, address: e.target.value})}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none h-20 resize-none"
+                      placeholder="Ej. Calle 123, Av. Principal..."
                     />
                   </div>
                   

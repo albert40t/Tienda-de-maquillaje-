@@ -114,7 +114,8 @@ export const mockCustomers: Customer[] = [
     id: '1',
     name: 'María González',
     phone: '+58 414-1234567',
-    birthday: '1995-05-14',
+    idCard: 'V-12345678',
+    address: 'Urb. La Paz, Calle 5',
     points: 150,
     totalPurchases: 3
   },
@@ -122,7 +123,8 @@ export const mockCustomers: Customer[] = [
     id: '2',
     name: 'Ana Pérez',
     phone: '+58 412-9876543',
-    birthday: '1988-11-22',
+    idCard: 'V-87654321',
+    address: 'Res. El Sol, Apto 4B',
     points: 45,
     totalPurchases: 1
   }

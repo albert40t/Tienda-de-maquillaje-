@@ -404,7 +404,33 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     <div className={`w-10 h-10 rounded-full flex items-center justify-center mr-4 ${paymentMethod === method.id ? 'bg-black text-white' : 'bg-gray-100 text-gray-500'}`}>
                       <method.icon size={20} />
                     </div>
-                    <span className="font-bold text-gray-900">{method.name}</span>
+                    <div className="flex-1 text-left">
+                      <span className="block font-bold text-gray-900">{method.name}</span>
+                      {paymentMethod === method.id && (
+                        <div className="mt-1 animate-in fade-in slide-in-from-top-1 duration-200">
+                          {method.id === 'pago_movil' && businessInfo.paymentConfig?.pagoMovil && (
+                            <p className="text-[10px] text-gray-500 leading-tight">
+                              {businessInfo.paymentConfig.pagoMovil.banco} • {businessInfo.paymentConfig.pagoMovil.telf} • {businessInfo.paymentConfig.pagoMovil.ci}
+                            </p>
+                          )}
+                          {method.id === 'zelle' && businessInfo.paymentConfig?.zelle && (
+                            <p className="text-[10px] text-gray-500 leading-tight">
+                              {businessInfo.paymentConfig.zelle.email} • {businessInfo.paymentConfig.zelle.nombre}
+                            </p>
+                          )}
+                          {method.id === 'paypal' && businessInfo.paymentConfig?.paypal && (
+                            <p className="text-[10px] text-gray-500 leading-tight">
+                              {businessInfo.paymentConfig.paypal.email}
+                            </p>
+                          )}
+                          {method.id === 'usdt_binance' && businessInfo.paymentConfig?.binance && (
+                            <p className="text-[10px] text-gray-500 leading-tight">
+                              {businessInfo.paymentConfig.binance.email}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    </div>
                     {paymentMethod === method.id && <CheckCircle2 className="ml-auto text-black" size={20} />}
                   </button>
                 ))}
@@ -444,6 +470,16 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                   <p><span className="font-semibold text-gray-900">Cédula:</span> {idCard}</p>
                   <p><span className="font-semibold text-gray-900">Teléfono:</span> {phone}</p>
                   <p><span className="font-semibold text-gray-900">Pago:</span> <span className="uppercase">{paymentMethod.replace('_', ' ')}</span></p>
+                  {paymentMethod === 'pago_movil' && businessInfo.paymentConfig?.pagoMovil && (
+                    <p className="text-[11px] bg-white p-2 rounded-lg mt-1 border border-gray-100 italic">
+                      {businessInfo.paymentConfig.pagoMovil.banco} | {businessInfo.paymentConfig.pagoMovil.telf} | {businessInfo.paymentConfig.pagoMovil.ci}
+                    </p>
+                  )}
+                  {paymentMethod === 'zelle' && businessInfo.paymentConfig?.zelle && (
+                    <p className="text-[11px] bg-white p-2 rounded-lg mt-1 border border-gray-100 italic">
+                      {businessInfo.paymentConfig.zelle.email} | {businessInfo.paymentConfig.zelle.nombre}
+                    </p>
+                  )}
                 </div>
 
                 <div className="border-t border-gray-200 pt-4 space-y-2">

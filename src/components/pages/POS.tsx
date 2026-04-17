@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText } from 'lucide-react';
+import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -153,80 +153,207 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     });
 
     return (
-      <div className="h-full flex flex-col bg-gray-50 animate-in slide-in-from-right-8 duration-300 relative">
-        <div className="bg-white px-4 py-3 shadow-sm flex flex-col space-y-3 z-10">
-          <div className="flex items-center space-x-3">
-            <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-              <ArrowLeft size={20} />
-            </button>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-              <input
-                type="text"
-                placeholder="Buscar producto..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 bg-gray-100 border-transparent rounded-xl text-sm focus:bg-white focus:border-primary-300 focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-              />
+      <div className="h-full flex flex-col lg:flex-row bg-[#F8F9FA] animate-in slide-in-from-right-8 duration-300 relative overflow-hidden">
+        {/* Main Terminal Area (Products) */}
+        <div className="flex-1 flex flex-col h-full min-w-0">
+          <div className="bg-white px-4 py-3 border-b border-gray-200 flex flex-col space-y-3 z-10 shrink-0">
+            <div className="flex items-center space-x-3">
+              <button 
+                onClick={() => setView('menu')} 
+                className="p-2 -ml-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
+                title="Volver al menú"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <div className="relative flex-1">
+                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <input
+                  type="text"
+                  placeholder="Buscar por nombre o categoría..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border-gray-100 rounded-2xl text-sm focus:bg-white focus:border-primary-400 focus:ring-4 focus:ring-primary-100 outline-none transition-all placeholder:text-gray-400"
+                />
+              </div>
+            </div>
+            
+            {/* Categories (Pills) */}
+            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sticky top-0">
+              <div className="flex space-x-2.5 pb-2">
+                <button
+                  onClick={() => setSelectedCategory(null)}
+                  className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
+                    selectedCategory === null 
+                      ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105' 
+                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                  }`}
+                >
+                  Todos
+                </button>
+                {categories.map(category => (
+                  <button
+                    key={category}
+                    onClick={() => setSelectedCategory(category)}
+                    className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
+                      selectedCategory === category 
+                        ? 'bg-primary-600 border-primary-600 text-white shadow-lg scale-105' 
+                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                    }`}
+                  >
+                    {category}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
-          
-          {/* Categories (Pills) */}
-          <div className="overflow-x-auto hide-scrollbar -mx-4 px-4">
-            <div className="flex space-x-2 pb-1">
+
+          <div className="flex-1 overflow-y-auto p-2.5 md:p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-4 pb-28 lg:pb-6">
+            {filteredProducts.map(product => (
               <button
-                onClick={() => setSelectedCategory(null)}
-                className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedCategory === null ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                key={product.id}
+                onClick={() => addToCart(product)}
+                className="group bg-white rounded-3xl md:rounded-[2rem] p-2 md:p-3 shadow-sm border border-gray-100 text-left hover:border-primary-400 hover:shadow-xl hover:shadow-primary-900/5 active:scale-95 transition-all flex flex-col h-full relative"
               >
-                Todos
+                <div className="aspect-square rounded-2xl md:rounded-[1.5rem] overflow-hidden mb-2 md:mb-3 bg-gray-50 relative">
+                  <img 
+                    src={product.image} 
+                    alt={product.name} 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                    referrerPolicy="no-referrer"
+                  />
+                  <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[10px] md:text-[11px] font-black text-gray-900 shadow-sm border border-gray-100">
+                    ${product.price.toFixed(2)}
+                  </div>
+                </div>
+                <div className="px-0.5 md:px-1 flex flex-col flex-1">
+                  <h3 className="text-[11px] md:text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5 md:mb-2">{product.name}</h3>
+                  <div className="flex items-center justify-between mt-auto pt-0.5">
+                    <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate max-w-[50px] md:max-w-[60px]">
+                      {product.brand || product.category}
+                    </span>
+                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
+                      <Plus size={16} />
+                    </div>
+                  </div>
+                </div>
               </button>
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => setSelectedCategory(category)}
-                  className={`shrink-0 px-4 py-1.5 rounded-full text-xs font-bold transition-all ${selectedCategory === category ? 'bg-black text-white shadow-md' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {category}
-                </button>
-              ))}
-            </div>
+            ))}
+
+            {filteredProducts.length === 0 && (
+              <div className="col-span-full py-20 flex flex-col items-center text-center">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <Search size={32} className="text-gray-300" />
+                </div>
+                <h3 className="text-gray-900 font-bold">No encontramos el producto</h3>
+                <p className="text-gray-500 text-sm max-w-[200px] mt-1">Intenta con otro nombre o cambia de categoría.</p>
+              </div>
+            )}
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 grid grid-cols-2 gap-3 pb-24">
-          {filteredProducts.map(product => (
-            <button
-              key={product.id}
-              onClick={() => addToCart(product)}
-              className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100 text-left hover:border-primary-300 active:scale-95 transition-all flex flex-col"
-            >
-              <div className="aspect-square rounded-xl overflow-hidden mb-2 bg-gray-50">
-                <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
+        {/* Sidebar Cart Area (Always visible on Desktop, Mobile Button Overlay) */}
+        <aside className="hidden lg:flex w-96 bg-white border-l border-gray-200 flex-col shadow-2xl relative z-20">
+          <div className="p-6 border-b border-gray-100 flex items-center justify-between shrink-0">
+            <div className="flex items-center space-x-2">
+              <ShoppingBag size={20} className="text-primary-600" />
+              <h2 className="text-lg font-bold text-gray-900">Ticket Actual</h2>
+            </div>
+            <span className="text-xs font-bold text-gray-400 uppercase tracking-widest">{itemCount} items</span>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            {cart.length > 0 ? (
+              cart.map(item => (
+                <div key={item.id} className="group flex items-center space-x-3 animate-in fade-in slide-in-from-right-4 duration-300">
+                  <div className="w-14 h-14 rounded-2xl overflow-hidden bg-gray-50 shrink-0 border border-gray-100 shadow-sm relative">
+                    <img src={item.image} alt={item.name} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
+                    {item.quantity > 1 && (
+                      <div className="absolute -top-1 -right-1 bg-primary-600 text-white text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-white">
+                        {item.quantity}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 pr-2">
+                    <h4 className="text-sm font-bold text-gray-900 truncate">{item.name}</h4>
+                    <p className="text-xs font-bold text-primary-600">${(item.price * item.quantity).toFixed(2)}</p>
+                  </div>
+                  <div className="flex items-center space-x-1.5 bg-[#F8F9FA] rounded-xl p-1 shrink-0">
+                    <button 
+                      onClick={() => updateQuantity(item.id, -1)} 
+                      className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-white rounded-lg transition-all"
+                    >
+                      <Minus size={14} />
+                    </button>
+                    <span className="text-sm font-black w-4 text-center text-gray-900">{item.quantity}</span>
+                    <button 
+                      onClick={() => updateQuantity(item.id, 1)} 
+                      className="p-1.5 text-gray-400 hover:text-gray-900 hover:bg-white rounded-lg transition-all"
+                    >
+                      <Plus size={14} />
+                    </button>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
+                <div className="w-16 h-16 border-2 border-dashed border-gray-300 rounded-full flex items-center justify-center mb-4">
+                  <Plus size={24} className="text-gray-400" />
+                </div>
+                <p className="text-sm font-bold text-gray-500">Agrega productos<br/>al ticket</p>
               </div>
-              <h3 className="text-xs font-bold text-gray-900 line-clamp-2 mb-1 flex-1">{product.name}</h3>
-              <div className="flex justify-between items-end w-full mt-auto">
-                <span className="font-bold text-primary-600">${product.price.toFixed(2)}</span>
-                <div className="w-6 h-6 rounded-full bg-gray-100 flex items-center justify-center text-gray-600">
-                  <Plus size={14} />
+            )}
+          </div>
+
+          <div className="p-6 bg-[#F8F9FA] border-t border-gray-200">
+            <div className="space-y-3 mb-6">
+              <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
+                <span>Subtotal</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between items-center text-gray-900 font-bold border-t border-gray-200 pt-3">
+                <span className="text-lg">Total</span>
+                <div className="text-right">
+                  <div className="text-2xl font-black text-primary-600 leading-none">${subtotal.toFixed(2)}</div>
+                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter mt-1">~ Bs. {(subtotal * exchangeRate).toFixed(2)}</div>
                 </div>
               </div>
+            </div>
+            
+            <button 
+              disabled={cart.length === 0}
+              className={`w-full py-5 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-primary-900/10 transition-all flex items-center justify-center active:scale-[0.98] ${
+                cart.length > 0 
+                  ? 'bg-primary-600 text-white hover:bg-primary-700' 
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+              }`}
+              onClick={handleCheckout}
+            >
+              <CheckCircle2 size={24} className="mr-2" />
+              Procesar Pago
             </button>
-          ))}
-        </div>
+          </div>
+        </aside>
 
+        {/* Mobile Ticket Trigger */}
         {itemCount > 0 && (
-          <div className="absolute bottom-4 left-4 right-4 z-20">
+          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-20 animate-in slide-in-from-bottom-8">
             <button
               onClick={() => setIsCartOpen(true)}
-              className="w-full bg-gray-900 text-white px-6 py-4 rounded-2xl shadow-xl flex items-center justify-between hover:bg-gray-800 transition-transform active:scale-95"
+              className="w-full bg-gray-900 text-white px-6 py-4.5 rounded-[1.75rem] shadow-2xl flex items-center justify-between hover:bg-gray-800 transition-transform active:scale-95"
             >
               <div className="flex items-center space-x-3">
-                <div className="bg-white/20 w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm">
+                <div className="bg-primary-500 w-9 h-9 rounded-xl flex items-center justify-center font-bold text-sm shadow-inner transform rotate-3">
                   {itemCount}
                 </div>
-                <span className="font-semibold">Ver Ticket</span>
+                <div className="text-left">
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-gray-400 leading-none mb-1">Ticket Actual</p>
+                  <p className="font-bold text-sm">Ver Detalle</p>
+                </div>
               </div>
-              <span className="font-bold text-lg">${subtotal.toFixed(2)}</span>
+              <div className="text-right">
+                <p className="text-[10px] font-bold text-primary-400 uppercase leading-none mb-1">Total</p>
+                <p className="font-black text-xl">${subtotal.toFixed(2)}</p>
+              </div>
             </button>
           </div>
         )}
@@ -282,129 +409,192 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
         {/* Checkout Drawer (Payment Terminal) */}
         {isCheckoutOpen && (
-          <div className="absolute inset-0 z-40 flex flex-col justify-end">
-            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setIsCheckoutOpen(false)} />
-            <div className="bg-gray-50 rounded-t-3xl h-[92%] flex flex-col relative animate-in slide-in-from-bottom-full duration-300 shadow-2xl">
-              <div className="p-4 border-b border-gray-200 flex items-center justify-between bg-white rounded-t-3xl">
-                <h2 className="text-lg font-bold text-gray-900">Terminal de Pago</h2>
-                <button onClick={() => setIsCheckoutOpen(false)} className="p-2 text-gray-400 hover:bg-gray-100 rounded-full transition-colors">
-                  <X size={20} />
-                </button>
-              </div>
+          <div className="absolute inset-0 z-40 flex items-center justify-center p-0 lg:p-8">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in" onClick={() => setIsCheckoutOpen(false)} />
+            <div className="bg-[#F8F9FA] w-full max-w-4xl h-full lg:h-auto lg:max-h-[85vh] lg:rounded-[2.5rem] flex flex-col lg:flex-row relative animate-in zoom-in-95 duration-300 shadow-2xl overflow-hidden border border-white/20">
               
-              <div className="flex-1 overflow-y-auto p-5 space-y-6">
-                {/* Total Display */}
-                <div className="bg-gray-900 rounded-3xl p-6 text-center shadow-lg relative overflow-hidden">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-primary-400 via-primary-500 to-primary-600"></div>
-                  <p className="text-gray-400 text-sm font-medium mb-1">Monto a Cobrar</p>
-                  <h1 className="text-5xl font-bold text-white tracking-tight mb-2 font-mono">${total.toFixed(2)}</h1>
-                  <p className="text-gray-400 font-medium font-mono">Bs. {(total * exchangeRate).toFixed(2)}</p>
+              {/* Order Summary Side (Desktop) */}
+              <div className="hidden lg:flex w-80 bg-white border-r border-gray-100 flex-col shrink-0">
+                <div className="p-6 shrink-0 border-b border-gray-50 bg-gray-50/50">
+                  <h3 className="font-bold text-gray-900 text-sm uppercase tracking-widest flex items-center">
+                    <ReceiptText size={16} className="mr-2 text-primary-600" />
+                    Resumen del Ticket
+                  </h3>
                 </div>
-
-                <div className="space-y-5">
-                  {/* Customer Selection */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Asignar a Clienta</label>
-                    <div className="relative">
-                      <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <select 
-                        value={selectedCustomer}
-                        onChange={(e) => setSelectedCustomer(e.target.value)}
-                        className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 focus:ring-2 focus:ring-primary-200 outline-none appearance-none shadow-sm"
-                      >
-                        <option value="">Consumidor Final</option>
-                        {customers.map(c => (
-                          <option key={c.id} value={c.id}>{c.name}</option>
-                        ))}
-                      </select>
+                <div className="flex-1 overflow-y-auto p-6 space-y-4">
+                  {cart.map(item => (
+                    <div key={item.id} className="flex justify-between items-start text-sm">
+                      <div className="min-w-0 pr-2">
+                        <p className="font-bold text-gray-700 leading-tight mb-0.5 line-clamp-1">{item.name}</p>
+                        <p className="text-xs font-medium text-gray-400">{item.quantity} x ${item.price.toFixed(2)}</p>
+                      </div>
+                      <span className="font-bold text-gray-900 shrink-0">${(item.price * item.quantity).toFixed(2)}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="p-6 bg-gray-900 text-white shrink-0">
+                  <div className="flex justify-between items-center mb-1">
+                    <span className="text-xs font-bold text-gray-400 uppercase">Subtotal</span>
+                    <span className="font-medium tracking-tight">${subtotal.toFixed(2)}</span>
+                  </div>
+                  {discount > 0 && (
+                    <div className="flex justify-between items-center mb-4 text-green-400">
+                      <span className="text-xs font-bold uppercase">Descuento ({discount}%)</span>
+                      <span className="font-medium tracking-tight">-${(subtotal * (discount / 100)).toFixed(2)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between items-center pt-3 border-t border-white/10">
+                    <span className="text-sm font-bold uppercase text-primary-400">Total</span>
+                    <div className="text-right">
+                      <div className="text-2xl font-black font-mono leading-none">${total.toFixed(2)}</div>
+                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mt-1">~ Bs. {(total * exchangeRate).toFixed(2)}</div>
                     </div>
                   </div>
+                </div>
+              </div>
 
-                  {/* Discount */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Aplicar Descuento (%)</label>
-                    <div className="relative">
-                      <Percent className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
-                      <input 
-                        type="number" 
-                        value={discount || ''}
-                        onChange={(e) => setDiscount(Math.max(0, Math.min(100, Number(e.target.value))))}
-                        placeholder="0"
-                        className="w-full pl-11 pr-4 py-3.5 bg-white border border-gray-200 rounded-2xl text-sm font-medium text-gray-900 focus:ring-2 focus:ring-primary-200 outline-none shadow-sm"
-                      />
+              {/* Main Checkout View */}
+              <div className="flex-1 flex flex-col h-full lg:h-auto lg:overflow-visible">
+                <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white shrink-0 lg:rounded-tr-[2.5rem]">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-600">
+                      <CreditCard size={20} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg font-bold text-gray-900 leading-none">Terminal de Pago</h2>
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 lg:hidden">Total: ${total.toFixed(2)}</p>
+                    </div>
+                  </div>
+                  <button onClick={() => setIsCheckoutOpen(false)} className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all">
+                    <X size={22} />
+                  </button>
+                </div>
+                
+                <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-8 bg-[#F8F9FA]/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Customer Selection */}
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Clienta Asignada</label>
+                      <div className="relative group">
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-within:text-primary-600 transition-colors" size={18} />
+                        <select 
+                          value={selectedCustomer}
+                          onChange={(e) => setSelectedCustomer(e.target.value)}
+                          className="w-full pl-11 pr-10 py-4 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-bold text-gray-700 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none appearance-none shadow-sm transition-all"
+                        >
+                          <option value="">Consumidor Final</option>
+                          {customers.map(c => (
+                            <option key={c.id} value={c.id}>{c.name}</option>
+                          ))}
+                        </select>
+                        <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
+                          <ChevronRight size={16} className="rotate-90" />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Discount */}
+                    <div className="space-y-2">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Aplicar Descuento</label>
+                      <div className="relative group">
+                        <div className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center bg-gray-50 border-r border-gray-100 text-gray-400 rounded-l-[1.25rem] group-within:bg-primary-50 group-within:text-primary-600 transition-colors">
+                          <Percent size={18} />
+                        </div>
+                        <input 
+                          type="number" 
+                          value={discount || ''}
+                          onChange={(e) => setDiscount(Math.max(0, Math.min(100, Number(e.target.value))))}
+                          placeholder="0"
+                          className="w-full pl-16 pr-4 py-4 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-black text-gray-900 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none shadow-sm transition-all placeholder:text-gray-300"
+                        />
+                      </div>
                     </div>
                   </div>
 
                   {/* Payment Method */}
-                  <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Método de Pago</label>
-                    <div className="grid grid-cols-2 gap-3">
-                      <button 
-                        onClick={() => setPaymentMethod('zelle')}
-                        className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center space-y-2 transition-all ${paymentMethod === 'zelle' ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-                      >
-                        <Smartphone size={28} strokeWidth={paymentMethod === 'zelle' ? 2.5 : 2} />
-                        <span className="text-sm font-bold">Zelle</span>
-                      </button>
-                      <button 
-                        onClick={() => setPaymentMethod('pago_movil')}
-                        className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center space-y-2 transition-all ${paymentMethod === 'pago_movil' ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-                      >
-                        <Smartphone size={28} strokeWidth={paymentMethod === 'pago_movil' ? 2.5 : 2} />
-                        <span className="text-sm font-bold">Pago Móvil</span>
-                      </button>
-                      <button 
-                        onClick={() => { setPaymentMethod('cash_usd'); setAmountReceived(''); }}
-                        className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center space-y-2 transition-all ${paymentMethod === 'cash_usd' ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-                      >
-                        <Banknote size={28} strokeWidth={paymentMethod === 'cash_usd' ? 2.5 : 2} />
-                        <span className="text-sm font-bold">Efectivo ($)</span>
-                      </button>
-                      <button 
-                        onClick={() => setPaymentMethod('pos')}
-                        className={`p-4 rounded-2xl border-2 flex flex-col items-center justify-center space-y-2 transition-all ${paymentMethod === 'pos' ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' : 'bg-white border-gray-100 text-gray-500 hover:border-gray-200'}`}
-                      >
-                        <CreditCard size={28} strokeWidth={paymentMethod === 'pos' ? 2.5 : 2} />
-                        <span className="text-sm font-bold">Punto de Venta</span>
-                      </button>
+                  <div className="space-y-4">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest px-1 text-center md:text-left">Selecciona el Método de Pago</label>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                      {[
+                        { id: 'zelle', label: 'Zelle', icon: Smartphone, color: 'text-purple-600', bg: 'bg-purple-50' },
+                        { id: 'pago_movil', label: 'Pago Móvil', icon: Smartphone, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+                        { id: 'cash_usd', label: 'Efectivo ($)', icon: Banknote, color: 'text-amber-600', bg: 'bg-amber-50' },
+                        { id: 'pos', label: 'Punto Venta', icon: CreditCard, color: 'text-blue-600', bg: 'bg-blue-50' },
+                      ].map(method => (
+                        <button 
+                          key={method.id}
+                          onClick={() => {
+                            setPaymentMethod(method.id as PaymentMethod['method']);
+                            if (method.id !== 'cash_usd') setAmountReceived('');
+                          }}
+                          className={`p-5 rounded-[1.75rem] border-2 flex flex-col items-center justify-center space-y-2 transition-all active:scale-95 ${
+                            paymentMethod === method.id 
+                              ? `bg-white border-primary-500 ${method.color} shadow-xl shadow-primary-900/10 scale-105 z-10` 
+                              : 'bg-white border-transparent text-gray-400 hover:border-gray-100'
+                          }`}
+                        >
+                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === method.id ? method.bg : 'bg-gray-50'}`}>
+                            <method.icon size={26} strokeWidth={2.5} />
+                          </div>
+                          <span className="text-[11px] font-black uppercase tracking-wider">{method.label}</span>
+                        </button>
+                      ))}
                     </div>
                   </div>
 
                   {/* Cash Change Calculator (Worker Feature) */}
-                  {paymentMethod === 'cash_usd' && (
-                    <div className="bg-green-50 p-4 rounded-2xl border border-green-100 animate-in fade-in slide-in-from-top-2">
-                      <label className="block text-xs font-bold text-green-800 uppercase tracking-wider mb-2">Calculadora de Vuelto</label>
-                      <div className="flex items-center space-x-3">
-                        <div className="relative flex-1">
-                          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-green-600 font-bold">$</span>
-                          <input 
-                            type="number" 
-                            value={amountReceived}
-                            onChange={(e) => setAmountReceived(e.target.value ? Number(e.target.value) : '')}
-                            placeholder="Monto recibido..."
-                            className="w-full pl-8 pr-4 py-3 bg-white border border-green-200 rounded-xl text-sm font-bold text-gray-900 focus:ring-2 focus:ring-green-400 outline-none"
-                          />
+                  <div className="min-h-[140px]">
+                    {paymentMethod === 'cash_usd' ? (
+                      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                          <div className="flex-1 space-y-2">
+                            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Calculadora de Cambio</label>
+                            <div className="relative max-w-[240px]">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-300">$</span>
+                              <input 
+                                type="number" 
+                                value={amountReceived}
+                                onChange={(e) => setAmountReceived(e.target.value ? Number(e.target.value) : '')}
+                                placeholder="Recibido..."
+                                className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-2xl font-black text-gray-900 focus:ring-4 focus:ring-emerald-100 outline-none transition-all placeholder:text-gray-200"
+                              />
+                            </div>
+                          </div>
+                          {typeof amountReceived === 'number' && amountReceived > 0 && (
+                            <div className={`px-6 py-4 rounded-2xl border-2 transition-all flex flex-col items-center md:items-end ${
+                              amountReceived >= total ? 'bg-emerald-50 border-emerald-500/30' : 'bg-red-50 border-red-500/30 opacity-60'
+                            }`}>
+                              <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">
+                                {amountReceived >= total ? 'Vuelto a entregar' : 'Monto insuficiente'}
+                              </span>
+                              <span className={`text-3xl font-black font-mono leading-none ${amountReceived >= total ? 'text-emerald-700' : 'text-red-600'}`}>
+                                ${Math.max(0, amountReceived - total).toFixed(2)}
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                      {typeof amountReceived === 'number' && amountReceived >= total && (
-                        <div className="mt-3 flex justify-between items-center bg-white p-3 rounded-xl border border-green-100">
-                          <span className="text-sm font-bold text-gray-500">Cambio a entregar:</span>
-                          <span className="text-xl font-black text-green-600">${(amountReceived - total).toFixed(2)}</span>
+                    ) : (
+                      <div className="bg-white/40 p-10 rounded-[2rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
+                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
+                          <CreditCard size={20} className="text-gray-300" />
                         </div>
-                      )}
-                    </div>
-                  )}
+                        <p className="text-sm font-bold text-gray-400">Pago Digital Seleccionado</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Sigue con el cobro via POS o Transferencia</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              <div className="p-5 bg-white border-t border-gray-200 pb-safe">
-                <button 
-                  className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold text-lg shadow-xl hover:bg-primary-700 transition-transform active:scale-95 flex items-center justify-center"
-                  onClick={processSale}
-                >
-                  <CheckCircle2 size={24} className="mr-2" />
-                  Confirmar Pago
-                </button>
+                <div className="p-6 bg-white border-t border-gray-100 shrink-0 lg:rounded-br-[2.5rem]">
+                  <button 
+                    className="w-full bg-gray-900 text-white py-5 rounded-[1.75rem] font-bold text-lg shadow-2xl shadow-gray-900/20 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center group"
+                    onClick={processSale}
+                  >
+                    <CheckCircle2 size={24} className="mr-3 text-primary-500 group-hover:scale-110 transition-transform" />
+                    Finalizar y Registrar Venta
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -475,92 +665,170 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     const isToday = historyDate === new Date().toISOString().split('T')[0];
 
     return (
-      <div className="h-full flex flex-col bg-gray-50 animate-in slide-in-from-right-8 duration-300 relative">
-        <div className="bg-white px-4 py-3 shadow-sm flex flex-col z-10">
-          <div className="flex items-center space-x-3 mb-3">
-            <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-              <ArrowLeft size={20} />
-            </button>
-            <h2 className="text-lg font-bold text-gray-900">Historial de Caja</h2>
-          </div>
-          
-          <div className="flex flex-col space-y-3">
-            <div className="flex items-center space-x-2 overflow-x-auto pb-1 hide-scrollbar">
+      <div className="h-full flex flex-col bg-[#F8F9FA] animate-in slide-in-from-right-8 duration-300 relative overflow-hidden">
+        {/* Header Section */}
+        <div className="bg-white px-6 py-5 border-b border-gray-200 shrink-0">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div className="flex items-center space-x-4">
+              <button 
+                onClick={() => setView('menu')} 
+                className="p-2.5 -ml-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-all"
+              >
+                <ArrowLeft size={22} />
+              </button>
+              <div>
+                <h2 className="text-[22px] font-black text-gray-900 leading-tight">Historial de Caja</h2>
+                <div className="flex items-center space-x-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-0.5">
+                  <span>{dayCount} transacciones encontradas</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex items-center bg-gray-50 p-1 rounded-2xl border border-gray-100">
               <button 
                 onClick={() => setHistoryDate(new Date().toISOString().split('T')[0])}
-                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${isToday ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+                className={`px-5 py-2 rounded-xl text-xs font-bold transition-all ${isToday ? 'bg-white text-gray-900 shadow-sm border border-gray-200' : 'text-gray-400 hover:text-gray-600'}`}
               >
                 Hoy
               </button>
-              <div className="relative flex-1 min-w-[140px]">
+              <div className="relative group">
                 <input 
                   type="date" 
                   value={historyDate}
                   onChange={(e) => setHistoryDate(e.target.value)}
-                  className="w-full px-3 py-1.5 bg-gray-100 border-none rounded-full text-xs font-bold text-gray-700 focus:ring-2 focus:ring-primary-200 outline-none"
+                  className="bg-transparent px-4 py-2 border-none rounded-xl text-xs font-bold text-gray-700 focus:ring-0 outline-none cursor-pointer"
                 />
-              </div>
-            </div>
-
-            {/* Daily Summary Card */}
-            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-4 text-white shadow-md">
-              <div className="flex justify-between items-start">
-                <div>
-                  <p className="text-primary-100 text-[10px] font-bold uppercase tracking-wider mb-1">
-                    {isToday ? 'Ventas de Hoy' : `Ventas: ${new Date(historyDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`}
-                  </p>
-                  <h3 className="text-2xl font-black font-mono">${dayTotal.toFixed(2)}</h3>
-                </div>
-                <div className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold">
-                  {dayCount} {dayCount === 1 ? 'Venta' : 'Ventas'}
-                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
-          {filteredSales.length > 0 ? (
-            [...filteredSales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(sale => (
-              <button
-                key={sale.id}
-                onClick={() => setSelectedSale(sale)}
-                className="w-full bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col text-left hover:border-primary-300 transition-colors"
-              >
-                <div className="flex justify-between items-start mb-2 w-full">
-                  <div>
-                    <span className="text-xs font-bold text-gray-400">{sale.id.substring(0, 12)}</span>
-                    <h3 className="text-sm font-bold text-gray-900 mt-0.5">
-                      {new Date(sale.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
-                    </h3>
-                  </div>
-                  <span className="text-base font-black text-gray-900">${sale.total.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between items-center w-full mt-2 pt-2 border-t border-gray-50">
-                  <div className="flex items-center space-x-2">
-                    <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-md bg-gray-100 text-gray-600">
-                      {sale.paymentMethods[0]?.method.replace('_', ' ')}
-                    </span>
-                    {sale.customerId && (
-                      <span className="text-[10px] font-bold uppercase px-2 py-1 rounded-md bg-primary-50 text-primary-600 flex items-center">
-                        <User size={10} className="mr-1" />
-                        {customers.find(c => c.id === sale.customerId)?.name || 'Clienta'}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-medium text-gray-500">{sale.items.reduce((acc, item) => acc + item.quantity, 0)} arts.</span>
-                </div>
-              </button>
-            ))
-          ) : (
-            <div className="text-center py-12">
-              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <History size={32} className="text-gray-300" />
+        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+          {/* Main Sales List */}
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4">
+            {/* Daily Summary (Mobile/Tablet Only) - Shown inline for scanability */}
+            <div className="lg:hidden bg-gray-900 rounded-[2rem] p-6 text-white shadow-xl mb-6 flex items-center justify-between">
+              <div>
+                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Monto Total del Día</p>
+                <h3 className="text-3xl font-black font-mono leading-none">${dayTotal.toFixed(2)}</h3>
               </div>
-              <p className="text-gray-500 font-bold">No hay ventas para esta fecha</p>
-              <p className="text-xs text-gray-400 mt-1">Intenta seleccionar otro día</p>
+              <div className="text-right">
+                <p className="text-primary-400 text-[10px] font-bold uppercase tracking-widest mb-1">Volumen</p>
+                <p className="text-xl font-bold leading-none">{dayCount} <span className="text-xs opacity-60">Oper.</span></p>
+              </div>
             </div>
-          )}
+
+            {filteredSales.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2 gap-4">
+                {filteredSales.sort((a, b) => b.date.localeCompare(a.date)).map(sale => (
+                  <button 
+                    key={sale.id} 
+                    onClick={() => setSelectedSale(sale)}
+                    className="group bg-white p-5 rounded-[1.75rem] border border-gray-100 shadow-sm hover:shadow-xl hover:shadow-primary-900/5 hover:-translate-y-0.5 transition-all flex items-center justify-between"
+                  >
+                    <div className="flex items-center space-x-4">
+                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
+                        sale.paymentMethods[0]?.method === 'cash_usd' ? 'bg-amber-50 text-amber-600' : 
+                        sale.paymentMethods[0]?.method === 'pago_movil' ? 'bg-emerald-50 text-emerald-600' :
+                        'bg-blue-50 text-blue-600'
+                      }`}>
+                        {sale.paymentMethods[0]?.method === 'cash_usd' ? <Banknote size={24} /> : 
+                         sale.paymentMethods[0]?.method === 'pos' ? <CreditCard size={24} /> : <Smartphone size={24} />}
+                      </div>
+                      <div className="text-left">
+                        <p className="text-xs font-bold text-gray-400 leading-none mb-1">
+                          {new Date(sale.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', hour12: true })}
+                        </p>
+                        <h4 className="text-sm font-black text-gray-900 capitalize">
+                          {customers.find(c => c.id === sale.customerId)?.name || 'Consumidor Final'}
+                        </h4>
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-tighter mt-0.5">
+                          {sale.items.length} {sale.items.length === 1 ? 'producto' : 'productos'} • {sale.paymentMethods[0]?.method.replace('_', ' ')}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <div className="text-lg font-black text-gray-900 font-mono">${sale.total.toFixed(2)}</div>
+                      {sale.discount > 0 && (
+                        <div className="text-[10px] font-bold text-emerald-500 uppercase">-{sale.discount}% desc.</div>
+                      )}
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center py-20 text-center opacity-40">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                  <History size={32} className="text-gray-300" />
+                </div>
+                <h3 className="text-gray-900 font-bold italic">No hay ventas registradas</h3>
+                <p className="text-gray-500 text-sm max-w-[200px] mt-1 italic">Para esta fecha aún no se han realizado transacciones.</p>
+              </div>
+            )}
+          </div>
+
+          {/* Right Summary Sidebar (Desktop Only) */}
+          <aside className="hidden lg:flex w-80 bg-white border-l border-gray-200 flex-col shadow-2xl z-20">
+            <div className="p-8 shrink-0">
+              <div className="bg-gray-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
+                <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary-600/20 blur-3xl group-hover:bg-primary-600/40 transition-all duration-700 rounded-full"></div>
+                <p className="text-gray-500 text-[11px] font-black uppercase tracking-[0.2em] mb-4">Resumen Diario</p>
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Monto de Venta</p>
+                    <h1 className="text-5xl font-black font-mono leading-none tracking-tighter">${dayTotal.toFixed(2)}</h1>
+                    <p className="text-gray-500 text-xs font-bold font-mono mt-2 opacity-60">~ Bs. {(dayTotal * exchangeRate).toFixed(2)}</p>
+                  </div>
+                  <div className="pt-6 border-t border-white/10 flex justify-between items-end">
+                    <div>
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Volumen</p>
+                      <p className="text-2xl font-black leading-none">{dayCount}</p>
+                      <p className="text-[10px] font-bold text-primary-400 uppercase mt-1">Transacciones</p>
+                    </div>
+                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-primary-400">
+                      <BarChart3 size={24} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-8 space-y-6">
+                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Desglose por Pago</h4>
+                <div className="space-y-3 px-1">
+                  {['cash_usd', 'pago_movil', 'zelle', 'pos'].map(method => {
+                    const methodSales = filteredSales.filter(s => s.paymentMethods.some(pm => pm.method === method));
+                    const methodTotal = methodSales.reduce((sum, s) => sum + s.total, 0);
+                    const percentage = dayTotal > 0 ? (methodTotal / dayTotal) * 100 : 0;
+                    
+                    return (
+                      <div key={method} className="space-y-1.5">
+                        <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-tight">
+                          <span className="text-gray-500">{method.replace('_', ' ')}</span>
+                          <span className="text-gray-900">${methodTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className="h-full bg-primary-500 transition-all duration-1000" 
+                            style={{ width: `${percentage}%` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            <div className="mt-auto p-8 border-t border-gray-100">
+              <button 
+                onClick={() => setView('new_sale')}
+                className="w-full bg-primary-600 text-white py-4 rounded-3xl font-bold flex items-center justify-center space-x-2 hover:bg-primary-700 transition-all shadow-lg shadow-primary-900/10 active:scale-95 group"
+              >
+                <Plus size={20} className="group-hover:rotate-90 transition-transform" />
+                <span>Nueva Venta</span>
+              </button>
+            </div>
+          </aside>
         </div>
 
         {/* Ticket Modal */}
@@ -643,55 +911,66 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   }
 
   // --- MAIN MENU VIEW ---
-  return (
-    <div className="h-full flex flex-col bg-[#F8F9FA] animate-in fade-in duration-300">
-      <div className="px-6 pt-8 pb-6">
-        <h2 className="text-2xl font-serif font-bold text-gray-900">Gestión de Caja</h2>
-        <p className="text-gray-500 text-sm mt-1">Selecciona una operación para continuar</p>
-      </div>
-
-      <div className="px-6 space-y-4">
-        {/* Nueva Venta Button */}
-        <button 
-          onClick={() => setView('new_sale')}
-          className="w-full bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex items-center space-x-5 hover:border-primary-300 hover:shadow-md transition-all group text-left"
-        >
-          <div className="w-16 h-16 bg-primary-50 text-primary-600 rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-            <ShoppingBag size={32} strokeWidth={2} />
-          </div>
-          <div className="flex-1">
-            <h3 className="text-xl font-bold text-gray-900 mb-1">Nueva Venta</h3>
-            <p className="text-sm text-gray-500">Crear un nuevo ticket de cobro</p>
-          </div>
-          <ChevronRight size={24} className="text-gray-300 group-hover:text-primary-500 transition-colors" />
-        </button>
-
-        <div className="grid grid-cols-2 gap-4">
-          {/* Reportes Button */}
+  if (view === 'menu') {
+    return (
+      <div className="h-full flex flex-col bg-[#F8F9FA] p-3 md:p-12 animate-in fade-in duration-500 overflow-y-auto">
+        <div className="mb-6 md:mb-12 text-center lg:text-left pt-2 md:pt-0">
+          <h1 className="text-xl md:text-5xl font-black text-gray-900 tracking-tight mb-1 md:mb-3">Terminal POS</h1>
+          <p className="text-gray-500 text-[11px] md:text-lg font-medium">Gestión de ventas y caja</p>
+        </div>
+        
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 max-w-6xl mx-auto w-full pb-10">
           <button 
-            onClick={() => setView('reports')}
-            className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:shadow-md transition-all group"
+            onClick={() => setView('new_sale')}
+            className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col"
           >
-            <div className="w-14 h-14 bg-blue-50 text-blue-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <BarChart3 size={28} strokeWidth={2} />
+            <div className="w-10 h-10 md:w-16 md:h-16 bg-primary-50 md:bg-primary-100 text-primary-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-primary-600 group-hover:text-white transition-colors">
+              <ShoppingCart className="w-5 h-5 md:w-8 md:h-8" />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">Reportes</h3>
-            <p className="text-xs text-gray-500">Estadísticas</p>
+            <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Nueva Venta</h3>
+            <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Inicia un ticket de venta.</p>
+            <div className="mt-auto flex items-center text-primary-600 font-bold text-[9px] md:text-sm">
+              <span className="hidden md:inline">Comenzar ahora</span>
+              <span className="inline md:hidden uppercase tracking-tighter">Comenzar</span>
+              <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-0.5 md:ml-1 group-hover:translate-x-1 transition-transform" />
+            </div>
           </button>
 
-          {/* Historial Button */}
           <button 
             onClick={() => setView('history')}
-            className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 flex flex-col items-center justify-center text-center hover:border-purple-300 hover:shadow-md transition-all group"
+            className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col"
           >
-            <div className="w-14 h-14 bg-purple-50 text-purple-500 rounded-2xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-              <Wallet size={28} strokeWidth={2} />
+            <div className="w-10 h-10 md:w-16 md:h-16 bg-blue-50 md:bg-blue-100 text-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+              <History className="w-5 h-5 md:w-8 md:h-8" />
             </div>
-            <h3 className="text-base font-bold text-gray-900 mb-1">Cierre de Caja</h3>
-            <p className="text-xs text-gray-500">Historial</p>
+            <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Historial</h3>
+            <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Ventas del día y cierres.</p>
+            <div className="mt-auto flex items-center text-blue-600 font-bold text-[9px] md:text-sm">
+              <span className="hidden md:inline">Ver historial completo</span>
+              <span className="inline md:hidden uppercase tracking-tighter">Ver Caja</span>
+              <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-0.5 md:ml-1 group-hover:translate-x-1 transition-transform" />
+            </div>
+          </button>
+
+          <button 
+            onClick={() => setView('reports')}
+            className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col opacity-80"
+          >
+            <div className="w-10 h-10 md:w-16 md:h-16 bg-purple-50 md:bg-purple-100 text-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+              <BarChart3 className="w-5 h-5 md:w-8 md:h-8" />
+            </div>
+            <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Reportes</h3>
+            <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Gráficas y estadísticas.</p>
+            <div className="mt-auto flex items-center text-purple-600 font-bold text-[9px] md:text-sm">
+              <span className="hidden md:inline">Dashboard de analíticas</span>
+              <span className="inline md:hidden uppercase tracking-tighter">Estadísticas</span>
+              <Lock className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 ml-1" />
+            </div>
           </button>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  return null;
 }

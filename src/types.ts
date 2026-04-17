@@ -43,9 +43,18 @@ export interface Customer {
   id: string;
   name: string;
   phone: string;
-  birthday?: string;
+  idCard?: string;
+  address?: string;
   points: number;
   totalPurchases: number;
+}
+
+export interface PaymentConfig {
+  pagoMovil?: { banco: string; telf: string; ci: string };
+  zelle?: { email: string; nombre: string };
+  transferencia?: { banco: string; cuenta: string; tipo: string; ci: string };
+  paypal?: { email: string };
+  binance?: { email: string; id: string };
 }
 
 export interface BusinessInfo {
@@ -57,4 +66,5 @@ export interface BusinessInfo {
   instagram?: string;
   tiktok?: string;
   facebook?: string;
+  paymentConfig?: PaymentConfig;
 }
