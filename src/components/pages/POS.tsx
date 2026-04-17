@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock } from 'lucide-react';
+import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock, Landmark } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -29,7 +29,11 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [discount, setDiscount] = useState<number>(0);
   const [selectedCustomer, setSelectedCustomer] = useState<string>('');
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod['method']>('zelle');
+  const [payments, setPayments] = useState<{method: PaymentMethod['method'], amount: number}[]>([]);
+  const [currentPaymentAmount, setCurrentPaymentAmount] = useState<number | ''>('');
+  const [currentPaymentAmountBs, setCurrentPaymentAmountBs] = useState<number | ''>('');
+  const [paymentReference, setPaymentReference] = useState<string>('');
+  const [currentPaymentMethod, setCurrentPaymentMethod] = useState<PaymentMethod['method']>('zelle');
   const [amountReceived, setAmountReceived] = useState<number | ''>('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [historyDate, setHistoryDate] = useState<string>(new Date().toISOString().split('T')[0]);
@@ -65,13 +69,18 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   };
 
   const processSale = async () => {
+    // If no explicit payments added, add the total with current selected method
+    const finalPayments = payments.length > 0 
+      ? payments 
+      : [{ method: currentPaymentMethod, amount: total }];
+
     const newSale: Sale = {
       id: `SALE-${Math.random().toString(36).substr(2, 9).toUpperCase()}`,
       date: new Date().toISOString(),
       items: cart,
       total: total,
       discount: discount,
-      paymentMethods: [{ method: paymentMethod, amount: total }],
+      paymentMethods: finalPayments,
       customerId: selectedCustomer || undefined,
       profit: cart.reduce((sum, item) => sum + ((item.price - (item.costPrice || 0)) * item.quantity), 0) - (subtotal * (discount / 100))
     };
@@ -98,9 +107,12 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
   const resetPOS = () => {
     setCart([]);
+    setPayments([]);
     setDiscount(0);
     setSelectedCustomer('');
     setAmountReceived('');
+    setPaymentReference('');
+    setCurrentPaymentAmountBs('');
     setIsSuccess(false);
     setSearch('');
     setView('menu');
@@ -117,7 +129,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     message += `----------------------------------\n`;
     
     cart.forEach(item => {
-      message += `• ${item.quantity}x ${item.name} - $${(item.price * item.quantity).toFixed(2)}\n`;
+      message += `• ${item.quantity}x ${item.name} - $${formatUSD(item.price * item.quantity)}\n`;
     });
     
     message += `----------------------------------\n`;
@@ -125,7 +137,25 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     message += `*TOTAL A PAGAR: $${formatUSD(total)}*\n`;
     message += `*Equivalente en Bs.:* ${formatBs(total * exchangeRate)}\n`;
     message += `----------------------------------\n`;
-    message += `*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}\n\n`;
+
+    const finalPayments = payments.length > 0 
+      ? payments 
+      : [{ method: currentPaymentMethod, amount: total }];
+
+    if (finalPayments.length === 1) {
+      let line = `*Método de Pago:* ${finalPayments[0].method.replace('_', ' ').toUpperCase()}`;
+      if (finalPayments[0].reference) line += ` (Ref: ${finalPayments[0].reference})`;
+      message += `${line}\n\n`;
+    } else {
+      message += `*Métodos de Pago:*\n`;
+      finalPayments.forEach(p => {
+        let line = `• ${p.method.replace('_', ' ').toUpperCase()}: $${formatUSD(p.amount)}`;
+        if (p.reference) line += ` (Ref: ${p.reference})`;
+        message += `${line}\n`;
+      });
+      message += `\n`;
+    }
+
     message += `¡Gracias por preferirnos! ✨`;
 
     const encodedMessage = encodeURIComponent(message);
@@ -274,7 +304,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                   <h3 className="text-[11px] md:text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5 md:mb-2">{product.name}</h3>
                   <div className="flex items-center justify-between mt-auto pt-0.5">
                     <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate max-w-[50px] md:max-w-[60px]">
-                      {product.brand || product.category}
+                      {product.brand ? product.brand : (selectedCategory ? '' : product.category)}
                     </span>
                     <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
                       <Plus size={16} />
@@ -557,9 +587,17 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                     </div>
                   </div>
 
-                  {/* Payment Method */}
-                  <div className="space-y-4">
-                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest px-1 text-center md:text-left">Selecciona el Método de Pago</label>
+                  {/* Multi-Payment System */}
+                  <div className="space-y-6">
+                    <div className="flex items-center justify-between px-1">
+                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest">Método de Pago</label>
+                      {payments.length > 0 && (
+                        <span className="text-[10px] font-black text-primary-600 bg-primary-50 px-2 py-1 rounded-full uppercase">
+                          Pagado: ${formatUSD(payments.reduce((sum, p) => sum + p.amount, 0))} / Resta: ${formatUSD(Math.max(0, total - payments.reduce((sum, p) => sum + p.amount, 0)))}
+                        </span>
+                      )}
+                    </div>
+                    
                     <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
                       {[
                         { id: 'zelle', label: 'Zelle', icon: Smartphone, color: 'text-purple-600', bg: 'bg-purple-50' },
@@ -570,65 +608,192 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                         <button 
                           key={method.id}
                           onClick={() => {
-                            setPaymentMethod(method.id as PaymentMethod['method']);
+                            setCurrentPaymentMethod(method.id as PaymentMethod['method']);
+                            setPaymentReference('');
+                            setCurrentPaymentAmount('');
+                            setCurrentPaymentAmountBs('');
                             if (method.id !== 'cash_usd') setAmountReceived('');
                           }}
-                          className={`p-5 rounded-[1.75rem] border-2 flex flex-col items-center justify-center space-y-2 transition-all active:scale-95 ${
-                            paymentMethod === method.id 
-                              ? `bg-white border-primary-500 ${method.color} shadow-xl shadow-primary-900/10 scale-105 z-10` 
+                          className={`p-4 rounded-[1.5rem] border-2 flex flex-col items-center justify-center space-y-2 transition-all active:scale-95 ${
+                            currentPaymentMethod === method.id 
+                              ? `bg-white border-primary-500 ${method.color} shadow-lg shadow-primary-900/5` 
                               : 'bg-white border-transparent text-gray-400 hover:border-gray-100'
                           }`}
                         >
-                          <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${paymentMethod === method.id ? method.bg : 'bg-gray-50'}`}>
-                            <method.icon size={26} strokeWidth={2.5} />
+                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${currentPaymentMethod === method.id ? method.bg : 'bg-gray-50'}`}>
+                            <method.icon size={22} strokeWidth={2.5} />
                           </div>
-                          <span className="text-[11px] font-black uppercase tracking-wider">{method.label}</span>
+                          <span className="text-[10px] font-black uppercase tracking-wider">{method.label}</span>
                         </button>
                       ))}
                     </div>
-                  </div>
 
-                  {/* Cash Change Calculator (Worker Feature) */}
-                  <div className="min-h-[140px]">
-                    {paymentMethod === 'cash_usd' ? (
-                      <div className="bg-white p-6 rounded-[2rem] border border-gray-100 shadow-sm animate-in fade-in slide-in-from-top-4 duration-500">
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                          <div className="flex-1 space-y-2">
-                            <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Calculadora de Cambio</label>
-                            <div className="relative max-w-[240px]">
-                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-2xl font-black text-gray-300">$</span>
-                              <input 
-                                type="number" 
-                                value={amountReceived}
-                                onChange={(e) => setAmountReceived(e.target.value ? Number(e.target.value) : '')}
-                                placeholder="Recibido..."
-                                className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-2xl font-black text-gray-900 focus:ring-4 focus:ring-emerald-100 outline-none transition-all placeholder:text-gray-200"
-                              />
+                    {/* Amount Input for Current Payment */}
+                    <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm space-y-5">
+                      <div className="flex flex-col space-y-5">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {/* Amount Column */}
+                          <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                              {['pago_movil', 'pos'].includes(currentPaymentMethod) ? 'Monto en Bs.' : 'Monto en $'}
+                            </label>
+                            <div className="relative">
+                              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-gray-300">
+                                {['pago_movil', 'pos'].includes(currentPaymentMethod) ? 'Bs.' : '$'}
+                              </span>
+                              {['pago_movil', 'pos'].includes(currentPaymentMethod) ? (
+                                <input 
+                                  type="number" 
+                                  value={currentPaymentAmountBs}
+                                  onChange={(e) => {
+                                    const valInBs = e.target.value ? Number(e.target.value) : '';
+                                    setCurrentPaymentAmountBs(valInBs);
+                                    if (typeof valInBs === 'number') {
+                                      setCurrentPaymentAmount(valInBs / exchangeRate);
+                                    } else {
+                                      setCurrentPaymentAmount('');
+                                    }
+                                  }}
+                                  placeholder={formatBs(Math.max(0, (total - payments.reduce((sum, p) => sum + p.amount, 0)) * exchangeRate))}
+                                  className="w-full pl-12 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-xl font-black text-gray-900 focus:ring-4 focus:ring-primary-100 outline-none transition-all placeholder:text-gray-200"
+                                />
+                              ) : (
+                                <input 
+                                  type="number" 
+                                  value={currentPaymentAmount}
+                                  onChange={(e) => {
+                                    const valInUsd = e.target.value ? Number(e.target.value) : '';
+                                    setCurrentPaymentAmount(valInUsd);
+                                  }}
+                                  placeholder={formatUSD(Math.max(0, total - payments.reduce((sum, p) => sum + p.amount, 0)))}
+                                  className="w-full pl-10 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-xl font-black text-gray-900 focus:ring-4 focus:ring-primary-100 outline-none transition-all placeholder:text-gray-200"
+                                />
+                              )}
                             </div>
+                            {['pago_movil', 'pos'].includes(currentPaymentMethod) && typeof currentPaymentAmount === 'number' && (
+                              <p className="text-[10px] font-bold text-gray-400 px-1 italic">
+                                Equivalente: ${formatUSD(currentPaymentAmount)} (Tasa: {formatBs(exchangeRate)})
+                              </p>
+                            )}
                           </div>
-                          {typeof amountReceived === 'number' && amountReceived > 0 && (
-                            <div className={`px-6 py-4 rounded-2xl border-2 transition-all flex flex-col items-center md:items-end ${
-                              amountReceived >= total ? 'bg-emerald-50 border-emerald-500/30' : 'bg-red-50 border-red-500/30 opacity-60'
-                            }`}>
-                              <span className="text-[10px] font-black uppercase text-gray-500 tracking-wider mb-1">
-                                {amountReceived >= total ? 'Vuelto a entregar' : 'Monto insuficiente'}
-                              </span>
-                              <span className={`text-3xl font-black font-mono leading-none ${amountReceived >= total ? 'text-emerald-700' : 'text-red-600'}`}>
-                                ${formatUSD(Math.max(0, amountReceived - total))}
-                              </span>
+
+                          {/* Reference Column (Only for electronic payments) */}
+                          {['zelle', 'pago_movil', 'pos'].includes(currentPaymentMethod) && (
+                            <div className="space-y-2">
+                              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest">
+                                Referencia {currentPaymentMethod === 'pago_movil' ? '(Obligatorio)' : '(Opcional)'}
+                              </label>
+                              <div className="relative">
+                                <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300" size={18} />
+                                <input 
+                                  type="text" 
+                                  value={paymentReference}
+                                  onChange={(e) => setPaymentReference(e.target.value)}
+                                  placeholder="Nº Referencia..."
+                                  className="w-full pl-11 pr-4 py-3 bg-gray-50 border-none rounded-2xl text-sm font-bold text-gray-900 focus:ring-4 focus:ring-primary-100 outline-none transition-all placeholder:text-gray-200"
+                                />
+                              </div>
+                            </div>
+                          )}
+
+                          {currentPaymentMethod === 'cash_usd' && (
+                            <div className="space-y-2">
+                              <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest">Calculadora de Cambio</label>
+                              <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-gray-300">$</span>
+                                <input 
+                                  type="number" 
+                                  value={amountReceived}
+                                  onChange={(e) => setAmountReceived(e.target.value ? Number(e.target.value) : '')}
+                                  placeholder="Recibido..."
+                                  className="w-full pl-10 pr-4 py-3 bg-emerald-50/50 border-none rounded-2xl text-xl font-black text-emerald-900 focus:ring-4 focus:ring-emerald-100 outline-none transition-all placeholder:text-emerald-200"
+                                />
+                              </div>
                             </div>
                           )}
                         </div>
+
+                        <button 
+                          onClick={() => {
+                            const amount = Number(currentPaymentAmount) || Math.max(0, total - payments.reduce((sum, p) => sum + p.amount, 0));
+                            
+                            if (amount <= 0) return;
+                            
+                            // Mandatory reference for Pago Móvil
+                            if (currentPaymentMethod === 'pago_movil' && !paymentReference.trim()) {
+                              toast.error('La referencia es obligatoria para Pago Móvil');
+                              return;
+                            }
+
+                            setPayments([...payments, { 
+                              method: currentPaymentMethod, 
+                              amount, 
+                              reference: paymentReference.trim() || undefined 
+                            }]);
+                            
+                            setCurrentPaymentAmount('');
+                            setCurrentPaymentAmountBs('');
+                            setPaymentReference('');
+                            toast.success(`Abonado: $${formatUSD(amount)}`);
+                          }}
+                          className="w-full bg-primary-600 text-white py-4 rounded-2xl shadow-xl shadow-primary-900/20 hover:bg-primary-700 active:scale-95 transition-all flex items-center justify-center space-x-2"
+                        >
+                          <Plus size={20} />
+                          <span className="font-bold">Añadir este Pago al Ticket</span>
+                        </button>
                       </div>
-                    ) : (
-                      <div className="bg-white/40 p-10 rounded-[2rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center text-center">
-                        <div className="w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-3">
-                          <CreditCard size={20} className="text-gray-300" />
+
+                      {/* Change Reminder Card */}
+                      {currentPaymentMethod === 'cash_usd' && typeof amountReceived === 'number' && amountReceived > 0 && (
+                        <div className="bg-emerald-600 p-4 rounded-2xl text-white flex justify-between items-center animate-in zoom-in-95">
+                          <div className="flex items-center space-x-3">
+                            <div className="p-2 bg-white/20 rounded-xl">
+                              <Banknote size={20} />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-bold uppercase opacity-80 leading-none mb-1">Cambio a entregar</p>
+                              <p className="text-xl font-black font-mono">${formatUSD(Math.max(0, amountReceived - (Number(currentPaymentAmount) || (total - payments.reduce((sum, p) => sum + p.amount, 0)))))}</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                             <p className="text-[10px] font-bold uppercase opacity-80 leading-none mb-1">En Bs.</p>
+                             <p className="font-bold">Bs. {formatBs(Math.max(0, amountReceived - (Number(currentPaymentAmount) || (total - payments.reduce((sum, p) => sum + p.amount, 0)))) * exchangeRate)}</p>
+                          </div>
                         </div>
-                        <p className="text-sm font-bold text-gray-400">Pago Digital Seleccionado</p>
-                        <p className="text-[10px] text-gray-400 uppercase tracking-widest mt-1">Sigue con el cobro via POS o Transferencia</p>
-                      </div>
-                    )}
+                      )}
+
+                      {/* Payments List */}
+                      {payments.length > 0 && (
+                        <div className="pt-4 border-t border-gray-100 space-y-2">
+                          <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Pagos Registrados</p>
+                          {payments.map((p, idx) => (
+                            <div key={idx} className="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-100 animate-in slide-in-from-left-4">
+                              <div className="flex items-center space-x-3">
+                                <div className="p-2 bg-white rounded-lg shadow-sm text-primary-600">
+                                  {p.method === 'cash_usd' ? <Banknote size={16} /> : <Smartphone size={16} />}
+                                </div>
+                                <div>
+                                  <p className="text-xs font-bold text-gray-900 uppercase">
+                                    {p.method.replace('_', ' ')}
+                                    {p.reference && <span className="text-gray-400 ml-2 normal-case font-medium">(Ref: {p.reference})</span>}
+                                  </p>
+                                  <p className="text-[10px] text-gray-500 font-medium">Abono parcial</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center space-x-4">
+                                <span className="font-mono font-bold text-gray-900">${formatUSD(p.amount)}</span>
+                                <button 
+                                  onClick={() => setPayments(payments.filter((_, i) => i !== idx))}
+                                  className="p-1.5 text-gray-300 hover:text-red-500 transition-colors"
+                                >
+                                  <X size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
 
@@ -655,7 +820,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                 <CheckCircle2 size={48} strokeWidth={2.5} />
               </div>
               <h2 className="text-2xl font-bold text-gray-900 mb-2">¡Venta Exitosa!</h2>
-              <p className="text-gray-500 mb-8 font-medium">El pago de ${total.toFixed(2)} ha sido procesado.</p>
+              <p className="text-gray-500 mb-8 font-medium">El pago de ${formatUSD(total)} ha sido procesado.</p>
               
               <div className="w-full space-y-3">
                 <button 
@@ -931,7 +1096,11 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                     </div>
                     <div className="flex justify-between text-xs text-gray-500 mt-1">
                       <span>Método de Pago</span>
-                      <span className="uppercase">{selectedSale.paymentMethods[0]?.method.replace('_', ' ')}</span>
+                      <span className="uppercase text-right">
+                        {selectedSale.paymentMethods.length === 1 
+                          ? `${selectedSale.paymentMethods[0].method.replace('_', ' ')} ${selectedSale.paymentMethods[0].reference ? `(${selectedSale.paymentMethods[0].reference})` : ''}`
+                          : 'Múltiples Métodos'}
+                      </span>
                     </div>
                     {selectedSale.customerId && (
                       <div className="flex justify-between text-xs text-gray-500 mt-1">
