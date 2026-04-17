@@ -370,7 +370,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       </div>
 
       {/* Floating Action Button (FAB) */}
-      <div className="absolute bottom-6 right-6 flex flex-col items-end z-30">
+      <div className="absolute bottom-24 right-6 flex flex-col items-end z-30">
         {isFabOpen && (
           <div className="flex flex-col items-end space-y-3 mb-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
             <button 

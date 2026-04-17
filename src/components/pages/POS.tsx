@@ -337,7 +337,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
         {/* Mobile Ticket Trigger */}
         {itemCount > 0 && (
-          <div className="lg:hidden fixed bottom-6 left-6 right-6 z-20 animate-in slide-in-from-bottom-8">
+          <div className="lg:hidden fixed bottom-24 left-6 right-6 z-20 animate-in slide-in-from-bottom-8">
             <button
               onClick={() => setIsCartOpen(true)}
               className="w-full bg-gray-900 text-white px-6 py-4.5 rounded-[1.75rem] shadow-2xl flex items-center justify-between hover:bg-gray-800 transition-transform active:scale-95"
@@ -361,7 +361,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
         {/* Simple Cart Drawer */}
         {isCartOpen && (
-          <div className="absolute inset-0 z-30 flex flex-col justify-end">
+          <div className="absolute inset-0 z-[60] flex flex-col justify-end">
             <div className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-in fade-in" onClick={() => setIsCartOpen(false)} />
             <div className="bg-white rounded-t-3xl h-[80%] flex flex-col relative animate-in slide-in-from-bottom-full duration-300">
               <div className="p-4 border-b border-gray-100 flex items-center justify-between">
@@ -410,7 +410,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
         {/* Checkout Drawer (Payment Terminal) */}
         {isCheckoutOpen && (
-          <div className="absolute inset-0 z-40 flex items-center justify-center p-0 lg:p-8">
+          <div className="absolute inset-0 z-[100] flex items-center justify-center p-0 lg:p-8">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in" onClick={() => setIsCheckoutOpen(false)} />
             <div className="bg-[#F8F9FA] w-full max-w-4xl h-full lg:h-auto lg:max-h-[85vh] lg:rounded-[2.5rem] flex flex-col lg:flex-row relative animate-in zoom-in-95 duration-300 shadow-2xl overflow-hidden border border-white/20">
               
