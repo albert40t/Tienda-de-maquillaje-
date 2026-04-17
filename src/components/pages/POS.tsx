@@ -30,6 +30,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod['method']>('zelle');
   const [amountReceived, setAmountReceived] = useState<number | ''>('');
   const [isSuccess, setIsSuccess] = useState(false);
+  const [historyDate, setHistoryDate] = useState<string>(new Date().toISOString().split('T')[0]);
 
   // --- Handlers ---
   const addToCart = (product: Product) => {
@@ -468,18 +469,59 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   }
 
   if (view === 'history') {
+    const filteredSales = sales.filter(sale => sale.date.startsWith(historyDate));
+    const dayTotal = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    const dayCount = filteredSales.length;
+    const isToday = historyDate === new Date().toISOString().split('T')[0];
+
     return (
       <div className="h-full flex flex-col bg-gray-50 animate-in slide-in-from-right-8 duration-300 relative">
-        <div className="bg-white px-4 py-3 shadow-sm flex items-center space-x-3 z-10">
-          <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="text-lg font-bold text-gray-900">Historial de Caja</h2>
+        <div className="bg-white px-4 py-3 shadow-sm flex flex-col z-10">
+          <div className="flex items-center space-x-3 mb-3">
+            <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
+              <ArrowLeft size={20} />
+            </button>
+            <h2 className="text-lg font-bold text-gray-900">Historial de Caja</h2>
+          </div>
+          
+          <div className="flex flex-col space-y-3">
+            <div className="flex items-center space-x-2 overflow-x-auto pb-1 hide-scrollbar">
+              <button 
+                onClick={() => setHistoryDate(new Date().toISOString().split('T')[0])}
+                className={`px-4 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all ${isToday ? 'bg-primary-600 text-white shadow-sm' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'}`}
+              >
+                Hoy
+              </button>
+              <div className="relative flex-1 min-w-[140px]">
+                <input 
+                  type="date" 
+                  value={historyDate}
+                  onChange={(e) => setHistoryDate(e.target.value)}
+                  className="w-full px-3 py-1.5 bg-gray-100 border-none rounded-full text-xs font-bold text-gray-700 focus:ring-2 focus:ring-primary-200 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Daily Summary Card */}
+            <div className="bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-4 text-white shadow-md">
+              <div className="flex justify-between items-start">
+                <div>
+                  <p className="text-primary-100 text-[10px] font-bold uppercase tracking-wider mb-1">
+                    {isToday ? 'Ventas de Hoy' : `Ventas: ${new Date(historyDate + 'T12:00:00').toLocaleDateString('es-ES', { day: 'numeric', month: 'long' })}`}
+                  </p>
+                  <h3 className="text-2xl font-black font-mono">${dayTotal.toFixed(2)}</h3>
+                </div>
+                <div className="bg-white/20 px-3 py-1 rounded-full text-[10px] font-bold">
+                  {dayCount} {dayCount === 1 ? 'Venta' : 'Ventas'}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-3 pb-24">
-          {sales && sales.length > 0 ? (
-            [...sales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(sale => (
+          {filteredSales.length > 0 ? (
+            [...filteredSales].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(sale => (
               <button
                 key={sale.id}
                 onClick={() => setSelectedSale(sale)}
@@ -487,9 +529,9 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
               >
                 <div className="flex justify-between items-start mb-2 w-full">
                   <div>
-                    <span className="text-xs font-bold text-gray-400">{sale.id}</span>
+                    <span className="text-xs font-bold text-gray-400">{sale.id.substring(0, 12)}</span>
                     <h3 className="text-sm font-bold text-gray-900 mt-0.5">
-                      {new Date(sale.date).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                      {new Date(sale.date).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                     </h3>
                   </div>
                   <span className="text-base font-black text-gray-900">${sale.total.toFixed(2)}</span>
@@ -512,8 +554,11 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             ))
           ) : (
             <div className="text-center py-12">
-              <History size={40} className="mx-auto text-gray-300 mb-3" />
-              <p className="text-gray-500 font-medium">No hay ventas registradas</p>
+              <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <History size={32} className="text-gray-300" />
+              </div>
+              <p className="text-gray-500 font-bold">No hay ventas para esta fecha</p>
+              <p className="text-xs text-gray-400 mt-1">Intenta seleccionar otro día</p>
             </div>
           )}
         </div>

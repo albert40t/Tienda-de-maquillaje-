@@ -150,15 +150,15 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
     if (modalMode === 'add') {
       const newProduct: Product = {
         id: Math.random().toString(36).substr(2, 9),
-        name: formData.name,
-        category: formData.category || category,
-        brand: formData.brand || '',
+        name: formData.name.trim(),
+        category: (formData.category || category).trim(),
+        brand: (formData.brand || '').trim(),
         price: Number(formData.price),
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
-        barcode: formData.barcode || '',
+        barcode: (formData.barcode || '').trim(),
         stock: Number(formData.stock) || 0,
         image: formData.image || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800',
-        description: formData.description || '',
+        description: (formData.description || '').trim(),
       };
       
       // Optimistic update
@@ -199,6 +199,11 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       const updatedProduct = { 
         ...selectedProduct, 
         ...formData, 
+        name: formData.name?.trim(),
+        category: formData.category?.trim(),
+        brand: formData.brand?.trim(),
+        barcode: formData.barcode?.trim(),
+        description: formData.description?.trim(),
         price: Number(formData.price), 
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
         stock: Number(formData.stock) 

@@ -1,6 +1,16 @@
-import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store } from 'lucide-react';
+import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
 import { Page } from '../../App';
 import { Product, Sale } from '../../types';
+import { supabase } from '../../lib/supabase';
+
+interface ActivityLog {
+  id: string;
+  user_email: string;
+  action_type: string;
+  description: string;
+  created_at: string;
+}
 
 interface HomeProps {
   onNavigate: (page: Page) => void;
@@ -11,6 +21,53 @@ interface HomeProps {
 }
 
 export default function Home({ onNavigate, exchangeRate, setExchangeRate, products, sales = [] }: HomeProps) {
+  const [logs, setLogs] = useState<ActivityLog[]>([]);
+  const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const { data } = await supabase
+        .from('activity_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+        
+      if (data) setLogs(data);
+      setIsLoadingLogs(false);
+    };
+
+    fetchLogs();
+
+    const channel = supabase.channel('home-activity-logs')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'activity_logs' }, (payload) => {
+        setLogs(prev => [payload.new as ActivityLog, ...prev.slice(0, 4)]);
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
+  const getIconForAction = (actionType: string) => {
+    switch (actionType) {
+      case 'CREATE_PRODUCT': return <Package size={14} className="text-green-600" />;
+      case 'UPDATE_PRODUCT': return <Edit2 size={14} className="text-blue-600" />;
+      case 'DELETE_PRODUCT': return <Trash2 size={14} className="text-red-600" />;
+      case 'NEW_SALE': return <ShoppingCart size={14} className="text-purple-600" />;
+      default: return <Activity size={14} className="text-gray-600" />;
+    }
+  };
+
+  const getTimeAgo = (dateStr: string) => {
+    const seconds = Math.floor((new Date().getTime() - new Date(dateStr).getTime()) / 1000);
+    if (seconds < 60) return 'Ahora';
+    const minutes = Math.floor(seconds / 60);
+    if (minutes < 60) return `Hace ${minutes} min`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `Hace ${hours} h`;
+    return new Date(dateStr).toLocaleDateString();
+  };
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 10).length;
   const outOfStockCount = products.filter(p => p.stock === 0).length;
   
@@ -148,22 +205,46 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
 
       {/* Recent Activity */}
       <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-gray-900">Actividad reciente</h3>
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-gray-900">Actividad reciente</h3>
+          <button 
+            onClick={() => onNavigate('activity-logs')}
+            className="text-xs font-bold text-primary-600 flex items-center"
+          >
+            Ver todo <ChevronRight size={14} />
+          </button>
+        </div>
+        
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-          {[1, 2, 3].map((_, i) => (
-            <div key={i} className={`p-4 flex items-center justify-between ${i !== 2 ? 'border-b border-gray-50' : ''}`}>
-              <div className="flex items-center space-x-3">
-                <div className="bg-gray-50 p-2 rounded-full text-gray-400">
-                  <Clock size={16} />
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-900">Venta #10{4-i}</p>
-                  <p className="text-xs text-gray-500">Hace {i * 15 + 5} min</p>
+          {isLoadingLogs ? (
+            <div className="p-8 flex flex-col items-center justify-center space-y-2">
+              <div className="w-6 h-6 border-2 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
+              <p className="text-xs text-gray-400">Cargando actividad...</p>
+            </div>
+          ) : logs.length > 0 ? (
+            logs.map((log, i) => (
+              <div key={log.id} className={`p-4 flex items-center justify-between ${i !== logs.length - 1 ? 'border-b border-gray-50' : ''}`}>
+                <div className="flex items-center space-x-3 overflow-hidden">
+                  <div className="bg-gray-50 p-2 rounded-xl text-gray-400 shrink-0">
+                    {getIconForAction(log.action_type)}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold text-gray-900 truncate">
+                      {log.description}
+                    </p>
+                    <p className="text-[10px] text-gray-500 font-medium">
+                      {getTimeAgo(log.created_at)} • {log.user_email.split('@')[0]}
+                    </p>
+                  </div>
                 </div>
               </div>
-              <span className="text-sm font-semibold text-gray-900">+${(Math.random() * 50 + 10).toFixed(2)}</span>
+            ))
+          ) : (
+            <div className="p-8 text-center bg-gray-50/50">
+              <Activity size={24} className="mx-auto text-gray-300 mb-2" />
+              <p className="text-xs text-gray-500 font-medium">No hay actividad reciente</p>
             </div>
-          ))}
+          )}
         </div>
       </div>
     </div>

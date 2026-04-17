@@ -112,7 +112,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
       if (c.id === editingCategory.id) {
         // Only updates the name and image. If ID needs to change, it's more complex, 
         // so we'll just update display name and image to avoid breaking product relations.
-        return { ...c, name: formData.name!, image: formData.image || c.image };
+        return { ...c, name: formData.name!.trim(), image: formData.image || c.image };
       }
       return c;
     }));
