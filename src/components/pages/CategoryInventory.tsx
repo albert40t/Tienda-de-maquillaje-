@@ -159,6 +159,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         stock: Number(formData.stock) || 0,
         image: formData.image || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800',
         description: (formData.description || '').trim(),
+        gender: formData.gender as 'Hombre' | 'Mujer' | 'Unisex',
       };
       
       // Optimistic update
@@ -175,7 +176,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         barcode: newProduct.barcode,
         stock: newProduct.stock,
         image: newProduct.image,
-        description: newProduct.description
+        description: newProduct.description,
+        gender: newProduct.gender
       });
       
       if (error) {
@@ -204,6 +206,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         brand: formData.brand?.trim(),
         barcode: formData.barcode?.trim(),
         description: formData.description?.trim(),
+        gender: formData.gender as 'Hombre' | 'Mujer' | 'Unisex',
         price: Number(formData.price), 
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
         stock: Number(formData.stock) 
@@ -222,7 +225,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         barcode: updatedProduct.barcode,
         stock: updatedProduct.stock,
         image: updatedProduct.image,
-        description: updatedProduct.description
+        description: updatedProduct.description,
+        gender: updatedProduct.gender
       }).eq('id', updatedProduct.id);
 
       if (error) {
@@ -292,7 +296,10 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
               <img src={product.image} alt={product.name} className="w-16 h-16 rounded-xl object-cover bg-gray-50" />
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-semibold text-gray-900 truncate">{product.name}</h3>
-                <p className="text-xs text-gray-500 mb-1">{product.brand || product.category}</p>
+                <p className="text-xs text-gray-500 mb-1">
+                  {product.brand || product.category}
+                  {product.gender && <span className="ml-1 text-[10px] font-bold uppercase tracking-tight text-gray-400 opacity-80 border border-gray-200 px-1 rounded">({product.gender.substring(0, 1)})</span>}
+                </p>
                 <div className="flex items-center space-x-2 flex-wrap gap-y-1">
                   <span className="text-sm font-bold text-gray-900">${product.price.toFixed(2)}</span>
                   <span className="text-xs font-medium text-gray-500">Bs. {(product.price * exchangeRate).toFixed(2)}</span>
@@ -455,6 +462,15 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                     <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center">
                       <Tag size={12} className="mr-1" /> {selectedProduct.category}
                     </span>
+                    {selectedProduct.gender && (
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                        selectedProduct.gender === 'Mujer' ? 'bg-pink-50 text-pink-600' : 
+                        selectedProduct.gender === 'Hombre' ? 'bg-blue-50 text-blue-600' : 
+                        'bg-purple-50 text-purple-600'
+                      }`}>
+                        {selectedProduct.gender}
+                      </span>
+                    )}
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       selectedProduct.stock > 20 ? 'bg-green-50 text-green-600' : 
                       selectedProduct.stock > 0 ? 'bg-orange-50 text-orange-600' : 
@@ -556,15 +572,28 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Código de Barras</label>
-                      <input 
-                        type="text" 
-                        value={formData.barcode || ''}
-                        onChange={e => setFormData({...formData, barcode: e.target.value})}
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Género</label>
+                      <select 
+                        value={formData.gender || ''}
+                        onChange={e => setFormData({...formData, gender: e.target.value as any})}
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
-                        placeholder="Opcional"
-                      />
+                      >
+                        <option value="">No aplica</option>
+                        <option value="Mujer">Mujer</option>
+                        <option value="Hombre">Hombre</option>
+                        <option value="Unisex">Unisex</option>
+                      </select>
                     </div>
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Código de Barras</label>
+                    <input 
+                      type="text" 
+                      value={formData.barcode || ''}
+                      onChange={e => setFormData({...formData, barcode: e.target.value})}
+                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                      placeholder="Opcional"
+                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Imagen del Producto</label>

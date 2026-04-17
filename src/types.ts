@@ -14,6 +14,7 @@ export interface Product {
   stock: number;
   image: string;
   description?: string;
+  gender?: 'Hombre' | 'Mujer' | 'Unisex';
   variants?: ProductVariant[];
 }
 
