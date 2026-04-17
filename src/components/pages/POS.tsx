@@ -410,7 +410,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
         </aside>
 
         {/* Mobile Ticket Trigger */}
-        {itemCount > 0 && (
+        {itemCount > 0 && !isCartOpen && !isCheckoutOpen && (
           <div className="lg:hidden fixed bottom-24 left-6 right-6 z-20 animate-in slide-in-from-bottom-8">
             <button
               onClick={() => setIsCartOpen(true)}
@@ -485,9 +485,9 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
         {/* Checkout Drawer (Payment Terminal) */}
         {isCheckoutOpen && (
-          <div className="absolute inset-0 z-[100] flex items-center justify-center p-0 lg:p-8">
+          <div className="fixed inset-x-0 top-0 bottom-[80px] z-[100] flex flex-col items-center justify-end lg:justify-center p-0 lg:p-8 w-full max-w-md mx-auto lg:max-w-none">
             <div className="absolute inset-0 bg-black/60 backdrop-blur-md animate-in fade-in" onClick={() => setIsCheckoutOpen(false)} />
-            <div className="bg-[#F8F9FA] w-full max-w-4xl h-full lg:h-auto lg:max-h-[85vh] lg:rounded-[2.5rem] flex flex-col lg:flex-row relative animate-in zoom-in-95 duration-300 shadow-2xl overflow-hidden border border-white/20">
+            <div className="bg-[#F8F9FA] w-full max-w-4xl h-full lg:h-auto lg:max-h-[85vh] lg:rounded-[2.5rem] flex flex-col lg:flex-row relative animate-in slide-in-from-bottom-full lg:animate-none lg:zoom-in-95 duration-300 shadow-2xl overflow-hidden border-t lg:border border-white/20 rounded-t-[2.5rem] lg:rounded-[2.5rem]">
               
               {/* Order Summary Side (Desktop) */}
               <div className="hidden lg:flex w-80 bg-white border-r border-gray-100 flex-col shrink-0">
@@ -531,32 +531,34 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
 
               {/* Main Checkout View */}
               <div className="flex-1 flex flex-col h-full lg:h-auto lg:overflow-visible">
-                <div className="p-4 border-b border-gray-50 flex items-center justify-between bg-white shrink-0 lg:rounded-tr-[2.5rem]">
+                <div className="p-4 md:p-5 border-b border-gray-50 flex items-center justify-between bg-white shrink-0 lg:rounded-tr-[2.5rem]">
                   <div className="flex items-center space-x-3">
-                    <div className="w-10 h-10 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-600">
-                      <CreditCard size={20} />
+                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-primary-100 flex items-center justify-center text-primary-600 shadow-sm shadow-primary-900/10">
+                      <CreditCard size={20} className="md:w-6 md:h-6" />
                     </div>
                     <div>
-                      <h2 className="text-lg font-bold text-gray-900 leading-none">Terminal de Pago</h2>
-                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mt-1 lg:hidden">Total: ${total.toFixed(2)}</p>
+                      <h2 className="text-base md:text-xl font-black text-gray-900 leading-none">Terminal de Pago</h2>
+                      <p className="text-[10px] md:text-xs font-bold text-primary-600 uppercase tracking-widest mt-1.5 flex items-center">
+                        Total a cobrar: <span className="ml-2 px-2 py-0.5 bg-primary-50 rounded-lg">${formatUSD(total)}</span>
+                      </p>
                     </div>
                   </div>
-                  <button onClick={() => setIsCheckoutOpen(false)} className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-full transition-all">
+                  <button onClick={() => setIsCheckoutOpen(false)} className="p-2.5 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-xl transition-all border border-transparent hover:border-gray-100">
                     <X size={22} />
                   </button>
                 </div>
                 
-                <div className="flex-1 overflow-y-auto p-5 md:p-8 space-y-8 bg-[#F8F9FA]/50">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8 bg-[#F8F9FA]/50">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
                     {/* Customer Selection */}
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Clienta Asignada</label>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Clienta Asignada</label>
                       <div className="relative group">
-                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-within:text-primary-600 transition-colors" size={18} />
+                        <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 group-within:text-primary-600 transition-colors" size={16} />
                         <select 
                           value={selectedCustomer}
                           onChange={(e) => setSelectedCustomer(e.target.value)}
-                          className="w-full pl-11 pr-10 py-4 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-bold text-gray-700 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none appearance-none shadow-sm transition-all"
+                          className="w-full pl-10 pr-10 py-3.5 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-bold text-gray-700 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none appearance-none shadow-sm transition-all"
                         >
                           <option value="">Consumidor Final</option>
                           {customers.map(c => (
@@ -564,24 +566,24 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                           ))}
                         </select>
                         <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-gray-400">
-                          <ChevronRight size={16} className="rotate-90" />
+                          <ChevronRight size={14} className="rotate-90" />
                         </div>
                       </div>
                     </div>
 
                     {/* Discount */}
-                    <div className="space-y-2">
-                      <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest px-1">Aplicar Descuento</label>
+                    <div className="space-y-1.5">
+                      <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">Aplicar Descuento</label>
                       <div className="relative group">
                         <div className="absolute left-0 top-0 bottom-0 w-12 flex items-center justify-center bg-gray-50 border-r border-gray-100 text-gray-400 rounded-l-[1.25rem] group-within:bg-primary-50 group-within:text-primary-600 transition-colors">
-                          <Percent size={18} />
+                          <Percent size={16} />
                         </div>
                         <input 
                           type="number" 
                           value={discount || ''}
                           onChange={(e) => setDiscount(Math.max(0, Math.min(100, Number(e.target.value))))}
                           placeholder="0"
-                          className="w-full pl-16 pr-4 py-4 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-black text-gray-900 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none shadow-sm transition-all placeholder:text-gray-300"
+                          className="w-full pl-16 pr-4 py-3.5 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-black text-gray-900 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none shadow-sm transition-all placeholder:text-gray-300"
                         />
                       </div>
                     </div>
@@ -598,7 +600,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 md:gap-3">
                       {[
                         { id: 'zelle', label: 'Zelle', icon: Smartphone, color: 'text-purple-600', bg: 'bg-purple-50' },
                         { id: 'pago_movil', label: 'Pago Móvil', icon: Smartphone, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -614,16 +616,16 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                             setCurrentPaymentAmountBs('');
                             if (method.id !== 'cash_usd') setAmountReceived('');
                           }}
-                          className={`p-4 rounded-[1.5rem] border-2 flex flex-col items-center justify-center space-y-2 transition-all active:scale-95 ${
+                          className={`p-3 md:p-4 rounded-[1.25rem] md:rounded-[1.5rem] border-2 flex flex-col items-center justify-center space-y-1.5 md:space-y-2 transition-all active:scale-95 ${
                             currentPaymentMethod === method.id 
                               ? `bg-white border-primary-500 ${method.color} shadow-lg shadow-primary-900/5` 
                               : 'bg-white border-transparent text-gray-400 hover:border-gray-100'
                           }`}
                         >
-                          <div className={`w-10 h-10 rounded-2xl flex items-center justify-center transition-colors ${currentPaymentMethod === method.id ? method.bg : 'bg-gray-50'}`}>
-                            <method.icon size={22} strokeWidth={2.5} />
+                          <div className={`w-8 h-8 md:w-10 md:h-10 rounded-xl md:rounded-2xl flex items-center justify-center transition-colors ${currentPaymentMethod === method.id ? method.bg : 'bg-gray-50'}`}>
+                            <method.icon size={20} className="md:w-6 md:h-6" strokeWidth={2.5} />
                           </div>
-                          <span className="text-[10px] font-black uppercase tracking-wider">{method.label}</span>
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-wider">{method.label}</span>
                         </button>
                       ))}
                     </div>
@@ -797,12 +799,12 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                   </div>
                 </div>
 
-                <div className="p-6 bg-white border-t border-gray-100 shrink-0 lg:rounded-br-[2.5rem]">
+                <div className="p-4 md:p-6 bg-white border-t border-gray-100 shrink-0 lg:rounded-br-[2.5rem]">
                   <button 
-                    className="w-full bg-gray-900 text-white py-5 rounded-[1.75rem] font-bold text-lg shadow-2xl shadow-gray-900/20 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center group"
+                    className="w-full bg-gray-900 text-white py-4 md:py-5 rounded-[1.25rem] md:rounded-[1.75rem] font-bold md:text-lg shadow-2xl shadow-gray-900/20 hover:bg-black transition-all active:scale-[0.98] flex items-center justify-center group"
                     onClick={processSale}
                   >
-                    <CheckCircle2 size={24} className="mr-3 text-primary-500 group-hover:scale-110 transition-transform" />
+                    <CheckCircle2 size={22} className="mr-2 md:mr-3 text-primary-500 group-hover:scale-110 transition-transform" />
                     Finalizar y Registrar Venta
                   </button>
                 </div>
