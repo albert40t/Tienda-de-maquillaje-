@@ -1,7 +1,7 @@
 import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { Page } from '../../App';
-import { Product, Sale } from '../../types';
+import { Product, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
 
 interface ActivityLog {
@@ -18,9 +18,10 @@ interface HomeProps {
   setExchangeRate: (rate: number) => void;
   products: Product[];
   sales?: Sale[];
+  businessInfo: BusinessInfo;
 }
 
-export default function Home({ onNavigate, exchangeRate, setExchangeRate, products, sales = [] }: HomeProps) {
+export default function Home({ onNavigate, exchangeRate, setExchangeRate, products, sales = [], businessInfo }: HomeProps) {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
 
@@ -80,7 +81,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
   return (
     <div className="p-4 space-y-5 animate-in fade-in duration-300">
       <div className="space-y-0.5">
-        <h2 className="text-xs font-medium text-gray-500">Hola, Stely</h2>
+        <h2 className="text-xs font-medium text-gray-500">Hola, {businessInfo.name}</h2>
         <p className="text-xl font-semibold text-gray-900">Resumen de hoy</p>
       </div>
 

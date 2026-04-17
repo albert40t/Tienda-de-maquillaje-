@@ -212,7 +212,7 @@ export default function App() {
       <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden justify-center px-6">
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
           <div className="text-center mb-8">
-            <h1 className="font-serif text-3xl font-bold text-primary-800 mb-2">Stely Beauty</h1>
+            <h1 className="font-serif text-3xl font-bold text-primary-800 mb-2">{businessInfo.name}</h1>
             <p className="text-gray-500 text-sm">Ingresa para gestionar tu tienda</p>
           </div>
 
@@ -281,7 +281,7 @@ export default function App() {
   const renderPage = () => {
     switch (currentPage) {
       case 'home':
-        return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} />;
+        return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />;
       case 'pos':
         return <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />;
       case 'inventory':

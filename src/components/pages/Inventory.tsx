@@ -198,7 +198,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
       <div className="p-4 grid grid-cols-1 gap-4 overflow-y-auto pb-24">
         {categories.map((category) => {
           const categoryStock = products
-            .filter(p => p.category === category.id)
+            .filter(p => p.category.trim() === category.id.trim())
             .reduce((total, p) => total + p.stock, 0);
 
           return (

@@ -107,22 +107,26 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     return () => clearInterval(interval);
   }, [carouselItems.length]);
 
-  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category))), [products]);
+  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category.trim()))), [products]);
   const availableBrands = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'favorites') return [];
     const brands = products
-      .filter(p => p.category === selectedCategory && p.brand)
-      .map(p => p.brand as string);
-    return Array.from(new Set(brands));
+      .filter(p => p.category.trim() === selectedCategory.trim() && p.brand)
+      .map(p => p.brand?.trim() as string);
+    return Array.from(new Set(brands)).filter(Boolean);
   }, [products, selectedCategory]);
 
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchesSearch = p.name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) || p.category.toLowerCase().includes(debouncedSearchQuery.toLowerCase());
+      const pName = p.name.toLowerCase();
+      const pCategory = p.category.toLowerCase().trim();
+      const q = debouncedSearchQuery.toLowerCase().trim();
+      
+      const matchesSearch = pName.includes(q) || pCategory.includes(q);
       const matchesCategory = selectedCategory === 'favorites' 
         ? favorites.includes(p.id)
-        : selectedCategory ? p.category === selectedCategory : true;
-      const matchesBrand = selectedBrand ? p.brand === selectedBrand : true;
+        : selectedCategory ? p.category.trim() === selectedCategory.trim() : true;
+      const matchesBrand = selectedBrand ? p.brand?.trim() === selectedBrand.trim() : true;
       return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
       if (sortBy === 'price_asc') return a.price - b.price;
@@ -193,7 +197,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     let notesText = orderNotes ? `%0A*Notas:* ${orderNotes}` : '';
     let discountText = appliedDiscount > 0 ? `%0A*Descuento:* -${appliedDiscount}% ($${discountAmountValue.toFixed(2)})` : '';
     
-    const message = `¡Hola! Quiero realizar un pedido en Stely Beauty 💖%0A%0A*Datos del Cliente:*%0ANombre: ${firstName} ${lastName}%0ACédula: ${idCard}%0ATeléfono: ${phone}%0A%0A${deliveryText}%0A%0A*Pedido:*%0A${itemsText}${discountText}${notesText}%0A%0A*Total:* $${total.toFixed(2)} (Bs. ${totalBs})%0A*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}`;
+    const message = `¡Hola! Quiero realizar un pedido en ${businessInfo.name} 💖%0A%0A*Datos del Cliente:*%0ANombre: ${firstName} ${lastName}%0ACédula: ${idCard}%0ATeléfono: ${phone}%0A%0A${deliveryText}%0A%0A*Pedido:*%0A${itemsText}${discountText}${notesText}%0A%0A*Total:* $${total.toFixed(2)} (Bs. ${totalBs})%0A*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}`;
     
     window.open(`https://wa.me/?text=${message}`, '_blank');
     
@@ -488,7 +492,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
         <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-black transition-colors">
           <ArrowLeft size={24} />
         </button>
-        <h1 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">Stely Beauty</h1>
+        <h1 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">{businessInfo.name}</h1>
         <button 
           onClick={() => { setIsCartOpen(true); setStep('cart'); }} 
           className={`p-2 -mr-2 relative hover:opacity-70 transition-all duration-300 ${cartAnimation ? 'scale-125 text-pink-500' : 'text-gray-900 scale-100'}`}
@@ -706,7 +710,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 pt-10 pb-12 px-6 mt-4">
         <div className="text-center">
-          <h2 className="font-serif text-2xl font-bold text-gray-900 tracking-tight mb-3">Stely Beauty</h2>
+          <h2 className="font-serif text-2xl font-bold text-gray-900 tracking-tight mb-3">{businessInfo.name}</h2>
           <p className="text-gray-500 text-sm mb-8 max-w-xs mx-auto leading-relaxed">
             Tu belleza, nuestra pasión. Productos de maquillaje y cuidado facial de la más alta calidad para resaltar tu brillo natural.
           </p>
@@ -734,7 +738,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
           
           <div className="border-t border-gray-100 pt-6">
             <p className="text-xs text-gray-400 font-medium">
-              © {new Date().getFullYear()} Stely Beauty. Todos los derechos reservados.
+              © {new Date().getFullYear()} {businessInfo.name}. Todos los derechos reservados.
             </p>
           </div>
         </div>
