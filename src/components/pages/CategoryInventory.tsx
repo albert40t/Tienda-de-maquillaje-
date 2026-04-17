@@ -142,8 +142,21 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   };
 
   const handleSaveProduct = async () => {
-    if (!formData.name || !formData.price) {
-      alert('Por favor, completa los campos requeridos (Nombre y Precio).');
+    const price = Number(formData.price);
+    const costPrice = formData.costPrice ? Number(formData.costPrice) : undefined;
+
+    if (!formData.name?.trim()) {
+      toast.error('El nombre del producto es obligatorio');
+      return;
+    }
+
+    if (isNaN(price) || price <= 0) {
+      toast.error('El precio de venta debe ser un número positivo');
+      return;
+    }
+
+    if (costPrice !== undefined && (isNaN(costPrice) || costPrice < 0)) {
+      toast.error('El costo debe ser un número positivo o cero');
       return;
     }
 

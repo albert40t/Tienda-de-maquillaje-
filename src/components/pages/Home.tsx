@@ -1,4 +1,4 @@
-import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart } from 'lucide-react';
+import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart, Check, X as CloseIcon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Page } from '../../App';
@@ -76,24 +76,48 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
   const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
   const totalProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
 
-  // Mock top sellers
   const topSellers = products.slice(0, 3);
 
-  const updateExchangeRate = async (newRate: number) => {
-    setExchangeRate(newRate);
+  const [pendingRate, setPendingRate] = useState<number | null>(null);
+  const [isConfirmingRate, setIsConfirmingRate] = useState(false);
+
+  const initiateRateUpdate = (val: string) => {
+    const newRate = Number(val);
+    if (isNaN(newRate) || newRate <= 0) return;
+    setPendingRate(newRate);
+    setIsConfirmingRate(true);
+  };
+
+  const confirmRateUpdate = async () => {
+    if (pendingRate === null) return;
+    
+    const rateToSave = pendingRate;
+    setIsConfirmingRate(false);
+    setPendingRate(null);
+    
+    // Optimistic UI update
+    setExchangeRate(rateToSave);
+    
+    const loadingToast = toast.loading('Sincronizando tasa con la base de datos...');
+    
     try {
       const { error } = await supabase
         .from('business_info')
-        .update({ exchange_rate: newRate })
+        .update({ exchange_rate: rateToSave })
         .eq('id', 1);
 
       if (error) throw error;
-      toast.success(`Tasa actualizada: Bs. ${newRate.toFixed(2)}`, {
-        id: 'exchange-rate-toast',
+      
+      toast.success(`¡Sincronizado! Tasa oficial: Bs. ${rateToSave.toFixed(2)}`, {
+        id: loadingToast,
+        icon: '✅',
       });
     } catch (error) {
       console.error('Error updating exchange rate:', error);
-      toast.error('Error al sincronizar con la nube');
+      toast.error('Error al guardar en la base de datos. Se mantuvo el valor anterior.', {
+        id: loadingToast,
+      });
+      // Rollback logic could be added here if session state needs to revert
     }
   };
 
@@ -119,12 +143,47 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
           <input
             type="number"
             value={exchangeRate}
-            onChange={(e) => updateExchangeRate(Number(e.target.value))}
+            onChange={(e) => initiateRateUpdate(e.target.value)}
             className="w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900"
             step="0.01"
           />
         </div>
       </div>
+
+      {/* Confirmation Modal for Exchange Rate */}
+      {isConfirmingRate && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300" onClick={() => setIsConfirmingRate(false)} />
+          <div className="bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl relative animate-in zoom-in-95 duration-200">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mb-4">
+                <DollarSign size={32} />
+              </div>
+              <h3 className="text-xl font-bold text-gray-900 mb-2">¿Actualizar Tasa?</h3>
+              <p className="text-sm text-gray-500 mb-6">
+                Vas a cambiar la tasa oficial a <span className="font-bold text-gray-900">Bs. {pendingRate?.toFixed(2)}</span>. Esto afectará todos los cálculos de la terminal.
+              </p>
+              
+              <div className="grid grid-cols-2 gap-3 w-full">
+                <button 
+                  onClick={() => setIsConfirmingRate(false)}
+                  className="py-3 px-4 bg-gray-100 text-gray-600 font-bold rounded-2xl hover:bg-gray-200 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <CloseIcon size={18} />
+                  <span>No</span>
+                </button>
+                <button 
+                  onClick={confirmRateUpdate}
+                  className="py-3 px-4 bg-primary-600 text-white font-bold rounded-2xl hover:bg-primary-700 shadow-md shadow-primary-200 transition-colors flex items-center justify-center space-x-2"
+                >
+                  <Check size={18} />
+                  <span>Sí</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Stats Cards */}
       <div className="grid grid-cols-2 gap-4">
