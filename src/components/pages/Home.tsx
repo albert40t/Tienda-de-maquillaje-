@@ -1,5 +1,6 @@
 import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
+import { toast } from 'react-hot-toast';
 import { Page } from '../../App';
 import { Product, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -78,6 +79,24 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
   // Mock top sellers
   const topSellers = products.slice(0, 3);
 
+  const updateExchangeRate = async (newRate: number) => {
+    setExchangeRate(newRate);
+    try {
+      const { error } = await supabase
+        .from('business_info')
+        .update({ exchange_rate: newRate })
+        .eq('id', 1);
+
+      if (error) throw error;
+      toast.success(`Tasa actualizada: Bs. ${newRate.toFixed(2)}`, {
+        id: 'exchange-rate-toast',
+      });
+    } catch (error) {
+      console.error('Error updating exchange rate:', error);
+      toast.error('Error al sincronizar con la nube');
+    }
+  };
+
   return (
     <div className="p-4 space-y-5 animate-in fade-in duration-300">
       <div className="space-y-0.5">
@@ -100,7 +119,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
           <input
             type="number"
             value={exchangeRate}
-            onChange={(e) => setExchangeRate(Number(e.target.value))}
+            onChange={(e) => updateExchangeRate(Number(e.target.value))}
             className="w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900"
             step="0.01"
           />

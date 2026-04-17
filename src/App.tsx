@@ -33,10 +33,7 @@ export default function App() {
 
   const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
-  const [exchangeRate, setExchangeRate] = useState<number>(() => {
-    const saved = localStorage.getItem('app_exchange_rate');
-    return saved ? parseFloat(saved) : 38.50;
-  });
+  const [exchangeRate, setExchangeRate] = useState<number>(38.50);
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -50,10 +47,7 @@ export default function App() {
     facebook: 'https://facebook.com'
   });
 
-  // Save exchange rate when it changes
-  useEffect(() => {
-    localStorage.setItem('app_exchange_rate', exchangeRate.toString());
-  }, [exchangeRate]);
+  // No local storage save for exchange rate anymore
 
   // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
@@ -82,6 +76,9 @@ export default function App() {
           ...bData,
           paymentConfig: bData.payment_config
         });
+        if (bData.exchange_rate) {
+          setExchangeRate(Number(bData.exchange_rate));
+        }
       }
 
       if (pData && pData.length > 0) {
@@ -148,6 +145,9 @@ export default function App() {
             ...payload.new as any,
             paymentConfig: (payload.new as any).payment_config
           });
+          if ((payload.new as any).exchange_rate) {
+            setExchangeRate(Number((payload.new as any).exchange_rate));
+          }
         }
       })
       .subscribe();
