@@ -3,6 +3,7 @@ import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, Che
 import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { formatBs, formatUSD } from '../../lib/formatUtils';
 
 interface POSProps {
   exchangeRate: number;
@@ -120,8 +121,8 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     
     message += `----------------------------------\n`;
     if (discount > 0) message += `*Descuento:* ${discount}%\n`;
-    message += `*TOTAL A PAGAR: $${total.toFixed(2)}*\n`;
-    message += `*Equivalente en Bs.:* ${(total * exchangeRate).toFixed(2)}\n`;
+    message += `*TOTAL A PAGAR: $${formatUSD(total)}*\n`;
+    message += `*Equivalente en Bs.:* ${formatBs(total * exchangeRate)}\n`;
     message += `----------------------------------\n`;
     message += `*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}\n\n`;
     message += `¡Gracias por preferirnos! ✨`;
@@ -222,7 +223,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                     referrerPolicy="no-referrer"
                   />
                   <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[10px] md:text-[11px] font-black text-gray-900 shadow-sm border border-gray-100">
-                    ${product.price.toFixed(2)}
+                    ${formatUSD(product.price)}
                   </div>
                 </div>
                 <div className="px-0.5 md:px-1 flex flex-col flex-1">
@@ -275,7 +276,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                   </div>
                   <div className="flex-1 min-w-0 pr-2">
                     <h4 className="text-sm font-bold text-gray-900 truncate">{item.name}</h4>
-                    <p className="text-xs font-bold text-primary-600">${(item.price * item.quantity).toFixed(2)}</p>
+                    <p className="text-xs font-bold text-primary-600">${formatUSD(item.price * item.quantity)}</p>
                   </div>
                   <div className="flex items-center space-x-1.5 bg-[#F8F9FA] rounded-xl p-1 shrink-0">
                     <button 
@@ -308,13 +309,13 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             <div className="space-y-3 mb-6">
               <div className="flex justify-between items-center text-gray-500 text-sm font-medium">
                 <span>Subtotal</span>
-                <span>${subtotal.toFixed(2)}</span>
+                <span>${formatUSD(subtotal)}</span>
               </div>
               <div className="flex justify-between items-center text-gray-900 font-bold border-t border-gray-200 pt-3">
                 <span className="text-lg">Total</span>
                 <div className="text-right">
-                  <div className="text-2xl font-black text-primary-600 leading-none">${subtotal.toFixed(2)}</div>
-                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter mt-1">~ Bs. {(subtotal * exchangeRate).toFixed(2)}</div>
+                  <div className="text-2xl font-black text-primary-600 leading-none">${formatUSD(subtotal)}</div>
+                  <div className="text-[11px] font-bold text-gray-400 uppercase tracking-tighter mt-1">~ Bs. {formatBs(subtotal * exchangeRate)}</div>
                 </div>
               </div>
             </div>
@@ -352,7 +353,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold text-primary-400 uppercase leading-none mb-1">Total</p>
-                <p className="font-black text-xl">${subtotal.toFixed(2)}</p>
+                <p className="font-black text-xl">${formatUSD(subtotal)}</p>
               </div>
             </button>
           </div>
@@ -376,7 +377,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                     <img src={item.image} alt={item.name} className="w-12 h-12 rounded-xl object-cover bg-gray-50" />
                     <div className="flex-1 min-w-0">
                       <h4 className="text-sm font-bold text-gray-900 truncate">{item.name}</h4>
-                      <p className="text-xs font-bold text-primary-600">${item.price.toFixed(2)}</p>
+                      <p className="text-xs font-bold text-primary-600">${formatUSD(item.price)}</p>
                     </div>
                     <div className="flex items-center space-x-2 bg-gray-50 rounded-lg p-1">
                       <button onClick={() => updateQuantity(item.id, -1)} className="p-1.5 text-gray-500 hover:text-gray-900 bg-white rounded shadow-sm"><Minus size={14} /></button>
@@ -391,8 +392,8 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                 <div className="flex justify-between items-end mb-4">
                   <span className="text-gray-500 font-medium">Total a Cobrar</span>
                   <div className="text-right">
-                    <div className="text-2xl font-black text-gray-900">${subtotal.toFixed(2)}</div>
-                    <div className="text-sm font-medium text-gray-500">Bs. {(subtotal * exchangeRate).toFixed(2)}</div>
+                    <div className="text-2xl font-black text-gray-900">${formatUSD(subtotal)}</div>
+                    <div className="text-sm font-medium text-gray-500">Bs. {formatBs(subtotal * exchangeRate)}</div>
                   </div>
                 </div>
                 <button 
@@ -426,28 +427,28 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                     <div key={item.id} className="flex justify-between items-start text-sm">
                       <div className="min-w-0 pr-2">
                         <p className="font-bold text-gray-700 leading-tight mb-0.5 line-clamp-1">{item.name}</p>
-                        <p className="text-xs font-medium text-gray-400">{item.quantity} x ${item.price.toFixed(2)}</p>
+                        <p className="text-xs font-medium text-gray-400">{item.quantity} x ${formatUSD(item.price)}</p>
                       </div>
-                      <span className="font-bold text-gray-900 shrink-0">${(item.price * item.quantity).toFixed(2)}</span>
+                      <span className="font-bold text-gray-900 shrink-0">${formatUSD(item.price * item.quantity)}</span>
                     </div>
                   ))}
                 </div>
                 <div className="p-6 bg-gray-900 text-white shrink-0">
                   <div className="flex justify-between items-center mb-1">
                     <span className="text-xs font-bold text-gray-400 uppercase">Subtotal</span>
-                    <span className="font-medium tracking-tight">${subtotal.toFixed(2)}</span>
+                    <span className="font-medium tracking-tight">${formatUSD(subtotal)}</span>
                   </div>
                   {discount > 0 && (
                     <div className="flex justify-between items-center mb-4 text-green-400">
                       <span className="text-xs font-bold uppercase">Descuento ({discount}%)</span>
-                      <span className="font-medium tracking-tight">-${(subtotal * (discount / 100)).toFixed(2)}</span>
+                      <span className="font-medium tracking-tight">-${formatUSD(subtotal * (discount / 100))}</span>
                     </div>
                   )}
                   <div className="flex justify-between items-center pt-3 border-t border-white/10">
                     <span className="text-sm font-bold uppercase text-primary-400">Total</span>
                     <div className="text-right">
-                      <div className="text-2xl font-black font-mono leading-none">${total.toFixed(2)}</div>
-                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mt-1">~ Bs. {(total * exchangeRate).toFixed(2)}</div>
+                      <div className="text-2xl font-black font-mono leading-none">${formatUSD(total)}</div>
+                      <div className="text-[10px] font-bold text-gray-500 uppercase tracking-tighter mt-1">~ Bs. {formatBs(total * exchangeRate)}</div>
                     </div>
                   </div>
                 </div>
@@ -568,7 +569,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                                 {amountReceived >= total ? 'Vuelto a entregar' : 'Monto insuficiente'}
                               </span>
                               <span className={`text-3xl font-black font-mono leading-none ${amountReceived >= total ? 'text-emerald-700' : 'text-red-600'}`}>
-                                ${Math.max(0, amountReceived - total).toFixed(2)}
+                                ${formatUSD(Math.max(0, amountReceived - total))}
                               </span>
                             </div>
                           )}

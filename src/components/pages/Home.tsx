@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Page } from '../../App';
 import { Product, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { formatBs, formatUSD } from '../../lib/formatUtils';
 
 interface ActivityLog {
   id: string;
@@ -118,7 +119,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
 
       if (error) throw error;
       
-      toast.success(`¡Sincronizado! Tasa oficial: Bs. ${rateToSave.toFixed(2)}`, {
+      toast.success(`¡Sincronizado! Tasa oficial: Bs. ${formatBs(rateToSave)}`, {
         id: loadingToast,
         icon: '✅',
       });
@@ -182,7 +183,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
               </div>
               <h3 className="text-xl font-bold text-gray-900 mb-2">¿Actualizar Tasa?</h3>
               <p className="text-sm text-gray-500 mb-6">
-                Vas a cambiar la tasa oficial a <span className="font-bold text-gray-900">Bs. {pendingRate?.toFixed(2)}</span>. Esto afectará todos los cálculos de la terminal.
+                Vas a cambiar la tasa oficial a <span className="font-bold text-gray-900">Bs. {formatBs(pendingRate || 0)}</span>. Esto afectará todos los cálculos de la terminal.
               </p>
               
               <div className="grid grid-cols-2 gap-3 w-full">
@@ -214,12 +215,12 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
               <TrendingUp size={18} />
             </div>
             <span className="text-[10px] font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">
-              +${totalProfit.toFixed(2)} Ganancia
+              +${formatUSD(totalProfit)} Ganancia
             </span>
           </div>
           <div>
             <p className="text-sm text-gray-500 font-medium">Ventas (Hoy)</p>
-            <p className="text-xl font-bold text-gray-900">${totalSales > 0 ? totalSales.toFixed(2) : '458.50'}</p>
+            <p className="text-xl font-bold text-gray-900">${formatUSD(totalSales > 0 ? totalSales : 0)}</p>
           </div>
         </div>
         

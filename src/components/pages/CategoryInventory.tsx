@@ -4,6 +4,7 @@ import { toast } from 'react-hot-toast';
 import { Product } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
+import { formatBs, formatUSD } from '../../lib/formatUtils';
 
 interface CategoryInventoryProps {
   category: string;
@@ -314,8 +315,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                   {product.gender && <span className="ml-1 text-[10px] font-bold uppercase tracking-tight text-gray-400 opacity-80 border border-gray-200 px-1 rounded">({product.gender.substring(0, 1)})</span>}
                 </p>
                 <div className="flex items-center space-x-2 flex-wrap gap-y-1">
-                  <span className="text-sm font-bold text-gray-900">${product.price.toFixed(2)}</span>
-                  <span className="text-xs font-medium text-gray-500">Bs. {(product.price * exchangeRate).toFixed(2)}</span>
+                  <span className="text-sm font-bold text-gray-900">${formatUSD(product.price)}</span>
+                  <span className="text-xs font-medium text-gray-500">Bs. {formatBs(product.price * exchangeRate)}</span>
                   <span className="text-gray-300 hidden sm:inline">•</span>
                   <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
                     product.stock > 20 ? 'bg-green-50 text-green-600' : 
@@ -496,8 +497,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                   <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 p-4 rounded-2xl border border-primary-100/50">
                     <h3 className="text-xs font-bold text-primary-600/80 uppercase tracking-wider mb-1">Precio de Venta</h3>
                     <div className="flex items-end space-x-3">
-                      <span className="text-3xl font-bold text-primary-900">${selectedProduct.price.toFixed(2)}</span>
-                      <span className="text-base font-medium text-primary-700/70 mb-1">Bs. {(selectedProduct.price * exchangeRate).toFixed(2)}</span>
+                      <span className="text-3xl font-bold text-primary-900">${formatUSD(selectedProduct.price)}</span>
+                      <span className="text-base font-medium text-primary-700/70 mb-1">Bs. {formatBs(selectedProduct.price * exchangeRate)}</span>
                     </div>
                   </div>
 

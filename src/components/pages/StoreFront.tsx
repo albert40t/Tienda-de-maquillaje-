@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook } from 'lucide-react';
 import { Product, CartItem, BusinessInfo } from '../../types';
+import { formatBs, formatUSD } from '../../lib/formatUtils';
 
 interface StoreFrontProps {
   products: Product[];
@@ -187,17 +188,17 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleWhatsAppOrder = () => {
-    const itemsText = cart.map(item => `${item.quantity}x ${item.name} - $${(item.price * item.quantity).toFixed(2)}`).join('%0A');
-    const totalBs = (total * exchangeRate).toFixed(2);
+    const itemsText = cart.map(item => `${item.quantity}x ${item.name} - $${formatUSD(item.price * item.quantity)}`).join('%0A');
+    const totalBs = formatBs(total * exchangeRate);
     
     let deliveryText = deliveryMethod === 'delivery' 
       ? `*Entrega:* Delivery ($3.00)%0A*Dirección:* ${deliveryAddress}%0A*Referencia:* ${deliveryReference}`
       : `*Entrega:* Retiro en Tienda`;
 
     let notesText = orderNotes ? `%0A*Notas:* ${orderNotes}` : '';
-    let discountText = appliedDiscount > 0 ? `%0A*Descuento:* -${appliedDiscount}% ($${discountAmountValue.toFixed(2)})` : '';
+    let discountText = appliedDiscount > 0 ? `%0A*Descuento:* -${appliedDiscount}% ($${formatUSD(discountAmountValue)})` : '';
     
-    const message = `¡Hola! Quiero realizar un pedido en ${businessInfo.name} 💖%0A%0A*Datos del Cliente:*%0ANombre: ${firstName} ${lastName}%0ACédula: ${idCard}%0ATeléfono: ${phone}%0A%0A${deliveryText}%0A%0A*Pedido:*%0A${itemsText}${discountText}${notesText}%0A%0A*Total:* $${total.toFixed(2)} (Bs. ${totalBs})%0A*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}`;
+    const message = `¡Hola! Quiero realizar un pedido en ${businessInfo.name} 💖%0A%0A*Datos del Cliente:*%0ANombre: ${firstName} ${lastName}%0ACédula: ${idCard}%0ATeléfono: ${phone}%0A%0A${deliveryText}%0A%0A*Pedido:*%0A${itemsText}${discountText}${notesText}%0A%0A*Total:* $${formatUSD(total)} (Bs. ${totalBs})%0A*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}`;
     
     window.open(`https://wa.me/?text=${message}`, '_blank');
     
@@ -231,7 +232,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                       <div className="flex-1 flex flex-col justify-between py-1">
                         <div>
                           <h4 className="font-bold text-gray-900 leading-tight">{item.name}</h4>
-                          <p className="text-sm text-gray-500 mt-1">${item.price.toFixed(2)}</p>
+                          <p className="text-sm text-gray-500 mt-1">${formatUSD(item.price)}</p>
                         </div>
                         <div className="flex items-center justify-between">
                           <div className="flex items-center space-x-3 bg-gray-50 rounded-full px-2 py-1">
@@ -239,7 +240,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                             <span className="text-sm font-bold w-4 text-center">{item.quantity}</span>
                             <button onClick={() => updateQuantity(item.id, 1)} className="p-1 text-gray-500 hover:text-black"><Plus size={14} /></button>
                           </div>
-                          <span className="font-bold text-gray-900">${(item.price * item.quantity).toFixed(2)}</span>
+                          <span className="font-bold text-gray-900">${formatUSD(item.price * item.quantity)}</span>
                         </div>
                       </div>
                     </div>
@@ -290,7 +291,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
               <div className="p-6 pb-28 bg-white border-t border-gray-100">
                 <div className="flex justify-between items-center mb-6">
                   <span className="text-gray-500 font-medium">Subtotal</span>
-                  <span className="text-2xl font-bold text-gray-900">${subtotal.toFixed(2)}</span>
+                  <span className="text-2xl font-bold text-gray-900">${formatUSD(subtotal)}</span>
                 </div>
                 <button 
                   onClick={() => setStep('details')}
@@ -734,7 +735,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                       </div>
                     </div>
                     <h3 className="text-sm font-serif font-bold text-gray-900 leading-tight mb-1 line-clamp-2">{product.name}</h3>
-                    <span className="text-sm font-medium text-gray-900">${product.price.toFixed(2)}</span>
+                    <span className="text-sm font-medium text-gray-900">${formatUSD(product.price)}</span>
                   </div>
                 </div>
               );
