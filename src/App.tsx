@@ -8,6 +8,7 @@ import { supabase } from './lib/supabase';
 import { offlineManager } from './lib/offlineManager';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { RefreshCcw, Wifi, WifiOff } from 'lucide-react';
+import { Category } from './types';
 
 import Home from './components/pages/Home';
 import POS from './components/pages/POS';
@@ -20,39 +21,6 @@ const CategoryInventory = lazy(() => import('./components/pages/CategoryInventor
 const StoreFront = lazy(() => import('./components/pages/StoreFront'));
 const AdminUsers = lazy(() => import('./components/pages/AdminUsers'));
 const ActivityLogs = lazy(() => import('./components/pages/ActivityLogs'));
-
-// Error Boundary Component
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
-  constructor(props: any) {
-    super(props);
-    this.state = { hasError: false };
-  }
-
-  static getDerivedStateFromError() {
-    return { hasError: true };
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return (
-        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
-          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
-            <WifiOff size={32} />
-          </div>
-          <h2 className="text-xl font-bold text-gray-900">Algo salió mal</h2>
-          <p className="text-gray-500">Es posible que la conexión se haya perdido. Intenta recargar la página.</p>
-          <button 
-            onClick={() => window.location.reload()}
-            className="px-6 py-2 bg-primary-600 text-white rounded-xl font-medium"
-          >
-            Recargar
-          </button>
-        </div>
-      );
-    }
-    return this.props.children;
-  }
-}
 
 // Loading fallback for Suspense
 const LoadingSpinner = () => (
@@ -76,6 +44,7 @@ export default function App() {
   const [products, setProducts] = useState<Product[]>([]);
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
     name: 'Stefy Beauty',
     address: 'Av. Principal, Local 4',
@@ -88,22 +57,45 @@ export default function App() {
 
   const isStoreView = location.pathname === '/store';
 
-  // Initialize Auth from LocalStorage (just to keep session active)
+  // Initialize Auth and Local Data
   useEffect(() => {
-    const initAuth = () => {
+    const initData = () => {
       try {
         const activeSession = localStorage.getItem('app_session');
         if (activeSession) {
           setSession(JSON.parse(activeSession));
         }
+
+        // Load cached data for offline readiness
+        const cachedProducts = localStorage.getItem('cache_products');
+        const cachedCustomers = localStorage.getItem('cache_customers');
+        const cachedSales = localStorage.getItem('cache_sales');
+        const cachedCategories = localStorage.getItem('cache_categories');
+        const cachedBiz = localStorage.getItem('cache_business_info');
+
+        if (cachedProducts) setProducts(JSON.parse(cachedProducts));
+        if (cachedCustomers) setCustomers(JSON.parse(cachedCustomers));
+        if (cachedSales) setSales(JSON.parse(cachedSales));
+        if (cachedCategories) setCategories(JSON.parse(cachedCategories));
+        if (cachedBiz) setBusinessInfo(JSON.parse(cachedBiz));
+        
       } catch (e) {
-        console.error('Auth initialization failed', e);
+        console.error('Data initialization failed', e);
       } finally {
         setIsAuthLoading(false);
       }
     };
-    initAuth();
+    initData();
   }, []);
+
+  // Persist data to localStorage whenever it changes
+  useEffect(() => {
+    if (products.length > 0) localStorage.setItem('cache_products', JSON.stringify(products));
+    if (customers.length > 0) localStorage.setItem('cache_customers', JSON.stringify(customers));
+    if (sales.length > 0) localStorage.setItem('cache_sales', JSON.stringify(sales));
+    if (categories.length > 0) localStorage.setItem('cache_categories', JSON.stringify(categories));
+    localStorage.setItem('cache_business_info', JSON.stringify(businessInfo));
+  }, [products, customers, sales, categories, businessInfo]);
 
   // Fetch Business Info independently of session
   useEffect(() => {
@@ -134,11 +126,10 @@ export default function App() {
       const { data: pData } = await supabase.from('productos').select('*');
       const { data: cData } = await supabase.from('clientes').select('*');
       const { data: sData } = await supabase.from('ventas').select('*');
+      const { data: catData } = await supabase.from('categorias').select('*').order('name');
       
       if (pData && pData.length > 0) {
         setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
-      } else {
-        setProducts([]);
       }
       
       if (cData && cData.length > 0) {
@@ -147,14 +138,14 @@ export default function App() {
           totalPurchases: c.total_purchases,
           idCard: c.id_card 
         } as Customer)));
-      } else {
-        setCustomers([]);
       }
-      
+
       if (sData && sData.length > 0) {
         setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
-      } else {
-        setSales([]);
+      }
+
+      if (catData && catData.length > 0) {
+        setCategories(catData);
       }
     };
 
@@ -191,6 +182,18 @@ export default function App() {
           setCustomers(prev => prev.map(c => c.id === payload.new.id ? { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer : c));
         } else if (payload.eventType === 'DELETE') {
           setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
+        }
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias' }, (payload) => {
+        if (payload.eventType === 'INSERT') {
+          setCategories(prev => {
+            if (prev.find(c => c.id === payload.new.id)) return prev;
+            return [...prev, payload.new as Category];
+          });
+        } else if (payload.eventType === 'UPDATE') {
+          setCategories(prev => prev.map(c => c.id === payload.new.id ? payload.new as Category : c));
+        } else if (payload.eventType === 'DELETE') {
+          setCategories(prev => prev.filter(c => c.id !== payload.old.id));
         }
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'business_info' }, (payload) => {
@@ -407,22 +410,20 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className={`flex-1 overflow-y-auto ${!isStoreView ? 'pb-28' : ''}`}>
-        <ErrorBoundary>
-          <Suspense fallback={<LoadingSpinner />}>
-            <Routes>
-              <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
-              <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
-              <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} />} />
-              <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
-              <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
-              <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} />} />
-              <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} />} />
-              <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
-              <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
-          </Suspense>
-        </ErrorBoundary>
+        <Suspense fallback={<LoadingSpinner />}>
+          <Routes>
+            <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
+            <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
+            <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} />} />
+            <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
+            <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
+            <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} />} />
+            <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} />} />
+            <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
+            <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </main>
 
       {/* Bottom Navigation */}

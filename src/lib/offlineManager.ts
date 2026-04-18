@@ -165,6 +165,16 @@ class OfflineManager {
             .eq('id', data.id); // Assuming single record or specific ID
           if (bizError) throw bizError;
           return true;
+          
+        case 'UPSERT_CATEGORY':
+          const { error: catUpsertError } = await supabase.from('categorias').upsert(data);
+          if (catUpsertError) throw catUpsertError;
+          return true;
+
+        case 'DELETE_CATEGORY':
+          const { error: catDeleteError } = await supabase.from('categorias').delete().eq('id', data.id);
+          if (catDeleteError) throw catDeleteError;
+          return true;
 
         default:
           console.error('Unknown action type:', type);

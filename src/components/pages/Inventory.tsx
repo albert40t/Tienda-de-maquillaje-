@@ -3,6 +3,7 @@ import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2 
 import { toast } from 'react-hot-toast';
 import { Product, Category } from '../../types';
 import { supabase } from '../../lib/supabase';
+import { offlineManager } from '../../lib/offlineManager';
 import { compressImage } from '../../lib/imageUtils';
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -36,42 +37,17 @@ const DEFAULT_CATEGORIES: Category[] = [
 interface InventoryProps {
   onSelectCategory: (category: string) => void;
   products: Product[];
+  categories: Category[];
+  setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
+  isOnline: boolean;
 }
 
-export default function Inventory({ onSelectCategory, products }: InventoryProps) {
-  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
-  const [isLoading, setIsLoading] = useState(true);
-
+export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline }: InventoryProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState<Partial<Category>>({});
   const [isUploading, setIsUploading] = useState(false);
-
-  // Fetch categories from Supabase on mount
-  useEffect(() => {
-    const fetchCategories = async () => {
-      try {
-        setIsLoading(true);
-        const { data, error } = await supabase
-          .from('categorias')
-          .select('*')
-          .order('name');
-
-        if (error) {
-          console.error('Error fetching categories:', error);
-        } else if (data && data.length > 0) {
-          setCategories(data);
-        }
-      } catch (err) {
-        console.error('Fetch error:', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchCategories();
-  }, []);
 
   const openEdit = (category: Category) => {
     setEditingCategory(category);
@@ -88,6 +64,11 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!isOnline) {
+      toast.error('La subida de imágenes requiere conexión a internet');
+      return;
+    }
+
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -148,18 +129,20 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
     setEditingCategory(null);
     setIsCreating(false);
 
-    // Supabase update/upsert
-    const { error } = await supabase
-      .from('categorias')
-      .upsert(categoryData);
-
-    if (error) {
-      console.error('Error saving category:', error);
-      toast.error('No se pudo guardar en la base de datos');
-      // Simple reload to fixed UI state if error, ideally we should rollback more specifically
-      window.location.reload();
+    // Supabase update/upsert with offline support
+    if (isOnline) {
+      try {
+        const { error } = await supabase
+          .from('categorias')
+          .upsert(categoryData);
+        if (error) throw error;
+        toast.success(`Categoría ${isCreating ? 'creada' : 'actualizada'} exitosamente`);
+      } catch (error) {
+        console.error('Error saving category online, queueing...', error);
+        offlineManager.addAction('UPSERT_CATEGORY', categoryData);
+      }
     } else {
-      toast.success(`Categoría ${isCreating ? 'creada' : 'actualizada'} exitosamente`);
+      offlineManager.addAction('UPSERT_CATEGORY', categoryData);
     }
   };
 
@@ -181,17 +164,20 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
     setCategories(prev => prev.filter(c => c.id !== category.id));
     setActiveMenuId(null);
 
-    const { error } = await supabase
-      .from('categorias')
-      .delete()
-      .eq('id', category.id);
-
-    if (error) {
-      console.error('Error deleting category:', error);
-      toast.error('Error al eliminar de la base de datos');
-      window.location.reload();
+    if (isOnline) {
+      try {
+        const { error } = await supabase
+          .from('categorias')
+          .delete()
+          .eq('id', category.id);
+        if (error) throw error;
+        toast.success('Categoría eliminada');
+      } catch (error) {
+        console.error('Error deleting category online, queueing...', error);
+        offlineManager.addAction('DELETE_CATEGORY', { id: category.id });
+      }
     } else {
-      toast.success('Categoría eliminada');
+      offlineManager.addAction('DELETE_CATEGORY', { id: category.id });
     }
   };
 
@@ -282,12 +268,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
       </div>
 
       <div className="p-4 grid grid-cols-1 gap-4 overflow-y-auto pb-24">
-        {isLoading ? (
-          <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400">
-            <Loader2 size={40} className="animate-spin mb-4 opacity-20" />
-            <p className="text-sm font-medium">Cargando categorías...</p>
-          </div>
-        ) : categories.length === 0 ? (
+        {categories.length === 0 ? (
           <div className="text-center py-12 text-gray-500 bg-white rounded-3xl border border-dashed border-gray-200 p-8">
             <Package size={48} className="mx-auto text-gray-200 mb-4" />
             <p className="font-medium text-gray-400">No hay categorías registradas.</p>

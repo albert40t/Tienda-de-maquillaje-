@@ -91,7 +91,9 @@ export type OfflineActionType =
   | 'UPDATE_PRODUCT' 
   | 'DELETE_PRODUCT' 
   | 'LOG_ACTIVITY'
-  | 'UPDATE_BUSINESS_INFO';
+  | 'UPDATE_BUSINESS_INFO'
+  | 'UPSERT_CATEGORY'
+  | 'DELETE_CATEGORY';
 
 export interface PendingAction {
   id: string;
