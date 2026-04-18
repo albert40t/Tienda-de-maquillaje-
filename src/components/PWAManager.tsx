@@ -9,7 +9,7 @@ export default function PWAManager({ businessInfo }: PWAManagerProps) {
   useEffect(() => {
     if (!businessInfo) return;
 
-    const pwaConfig = businessInfo.pwa_config;
+    const pwaConfig = businessInfo.paymentConfig?.branding;
     const themeColor = "#D4AF37"; // Custom or from businessInfo
     
     // 1. Update Manifest

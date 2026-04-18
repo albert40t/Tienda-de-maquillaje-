@@ -89,18 +89,34 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         uploadedIcons[key] = publicUrl;
       }
 
-      // Save the URLs in business_info
+      // Save the URLs in business_info merged with paymentConfig
+      const updatedPaymentConfig = {
+        ...formData.paymentConfig,
+        branding: uploadedIcons
+      };
+
       const { error: dbError } = await supabase
         .from('business_info')
         .upsert({
           id: 1,
-          ...formData, // Keep existing data
-          pwa_config: uploadedIcons // Save the PWA URLs in a new field
+          name: formData.name,
+          address: formData.address,
+          phone: formData.phone,
+          email: formData.email,
+          logo: formData.logo,
+          instagram: formData.instagram,
+          tiktok: formData.tiktok,
+          facebook: formData.facebook,
+          payment_config: updatedPaymentConfig
         });
 
       if (dbError) throw dbError;
 
-      setBusinessInfo(prev => ({ ...prev, pwa_config: uploadedIcons }));
+      setBusinessInfo(prev => ({ 
+        ...prev, 
+        ...formData, 
+        paymentConfig: updatedPaymentConfig 
+      }));
       toast.success('¡Branding aplicado globalmente! La app se actualizará en unos segundos.', { id: 'branding' });
       
       setTimeout(() => window.location.reload(), 2000);

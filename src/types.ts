@@ -58,6 +58,12 @@ export interface PaymentConfig {
   transferencia?: { banco: string; cuenta: string; tipo: string; ci: string };
   paypal?: { email: string };
   binance?: { email: string; id: string };
+  branding?: {
+    icon192: string;
+    icon512: string;
+    appleTouch: string;
+    favicon: string;
+  };
 }
 
 export interface Category {
@@ -76,10 +82,4 @@ export interface BusinessInfo {
   tiktok?: string;
   facebook?: string;
   paymentConfig?: PaymentConfig;
-  pwa_config?: {
-    icon192: string;
-    icon512: string;
-    appleTouch: string;
-    favicon: string;
-  };
 }
