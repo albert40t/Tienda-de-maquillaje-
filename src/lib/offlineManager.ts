@@ -16,6 +16,7 @@ class OfflineManager {
   }
 
   private loadQueue() {
+    if (typeof window === 'undefined') return;
     const saved = localStorage.getItem(QUEUE_KEY);
     if (saved) {
       try {
@@ -28,6 +29,7 @@ class OfflineManager {
   }
 
   private saveQueue() {
+    if (typeof window === 'undefined') return;
     localStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
     // Dispatch custom event for UI updates
     window.dispatchEvent(new CustomEvent('offline-queue-changed', { detail: this.queue.length }));

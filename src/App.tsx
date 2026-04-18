@@ -7,7 +7,7 @@ import { Product, BusinessInfo, Customer, Sale } from './types';
 import { supabase } from './lib/supabase';
 import { offlineManager } from './lib/offlineManager';
 import { useOfflineSync } from './hooks/useOfflineSync';
-import { wifi, wifiOff, RefreshCcw } from 'lucide-react';
+import { RefreshCcw, Wifi, WifiOff } from 'lucide-react';
 
 // Lazy load pages for Code Splitting (Performance Optimization)
 const Home = lazy(() => import('./components/pages/Home'));
@@ -315,14 +315,22 @@ export default function App() {
               {pendingCount > 0 ? (
                 <button 
                   onClick={() => sync()}
-                  className="flex items-center space-x-1.5 px-2 py-1 bg-amber-50 text-amber-600 rounded-full animate-pulse"
+                  className="flex items-center space-x-1 px-2 py-1 bg-amber-50 text-amber-600 rounded-full animate-pulse border border-amber-100"
+                  title="Sincronizando datos pendientes..."
                 >
-                  <RefreshCcw size={14} className="animate-spin" />
-                  <span className="text-[10px] font-bold">{pendingCount}</span>
+                  <RefreshCcw size={12} className="animate-spin" />
+                  <span className="text-[10px] font-black">{pendingCount}</span>
                 </button>
               ) : (
-                <div className={`p-1.5 rounded-full ${isOnline ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'}`}>
-                  {isOnline ? <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> : <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />}
+                <div className={`flex items-center space-x-1 px-1.5 py-0.5 rounded-full ${isOnline ? 'text-green-600' : 'text-red-600 bg-red-50'}`}>
+                  {isOnline ? (
+                    <Wifi size={14} className="opacity-40" />
+                  ) : (
+                    <>
+                      <WifiOff size={14} />
+                      <span className="text-[8px] font-black uppercase">Offline</span>
+                    </>
+                  )}
                 </div>
               )}
             </div>

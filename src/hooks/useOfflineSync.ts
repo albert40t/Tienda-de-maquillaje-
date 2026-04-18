@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { offlineManager } from '../lib/offlineManager';
 
 export function useOfflineSync() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
+  const [isOnline, setIsOnline] = useState(typeof navigator !== 'undefined' ? navigator.onLine : true);
   const [pendingCount, setPendingCount] = useState(offlineManager.getQueueLength());
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const handleOnline = () => {
       setIsOnline(true);
       offlineManager.sync();
