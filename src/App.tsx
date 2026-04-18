@@ -5,6 +5,9 @@ import BottomNav from './components/BottomNav';
 import PWAManager from './components/PWAManager';
 import { Product, BusinessInfo, Customer, Sale } from './types';
 import { supabase } from './lib/supabase';
+import { offlineManager } from './lib/offlineManager';
+import { useOfflineSync } from './hooks/useOfflineSync';
+import { wifi, wifiOff, RefreshCcw } from 'lucide-react';
 
 // Lazy load pages for Code Splitting (Performance Optimization)
 const Home = lazy(() => import('./components/pages/Home'));
@@ -27,6 +30,7 @@ const LoadingSpinner = () => (
 export default function App() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { isOnline, pendingCount, sync } = useOfflineSync();
   const [session, setSession] = useState<{ email: string; role: string } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
@@ -271,8 +275,8 @@ export default function App() {
     // Optimistic update
     setSales(prev => [sale, ...prev]);
     
-    // Supabase insert
-    await supabase.from('ventas').insert({
+    // Process sale with offline support
+    const saleData = {
       id: sale.id,
       date: sale.date,
       items: sale.items,
@@ -281,7 +285,19 @@ export default function App() {
       payment_methods: sale.paymentMethods,
       customer_id: sale.customerId,
       profit: sale.profit
-    });
+    };
+
+    if (isOnline) {
+      try {
+        const { error } = await supabase.from('ventas').insert(saleData);
+        if (error) throw error;
+      } catch (e) {
+        console.error('Error sharing sale online, queueing...', e);
+        offlineManager.addAction('CREATE_SALE', saleData);
+      }
+    } else {
+      offlineManager.addAction('CREATE_SALE', saleData);
+    }
   };
 
   return (
@@ -292,7 +308,25 @@ export default function App() {
       {!isStoreView && (
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between shrink-0">
           <h1 className="font-serif text-xl font-bold text-primary-800 tracking-tight">{businessInfo.name}</h1>
+          
           <div className="flex items-center space-x-3">
+            {/* Sync status indicator */}
+            <div className="flex items-center">
+              {pendingCount > 0 ? (
+                <button 
+                  onClick={() => sync()}
+                  className="flex items-center space-x-1.5 px-2 py-1 bg-amber-50 text-amber-600 rounded-full animate-pulse"
+                >
+                  <RefreshCcw size={14} className="animate-spin" />
+                  <span className="text-[10px] font-bold">{pendingCount}</span>
+                </button>
+              ) : (
+                <div className={`p-1.5 rounded-full ${isOnline ? 'text-green-500 bg-green-50' : 'text-red-500 bg-red-50'}`}>
+                  {isOnline ? <div className="w-1.5 h-1.5 rounded-full bg-green-500" /> : <div className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />}
+                </div>
+              )}
+            </div>
+
             {session.role === 'admin' && location.pathname !== '/admin-users' && (
               <button 
                 onClick={() => navigate('/admin-users')}

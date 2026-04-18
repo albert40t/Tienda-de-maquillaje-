@@ -83,3 +83,20 @@ export interface BusinessInfo {
   facebook?: string;
   paymentConfig?: PaymentConfig;
 }
+
+export type OfflineActionType = 
+  | 'CREATE_SALE' 
+  | 'UPDATE_PRODUCT_STOCK' 
+  | 'CREATE_PRODUCT' 
+  | 'UPDATE_PRODUCT' 
+  | 'DELETE_PRODUCT' 
+  | 'LOG_ACTIVITY'
+  | 'UPDATE_BUSINESS_INFO';
+
+export interface PendingAction {
+  id: string;
+  type: OfflineActionType;
+  data: any;
+  timestamp: number;
+  retryCount: number;
+}

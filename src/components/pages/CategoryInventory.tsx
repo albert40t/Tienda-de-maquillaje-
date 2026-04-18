@@ -5,6 +5,8 @@ import { Product } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
+import { offlineManager } from '../../lib/offlineManager';
+import { useOfflineSync } from '../../hooks/useOfflineSync';
 
 interface CategoryInventoryProps {
   category: string;
@@ -18,6 +20,7 @@ type ModalMode = 'none' | 'details' | 'edit' | 'add' | 'stock' | 'delete';
 
 export default function CategoryInventory({ category, onBack, exchangeRate, products, setProducts }: CategoryInventoryProps) {
   const [search, setSearch] = useState('');
+  const { isOnline } = useOfflineSync();
   const [isFabOpen, setIsFabOpen] = useState(false);
   
   const [modalMode, setModalMode] = useState<ModalMode>('none');
@@ -76,23 +79,29 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       setModalMode('none');
       
       // Supabase delete
-      const { error } = await supabase.from('productos').delete().eq('id', selectedProduct.id);
-      
-      if (error) {
-        console.error("Delete error:", error);
-        toast.error('Error al eliminar el producto');
-        // Rollback optimistic update
-        setProducts(prev => [...prev, selectedProduct]);
-      } else {
-        toast.success('Producto eliminado exitosamente');
+      if (isOnline) {
+        const { error } = await supabase.from('productos').delete().eq('id', selectedProduct.id);
         
-        // Log the activity
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('activity_logs').insert({
-          user_email: user?.email || 'usuario@sistema.com',
-          action_type: 'DELETE_PRODUCT',
-          description: `Eliminó el producto "${selectedProduct.name}" de la categoría ${selectedProduct.category}`
-        });
+        if (error) {
+          console.error("Delete error:", error);
+          toast.error('Error al eliminar el producto');
+          // Rollback optimistic update
+          setProducts(prev => [...prev, selectedProduct]);
+        } else {
+          toast.success('Producto eliminado exitosamente');
+          
+          // Log the activity
+          const { data: { user } } = await supabase.auth.getUser();
+          const logData = {
+            user_email: user?.email || 'usuario@sistema.com',
+            action_type: 'DELETE_PRODUCT',
+            description: `Eliminó el producto "${selectedProduct.name}" de la categoría ${selectedProduct.category}`
+          };
+          await supabase.from('activity_logs').insert(logData);
+        }
+      } else {
+        offlineManager.addAction('DELETE_PRODUCT', { id: selectedProduct.id });
+        toast.success('Eliminación guardada localmente');
       }
       
       setSelectedProduct(null);
@@ -180,7 +189,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       setProducts(prev => [...prev, newProduct]);
       
       // Supabase insert
-      const { error } = await supabase.from('productos').insert({
+      const insertData = {
         id: String(newProduct.id),
         name: newProduct.name,
         category: newProduct.category,
@@ -192,23 +201,30 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         image: newProduct.image,
         description: newProduct.description,
         gender: newProduct.gender
-      });
-      
-      if (error) {
-        console.error("Insert error:", error);
-        toast.error(`Error de Supabase: ${error.message}`);
-        // Rollback optimistic update
-        setProducts(prev => prev.filter(p => p.id !== newProduct.id));
-      } else {
-        toast.success('Producto creado exitosamente');
+      };
+
+      if (isOnline) {
+        const { error } = await supabase.from('productos').insert(insertData);
         
-        // Log the activity
-        const { data: { user } } = await supabase.auth.getUser();
-        await supabase.from('activity_logs').insert({
-          user_email: user?.email || 'usuario@sistema.com',
-          action_type: 'CREATE_PRODUCT',
-          description: `Creó el producto "${newProduct.name}" en la categoría ${newProduct.category}`
-        });
+        if (error) {
+          console.error("Insert error:", error);
+          toast.error(`Error de Supabase: ${error.message}`);
+          // Rollback optimistic update
+          setProducts(prev => prev.filter(p => p.id !== newProduct.id));
+        } else {
+          toast.success('Producto creado exitosamente');
+          
+          // Log the activity
+          const { data: { user } } = await supabase.auth.getUser();
+          await supabase.from('activity_logs').insert({
+            user_email: user?.email || 'usuario@sistema.com',
+            action_type: 'CREATE_PRODUCT',
+            description: `Creó el producto "${newProduct.name}" en la categoría ${newProduct.category}`
+          });
+        }
+      } else {
+        offlineManager.addAction('CREATE_PRODUCT', insertData);
+        toast.success('Creación guardada localmente');
       }
       
     } else if (modalMode === 'edit' && selectedProduct) {
@@ -230,7 +246,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       setProducts(prev => prev.map(p => p.id === selectedProduct.id ? updatedProduct : p));
       
       // Supabase update
-      const { error } = await supabase.from('productos').update({
+      const updateData = {
         name: updatedProduct.name,
         category: updatedProduct.category,
         brand: updatedProduct.brand,
@@ -241,15 +257,22 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         image: updatedProduct.image,
         description: updatedProduct.description,
         gender: updatedProduct.gender
-      }).eq('id', updatedProduct.id);
+      };
 
-      if (error) {
-        console.error("Update error:", error);
-        toast.error(`Error de Supabase: ${error.message}`);
-        // Rollback optimistic update
-        setProducts(prev => prev.map(p => p.id === selectedProduct.id ? selectedProduct : p));
+      if (isOnline) {
+        const { error } = await supabase.from('productos').update(updateData).eq('id', updatedProduct.id);
+
+        if (error) {
+          console.error("Update error:", error);
+          toast.error(`Error de Supabase: ${error.message}`);
+          // Rollback optimistic update
+          setProducts(prev => prev.map(p => p.id === selectedProduct.id ? selectedProduct : p));
+        } else {
+          toast.success('Producto actualizado exitosamente');
+        }
       } else {
-        toast.success('Producto actualizado exitosamente');
+        offlineManager.addAction('UPDATE_PRODUCT', { id: updatedProduct.id, updates: updateData });
+        toast.success('Actualización guardada localmente');
       }
     }
     
@@ -270,7 +293,12 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
     }));
     
     // Supabase update
-    await supabase.from('productos').update({ stock: newStock }).eq('id', selectedProduct.id);
+    if (isOnline) {
+      await supabase.from('productos').update({ stock: newStock }).eq('id', selectedProduct.id);
+    } else {
+      offlineManager.addAction('UPDATE_PRODUCT_STOCK', { id: selectedProduct.id, stock: newStock });
+      toast.success('Actualización de stock guardada localmente');
+    }
     
     setModalMode('none');
   };

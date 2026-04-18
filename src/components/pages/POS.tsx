@@ -5,6 +5,8 @@ import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
+import { offlineManager } from '../../lib/offlineManager';
+import { useOfflineSync } from '../../hooks/useOfflineSync';
 
 interface POSProps {
   exchangeRate: number;
@@ -19,6 +21,7 @@ type ViewState = 'menu' | 'new_sale' | 'reports' | 'history';
 
 export default function POS({ exchangeRate, products, customers = [], sales = [], businessInfo, onProcessSale }: POSProps) {
   const [view, setView] = useState<ViewState>('menu');
+  const { isOnline } = useOfflineSync();
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
   
   // --- POS State ---
@@ -95,11 +98,17 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     const sessionStr = localStorage.getItem('app_session');
     if (sessionStr) {
       const session = JSON.parse(sessionStr);
-      await supabase.from('activity_logs').insert({
+      const logData = {
         user_email: session.email,
         action_type: 'NEW_SALE',
         description: `Registró una venta por $${total.toFixed(2)}`
-      });
+      };
+
+      if (isOnline) {
+        await supabase.from('activity_logs').insert(logData);
+      } else {
+        offlineManager.addAction('LOG_ACTIVITY', logData);
+      }
     }
     
     setIsCheckoutOpen(false);
