@@ -113,7 +113,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     if (!selectedCategory || selectedCategory === 'favorites') return [];
     const brands = products
       .filter(p => p.category.trim() === selectedCategory.trim() && p.brand)
-      .map(p => p.brand?.trim() as string);
+      .map(p => p.brand?.trim().toUpperCase() as string);
     return Array.from(new Set(brands)).filter(Boolean);
   }, [products, selectedCategory]);
 
@@ -127,7 +127,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
       const matchesCategory = selectedCategory === 'favorites' 
         ? favorites.includes(p.id)
         : selectedCategory ? p.category.trim() === selectedCategory.trim() : true;
-      const matchesBrand = selectedBrand ? p.brand?.trim() === selectedBrand.trim() : true;
+      const matchesBrand = selectedBrand ? p.brand?.trim().toUpperCase() === selectedBrand : true;
       return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
       if (sortBy === 'price_asc') return a.price - b.price;

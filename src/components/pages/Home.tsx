@@ -1,8 +1,7 @@
 import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart, Check, X as CloseIcon } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
-import { Page } from '../../App';
-import { Product, Sale, BusinessInfo } from '../../types';
+import { Product, Sale, BusinessInfo, Page } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
 

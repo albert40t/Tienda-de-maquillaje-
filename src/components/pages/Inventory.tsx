@@ -1,15 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2 } from 'lucide-react';
+import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Product } from '../../types';
+import { Product, Category } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
-
-interface Category {
-  id: string;
-  name: string;
-  image: string;
-}
 
 const DEFAULT_CATEGORIES: Category[] = [
   {
@@ -45,23 +39,51 @@ interface InventoryProps {
 }
 
 export default function Inventory({ onSelectCategory, products }: InventoryProps) {
-  const [categories, setCategories] = useState<Category[]>(() => {
-    const saved = localStorage.getItem('app_categories');
-    return saved ? JSON.parse(saved) : DEFAULT_CATEGORIES;
-  });
+  const [categories, setCategories] = useState<Category[]>(DEFAULT_CATEGORIES);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState<Partial<Category>>({});
   const [isUploading, setIsUploading] = useState(false);
 
+  // Fetch categories from Supabase on mount
   useEffect(() => {
-    localStorage.setItem('app_categories', JSON.stringify(categories));
-  }, [categories]);
+    const fetchCategories = async () => {
+      try {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('categorias')
+          .select('*')
+          .order('name');
+
+        if (error) {
+          console.error('Error fetching categories:', error);
+        } else if (data && data.length > 0) {
+          setCategories(data);
+        }
+      } catch (err) {
+        console.error('Fetch error:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCategories();
+  }, []);
 
   const openEdit = (category: Category) => {
     setEditingCategory(category);
     setFormData(category);
+    setIsCreating(false);
+    setActiveMenuId(null);
+  };
+
+  const openCreate = () => {
+    setIsCreating(true);
+    setEditingCategory({ id: '', name: '', image: 'https://images.unsplash.com/photo-1512438248448-99d87593da18?auto=format&fit=crop&q=80&w=800' });
+    setFormData({ name: '', image: 'https://images.unsplash.com/photo-1512438248448-99d87593da18?auto=format&fit=crop&q=80&w=800' });
     setActiveMenuId(null);
   };
 
@@ -105,30 +127,84 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
     }
   };
 
-  const handleSaveEdit = () => {
-    if (!editingCategory || !formData.name) return;
+  const handleSaveCategory = async () => {
+    if (!formData.name) return;
 
-    setCategories(prev => prev.map(c => {
-      if (c.id === editingCategory.id) {
-        // Only updates the name and image. If ID needs to change, it's more complex, 
-        // so we'll just update display name and image to avoid breaking product relations.
-        return { ...c, name: formData.name!.trim(), image: formData.image || c.image };
-      }
-      return c;
-    }));
+    const categoryId = isCreating ? formData.name.trim().replace(/\s+/g, '-') : (editingCategory?.id || '');
+    
+    const categoryData = { 
+      id: categoryId,
+      name: formData.name.trim(), 
+      image: formData.image || 'https://images.unsplash.com/photo-1512438248448-99d87593da18?auto=format&fit=crop&q=80&w=800'
+    };
 
-    toast.success('Categoría actualizada exitosamente');
+    // Optimistic update
+    if (isCreating) {
+      setCategories(prev => [...prev, categoryData]);
+    } else {
+      setCategories(prev => prev.map(c => c.id === categoryId ? categoryData : c));
+    }
+    
     setEditingCategory(null);
+    setIsCreating(false);
+
+    // Supabase update/upsert
+    const { error } = await supabase
+      .from('categorias')
+      .upsert(categoryData);
+
+    if (error) {
+      console.error('Error saving category:', error);
+      toast.error('No se pudo guardar en la base de datos');
+      // Simple reload to fixed UI state if error, ideally we should rollback more specifically
+      window.location.reload();
+    } else {
+      toast.success(`Categoría ${isCreating ? 'creada' : 'actualizada'} exitosamente`);
+    }
+  };
+
+  const handleDeleteCategory = async (category: Category) => {
+    const hasProducts = products.some(p => p.category.trim() === category.id.trim());
+    
+    if (hasProducts) {
+      toast.error('No se puede eliminar una categoría con productos asociados');
+      setActiveMenuId(null);
+      return;
+    }
+
+    if (!window.confirm(`¿Estás segura de que deseas eliminar la categoría "${category.name}"?`)) {
+      setActiveMenuId(null);
+      return;
+    }
+
+    // Optimistic update
+    setCategories(prev => prev.filter(c => c.id !== category.id));
+    setActiveMenuId(null);
+
+    const { error } = await supabase
+      .from('categorias')
+      .delete()
+      .eq('id', category.id);
+
+    if (error) {
+      console.error('Error deleting category:', error);
+      toast.error('Error al eliminar de la base de datos');
+      window.location.reload();
+    } else {
+      toast.success('Categoría eliminada');
+    }
   };
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-300 relative">
-      {/* Edit Modal */}
+      {/* Edit/Create Modal */}
       {editingCategory && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
           <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative z-10 animate-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold text-gray-900 mb-6">Editar Categoría</h3>
+            <h3 className="text-xl font-bold text-gray-900 mb-6">
+              {isCreating ? 'Nueva Categoría' : 'Editar Categoría'}
+            </h3>
             
             <div className="space-y-4">
               <div>
@@ -159,6 +235,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
                   type="text"
                   value={formData.name || ''}
                   onChange={e => setFormData({ ...formData, name: e.target.value })}
+                  placeholder="Ej: Accesorios"
                   className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-primary-200 outline-none transition-all"
                 />
               </div>
@@ -171,7 +248,7 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
                   Cancelar
                 </button>
                 <button
-                  onClick={handleSaveEdit}
+                  onClick={handleSaveCategory}
                   disabled={isUploading || !formData.name}
                   className="flex-1 py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors disabled:opacity-50"
                 >
@@ -183,80 +260,118 @@ export default function Inventory({ onSelectCategory, products }: InventoryProps
         </div>
       )}
 
-      <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100">
-        <h2 className="text-lg font-bold text-gray-900 mb-2">Categorías</h2>
+      <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 shrink-0">
+        <div className="flex items-center justify-between mb-2">
+          <h2 className="text-lg font-bold text-gray-900">Categorías</h2>
+          <button 
+            onClick={openCreate}
+            className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
+          >
+            <Plus size={16} />
+            <span>Añadir</span>
+          </button>
+        </div>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
             placeholder="Buscar categoría..."
-            className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+            className="w-full pl-11 pr-4 py-2.5 bg-gray-50 border-gray-100 rounded-2xl text-sm focus:bg-white focus:ring-4 focus:ring-primary-100 outline-none transition-all placeholder:text-gray-400"
           />
         </div>
       </div>
 
       <div className="p-4 grid grid-cols-1 gap-4 overflow-y-auto pb-24">
-        {categories.map((category) => {
-          const categoryStock = products
-            .filter(p => p.category.trim() === category.id.trim())
-            .reduce((total, p) => total + p.stock, 0);
+        {isLoading ? (
+          <div className="col-span-full py-20 flex flex-col items-center justify-center text-gray-400">
+            <Loader2 size={40} className="animate-spin mb-4 opacity-20" />
+            <p className="text-sm font-medium">Cargando categorías...</p>
+          </div>
+        ) : categories.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 bg-white rounded-3xl border border-dashed border-gray-200 p-8">
+            <Package size={48} className="mx-auto text-gray-200 mb-4" />
+            <p className="font-medium text-gray-400">No hay categorías registradas.</p>
+            <button 
+              onClick={openCreate}
+              className="mt-4 text-primary-600 font-bold text-sm hover:underline"
+            >
+              Crea la primera ahora
+            </button>
+          </div>
+        ) : (
+          categories.map((category) => {
+            const categoryStock = products
+              .filter(p => p.category.trim() === category.id.trim())
+              .reduce((total, p) => total + p.stock, 0);
 
-          return (
-            <div key={category.id} className="relative group">
-              <button
-                onClick={() => onSelectCategory(category.id)}
-                className="w-full h-48 bg-gray-100 rounded-3xl overflow-hidden shadow-md border border-gray-100 hover:shadow-lg transition-all text-left block relative"
-              >
-                <img 
-                  src={category.image} 
-                  alt={category.name} 
-                  className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" 
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent flex flex-col justify-end p-6">
-                  <h3 className="text-white font-bold text-2xl tracking-wide mb-1">{category.name}</h3>
-                  <div className="flex items-center text-white/90 text-sm font-medium">
-                    <Package size={16} className="mr-1.5 opacity-80" />
-                    <span>{categoryStock} en stock</span>
-                  </div>
-                </div>
-              </button>
-
-              {/* Three dots menu */}
-              <div className="absolute top-3 right-3 z-10">
+            return (
+              <div key={category.id} className="relative group animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(activeMenuId === category.id ? null : category.id);
-                  }}
-                  className="p-2 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-colors"
+                  onClick={() => onSelectCategory(category.id)}
+                  className="w-full h-48 bg-gray-100 rounded-3xl overflow-hidden shadow-md border border-white hover:shadow-xl transition-all text-left block relative group"
                 >
-                  <MoreVertical size={20} />
+                  <img
+                    src={category.image}
+                    alt={category.name}
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6">
+                    <h3 className="text-white font-bold text-2xl tracking-wide mb-1 drop-shadow-sm">{category.name}</h3>
+                    <div className="flex items-center text-white/90 text-sm font-medium bg-black/20 self-start px-2.5 py-1 rounded-full backdrop-blur-sm">
+                      <Package size={14} className="mr-1.5 opacity-80" />
+                      <span>{categoryStock} en stock</span>
+                    </div>
+                  </div>
                 </button>
 
-                {activeMenuId === category.id && (
-                  <>
-                    <div 
-                      className="fixed inset-0 z-40" 
-                      onClick={() => setActiveMenuId(null)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden py-1 animate-in zoom-in-95 duration-200">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEdit(category);
-                        }}
-                        className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left font-medium"
-                      >
-                        <Edit2 size={16} className="text-gray-400" />
-                        <span>Editar Categoría</span>
-                      </button>
-                    </div>
-                  </>
-                )}
+                {/* Three dots menu */}
+                <div className="absolute top-4 right-4 z-10">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(activeMenuId === category.id ? null : category.id);
+                    }}
+                    className="p-2.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-all hover:scale-110 active:scale-90"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+
+                  {activeMenuId === category.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setActiveMenuId(null)}
+                      />
+                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden py-1.5 animate-in zoom-in-95 duration-200">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openEdit(category);
+                          }}
+                          className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left font-semibold"
+                        >
+                          <Edit2 size={16} className="text-primary-500" />
+                          <span>Editar</span>
+                        </button>
+                        <div className="h-px bg-gray-100 mx-2" />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteCategory(category);
+                          }}
+                          className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
+                        >
+                          <Trash2 size={16} />
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          );
-        })}
+            );
+          })
+        )}
       </div>
     </div>
   );

@@ -1,5 +1,6 @@
 import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
+import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import BottomNav from './components/BottomNav';
 import { Product, BusinessInfo, Customer, Sale } from './types';
 import { supabase } from './lib/supabase';
@@ -15,23 +16,22 @@ const StoreFront = lazy(() => import('./components/pages/StoreFront'));
 const AdminUsers = lazy(() => import('./components/pages/AdminUsers'));
 const ActivityLogs = lazy(() => import('./components/pages/ActivityLogs'));
 
-export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store' | 'admin-users' | 'activity-logs';
-
 // Loading fallback for Suspense
 const LoadingSpinner = () => (
-  <div className="flex-1 flex items-center justify-center h-full">
+  <div className="flex-1 flex items-center justify-center h-full min-h-[300px]">
     <div className="w-8 h-8 border-4 border-primary-200 border-t-primary-600 rounded-full animate-spin"></div>
   </div>
 );
 
 export default function App() {
+  const navigate = useNavigate();
+  const location = useLocation();
   const [session, setSession] = useState<{ email: string; role: string } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
 
-  const [currentPage, setCurrentPage] = useState<Page>('home');
   const [selectedCategory, setSelectedCategory] = useState<string>('');
   const [exchangeRate, setExchangeRate] = useState<number>(38.50);
   const [products, setProducts] = useState<Product[]>([]);
@@ -47,7 +47,7 @@ export default function App() {
     facebook: 'https://facebook.com'
   });
 
-  // No local storage save for exchange rate anymore
+  const isStoreView = location.pathname === '/store';
 
   // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
@@ -201,7 +201,7 @@ export default function App() {
     setSession(null);
     setEmail('');
     setPassword('');
-    setCurrentPage('home');
+    navigate('/');
   };
 
   if (isAuthLoading) {
@@ -263,7 +263,7 @@ export default function App() {
 
   const handleCategorySelect = (category: string) => {
     setSelectedCategory(category);
-    setCurrentPage('category-inventory');
+    navigate('/category-inventory');
   };
 
   const handleProcessSale = async (sale: Sale) => {
@@ -283,42 +283,17 @@ export default function App() {
     });
   };
 
-  const renderPage = () => {
-    switch (currentPage) {
-      case 'home':
-        return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />;
-      case 'pos':
-        return <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />;
-      case 'inventory':
-        return <Inventory onSelectCategory={handleCategorySelect} products={products} />;
-      case 'customers':
-        return <Customers customers={customers} sales={sales} />;
-      case 'category-inventory':
-        return <CategoryInventory category={selectedCategory} onBack={() => setCurrentPage('inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />;
-      case 'settings':
-        return <Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={setCurrentPage} onSignOut={handleSignOut} />;
-      case 'store':
-        return <StoreFront products={products} exchangeRate={exchangeRate} onBack={() => setCurrentPage('home')} businessInfo={businessInfo} />;
-      case 'admin-users':
-        return <AdminUsers onBack={() => setCurrentPage('settings')} />;
-      case 'activity-logs':
-        return <ActivityLogs onBack={() => setCurrentPage('settings')} />;
-      default:
-        return <Home onNavigate={setCurrentPage} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} />;
-    }
-  };
-
   return (
     <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden">
       <Toaster position="top-center" />
       {/* Header */}
-      {currentPage !== 'store' && (
-        <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between">
+      {!isStoreView && (
+        <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between shrink-0">
           <h1 className="font-serif text-xl font-bold text-primary-800 tracking-tight">{businessInfo.name}</h1>
           <div className="flex items-center space-x-3">
-            {session.role === 'admin' && currentPage !== 'admin-users' && (
+            {session.role === 'admin' && location.pathname !== '/admin-users' && (
               <button 
-                onClick={() => setCurrentPage('admin-users')}
+                onClick={() => navigate('/admin-users')}
                 className="text-xs text-primary-600 hover:text-primary-800 font-medium bg-primary-50 px-2 py-1 rounded-md"
               >
                 Usuarios
@@ -338,14 +313,25 @@ export default function App() {
       )}
 
       {/* Main Content Area */}
-      <main className={`flex-1 overflow-y-auto ${currentPage !== 'store' ? 'pb-28' : ''}`}>
+      <main className={`flex-1 overflow-y-auto ${!isStoreView ? 'pb-28' : ''}`}>
         <Suspense fallback={<LoadingSpinner />}>
-          {renderPage()}
+          <Routes>
+            <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
+            <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
+            <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} />} />
+            <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
+            <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
+            <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} />} />
+            <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} />} />
+            <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
+            <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </Suspense>
       </main>
 
       {/* Bottom Navigation */}
-      {currentPage !== 'store' && <BottomNav currentPage={currentPage} onNavigate={setCurrentPage} />}
+      {!isStoreView && <BottomNav />}
     </div>
   );
 }

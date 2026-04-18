@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock, Landmark } from 'lucide-react';
+import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock, Landmark, TrendingUp, TrendingDown, Calendar, PieChart as PieIcon, Package, DollarSign } from 'lucide-react';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -37,6 +38,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   const [amountReceived, setAmountReceived] = useState<number | ''>('');
   const [isSuccess, setIsSuccess] = useState(false);
   const [historyDate, setHistoryDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [reportRange, setReportRange] = useState<'today' | '7d' | '30d' | 'all'>('7d');
 
   // --- Handlers ---
   const addToCart = (product: Product) => {
@@ -180,13 +182,13 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     
     // Get brands only if Perfumes is selected
     const brands = selectedCategory === 'Perfumes' 
-      ? Array.from(new Set(products.filter(p => p.category === 'Perfumes' && p.brand).map(p => p.brand!)))
+      ? Array.from(new Set(products.filter(p => p.category === 'Perfumes' && p.brand).map(p => p.brand!.trim().toUpperCase())))
       : [];
 
     const filteredProducts = products.filter(p => {
       const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase());
       const matchesCategory = selectedCategory ? p.category === selectedCategory : true;
-      const matchesBrand = selectedBrand ? p.brand === selectedBrand : true;
+      const matchesBrand = selectedBrand ? (p.brand?.trim().toUpperCase() === selectedBrand) : true;
       return matchesSearch && matchesCategory && matchesBrand;
     });
 
@@ -898,22 +900,290 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   }
 
   if (view === 'reports') {
+    const now = new Date();
+    
+    const filteredSales = sales.filter(sale => {
+      const saleDate = new Date(sale.date);
+      if (reportRange === 'today') return sale.date.startsWith(now.toISOString().split('T')[0]);
+      if (reportRange === '7d') {
+        const last7 = new Date(now);
+        last7.setDate(now.getDate() - 7);
+        return saleDate >= last7;
+      }
+      if (reportRange === '30d') {
+        const last30 = new Date(now);
+        last30.setDate(now.getDate() - 30);
+        return saleDate >= last30;
+      }
+      return true;
+    });
+
+    const totalRevenue = filteredSales.reduce((sum, s) => sum + s.total, 0);
+    const totalProfit = filteredSales.reduce((sum, s) => sum + (s.profit || 0), 0);
+    const avgTicket = filteredSales.length > 0 ? totalRevenue / filteredSales.length : 0;
+    const margin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+
+    // Charts Data: Trends (Daily)
+    const dailyData: any[] = [];
+    const dateMap = new Map();
+    filteredSales.forEach(s => {
+      const dateKey = s.date.split('T')[0];
+      const current = dateMap.get(dateKey) || { date: dateKey, total: 0, profit: 0 };
+      dateMap.set(dateKey, { 
+        ...current, 
+        total: current.total + s.total, 
+        profit: current.profit + (s.profit || 0) 
+      });
+    });
+    
+    // Fill gaps for better chart (optional but good)
+    Array.from(dateMap.values())
+      .sort((a, b) => a.date.localeCompare(b.date))
+      .forEach(d => dailyData.push(d));
+
+    // Category distribution
+    const categoryMap = new Map();
+    filteredSales.forEach(s => {
+      s.items.forEach(item => {
+        const current = categoryMap.get(item.category) || 0;
+        categoryMap.set(item.category, current + (item.price * item.quantity));
+      });
+    });
+    const categoryData = Array.from(categoryMap.entries()).map(([name, value]) => ({ name, value }));
+    const COLORS = ['#D4AF37', '#000000', '#F472B6', '#60A5FA', '#34D399', '#FBBF24'];
+
+    // Top Products
+    const productMap = new Map();
+    filteredSales.forEach(s => {
+      s.items.forEach(item => {
+        const current = productMap.get(item.id) || { name: item.name, qty: 0, revenue: 0, image: item.image };
+        productMap.set(item.id, {
+          ...current,
+          qty: current.qty + item.quantity,
+          revenue: current.revenue + (item.price * item.quantity)
+        });
+      });
+    });
+    const topProducts = Array.from(productMap.values())
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5);
+
     return (
-      <div className="h-full flex flex-col bg-gray-50 animate-in slide-in-from-right-8 duration-300">
-        <div className="bg-white px-4 py-3 shadow-sm flex items-center space-x-3 z-10">
-          <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-full">
-            <ArrowLeft size={20} />
-          </button>
-          <h2 className="text-lg font-bold text-gray-900">
-            Reportes de Ventas
-          </h2>
-        </div>
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center">
-          <div className="w-20 h-20 rounded-full flex items-center justify-center mb-4 bg-blue-50 text-blue-500">
-            <BarChart3 size={40} />
+      <div className="h-full flex flex-col bg-[#F8F9FA] animate-in slide-in-from-right-8 duration-300 relative overflow-hidden">
+        {/* Header */}
+        <div className="bg-white px-6 py-4 border-b border-gray-200 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-20">
+          <div className="flex items-center space-x-4">
+            <button onClick={() => setView('menu')} className="p-2 -ml-2 text-gray-400 hover:text-gray-900 hover:bg-gray-100 rounded-full">
+              <ArrowLeft size={22} />
+            </button>
+            <h2 className="text-xl font-black text-gray-900">Análisis Financiero</h2>
           </div>
-          <h3 className="text-xl font-bold text-gray-900 mb-2">Próximamente</h3>
-          <p className="text-gray-500">Esta sección está en construcción. Aquí podrás ver tus estadísticas detalladas muy pronto.</p>
+          
+          <div className="flex items-center bg-gray-100 p-1 rounded-2xl border border-gray-100">
+            {(['today', '7d', '30d', 'all'] as const).map(range => (
+              <button
+                key={range}
+                onClick={() => setReportRange(range)}
+                className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all ${
+                  reportRange === range ? 'bg-white text-gray-900 shadow-sm border border-gray-100' : 'text-gray-400 hover:text-gray-600'
+                }`}
+              >
+                {range === 'today' ? 'Hoy' : range === '7d' ? '7 Días' : range === '30d' ? 'Mes' : 'Todo'}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-6 md:space-y-8">
+          {/* KPI Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-primary-50 text-primary-600 rounded-xl"><TrendingUp size={18}/></div>
+                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">Ingresos</span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Total Ventas</p>
+              <h3 className="text-2xl font-black font-mono text-gray-900">${formatUSD(totalRevenue)}</h3>
+            </div>
+
+            <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><DollarSign size={18}/></div>
+                <span className="text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded-full">Neto</span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Ganancia Bruta</p>
+              <h3 className="text-2xl font-black font-mono text-emerald-600">${formatUSD(totalProfit)}</h3>
+            </div>
+
+            <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><Percent size={18}/></div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Rentabilidad</span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Margen Comercial</p>
+              <h3 className="text-2xl font-black font-mono text-gray-900">{margin.toFixed(1)}%</h3>
+            </div>
+
+            <div className="bg-white p-5 rounded-[2rem] border border-gray-100 shadow-sm">
+              <div className="flex items-center justify-between mb-3">
+                <div className="p-2 bg-purple-50 text-purple-600 rounded-xl"><ShoppingCart size={18}/></div>
+                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Ticket</span>
+              </div>
+              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest leading-none mb-1">Promedio Venta</p>
+              <h3 className="text-2xl font-black font-mono text-gray-900">${formatUSD(avgTicket)}</h3>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Sales Trend Chart */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm min-h-[400px] flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="font-black text-gray-900">Evolución Diaria</h3>
+                  <p className="text-xs text-gray-500 font-medium">Comparativa de ventas y utilidades</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-2xl text-gray-400"><Calendar size={20}/></div>
+              </div>
+              <div className="flex-1 w-full min-h-[250px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={dailyData}>
+                    <defs>
+                      <linearGradient id="colorTotal" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#D4AF37" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#D4AF37" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="date" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}}
+                      tickFormatter={(val) => val.split('-').slice(1).join('/')}
+                    />
+                    <YAxis 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{fontSize: 10, fontWeight: 700, fill: '#94a3b8'}}
+                      tickFormatter={(val) => `$${val}`}
+                    />
+                    <Tooltip 
+                      contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)', fontSize: '12px', fontWeight: 'bold'}}
+                    />
+                    <Area type="monotone" dataKey="total" stroke="#D4AF37" strokeWidth={3} fillOpacity={1} fill="url(#colorTotal)" name="Ventas" />
+                    <Area type="monotone" dataKey="profit" stroke="#34D399" strokeWidth={2} fillOpacity={0} name="Ganancia" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Category Distribution */}
+            <div className="bg-white p-6 rounded-[2.5rem] border border-gray-100 shadow-sm min-h-[400px] flex flex-col">
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h3 className="font-black text-gray-900">Distribución por Categoría</h3>
+                  <p className="text-xs text-gray-500 font-medium">Volumen de ventas por sector</p>
+                </div>
+                <div className="p-3 bg-gray-50 rounded-2xl text-gray-400"><PieIcon size={20}/></div>
+              </div>
+              <div className="flex-1 w-full min-h-[250px] flex flex-col md:flex-row items-center">
+                <div className="w-full md:w-1/2 h-full">
+                  <ResponsiveContainer width="100%" height={250}>
+                    <PieChart>
+                      <Pie
+                        data={categoryData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={60}
+                        outerRadius={80}
+                        paddingAngle={5}
+                        dataKey="value"
+                      >
+                        {categoryData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+                <div className="w-full md:w-1/2 px-4 space-y-3">
+                  {categoryData.map((cat, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-3 h-3 rounded-full" style={{backgroundColor: COLORS[idx % COLORS.length]}}/>
+                        <span className="text-[11px] font-bold text-gray-600 truncate max-w-[100px]">{cat.name}</span>
+                      </div>
+                      <span className="text-[11px] font-black text-gray-900">${formatUSD(cat.value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+             {/* Top Products */}
+             <div className="lg:col-span-2 bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm">
+                <div className="flex items-center justify-between mb-8">
+                  <div>
+                    <h3 className="font-black text-gray-900">Productos Estrella</h3>
+                    <p className="text-xs text-gray-500 font-medium">Lo más vendido del periodo</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-2xl text-gray-400"><Package size={20}/></div>
+                </div>
+                
+                <div className="space-y-4">
+                  {topProducts.map((p, idx) => (
+                    <div key={idx} className="flex items-center justify-between p-4 bg-gray-50 rounded-[1.5rem] border border-gray-100 hover:border-primary-200 transition-colors">
+                      <div className="flex items-center space-x-4">
+                        <div className="w-12 h-12 bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100">
+                          <img src={p.image} className="w-full h-full object-cover" />
+                        </div>
+                        <div>
+                          <h4 className="text-sm font-bold text-gray-900">{p.name}</h4>
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{p.qty} Unidades Vendidas</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-black text-gray-900">${formatUSD(p.revenue)}</p>
+                        <p className="text-[10px] font-bold text-emerald-500 uppercase">Ingreso</p>
+                      </div>
+                    </div>
+                  ))}
+                  {topProducts.length === 0 && (
+                    <div className="py-10 text-center opacity-30 italic text-gray-400">Sin datos de productos</div>
+                  )}
+                </div>
+             </div>
+
+             {/* Inventory Status Summary */}
+             <div className="bg-primary-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between">
+                <div className="absolute -bottom-20 -left-20 w-60 h-60 bg-white/5 blur-3xl rounded-full"></div>
+                <div>
+                   <h3 className="text-lg font-bold mb-1">Estado de Inventario</h3>
+                   <p className="text-primary-300 text-xs font-medium mb-8">Valorización rápida del stock</p>
+                   
+                   <div className="space-y-6">
+                      <div>
+                        <p className="text-primary-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Valor Precio Venta</p>
+                        <h2 className="text-3xl font-black font-mono">${formatUSD(products.reduce((sum, p) => sum + (p.price * (p.stock || 0)), 0))}</h2>
+                      </div>
+                      <div>
+                        <p className="text-primary-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Costo de Inversión</p>
+                        <h2 className="text-xl font-bold font-mono text-white/80">${formatUSD(products.reduce((sum, p) => sum + ((p.costPrice || 0) * (p.stock || 0)), 0))}</h2>
+                      </div>
+                   </div>
+                </div>
+
+                <div className="mt-8 pt-6 border-t border-white/10">
+                   <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-primary-300">
+                      <span>Total Productos</span>
+                      <span className="text-white text-lg">{products.reduce((sum, p) => sum + (p.stock || 0), 0)} u.</span>
+                   </div>
+                </div>
+             </div>
+          </div>
         </div>
       </div>
     );
@@ -922,6 +1192,23 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   if (view === 'history') {
     const filteredSales = sales.filter(sale => sale.date.startsWith(historyDate));
     const dayTotal = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
+    
+    // Calculate pools
+    const usdMethods = ['cash_usd', 'zelle'];
+    const bsMethods = ['cash_bs', 'pago_movil', 'pos'];
+
+    const totalInUsdPool = filteredSales.reduce((acc, sale) => {
+      return acc + (sale.paymentMethods || [])
+        .filter(pm => usdMethods.includes(pm.method))
+        .reduce((sum, pm) => sum + pm.amount, 0);
+    }, 0);
+
+    const totalInBsPoolUsd = filteredSales.reduce((acc, sale) => {
+      return acc + (sale.paymentMethods || [])
+        .filter(pm => bsMethods.includes(pm.method))
+        .reduce((sum, pm) => sum + pm.amount, 0);
+    }, 0);
+
     const dayCount = filteredSales.length;
     const isToday = historyDate === new Date().toISOString().split('T')[0];
 
@@ -968,14 +1255,26 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
           {/* Main Sales List */}
           <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 space-y-4">
             {/* Daily Summary (Mobile/Tablet Only) - Shown inline for scanability */}
-            <div className="lg:hidden bg-gray-900 rounded-[2rem] p-6 text-white shadow-xl mb-6 flex items-center justify-between">
-              <div>
-                <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Monto Total del Día</p>
-                <h3 className="text-3xl font-black font-mono leading-none">${dayTotal.toFixed(2)}</h3>
+            <div className="lg:hidden bg-gray-900 rounded-[2rem] p-6 text-white shadow-xl mb-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Dólares ($)</p>
+                  <h3 className="text-2xl font-black font-mono leading-none">${totalInUsdPool.toFixed(2)}</h3>
+                </div>
+                <div>
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Total Bolívares (Bs)</p>
+                  <h3 className="text-2xl font-black font-mono leading-none">Bs. {(totalInBsPoolUsd * exchangeRate).toFixed(2)}</h3>
+                </div>
               </div>
-              <div className="text-right">
-                <p className="text-primary-400 text-[10px] font-bold uppercase tracking-widest mb-1">Volumen</p>
-                <p className="text-xl font-bold leading-none">{dayCount} <span className="text-xs opacity-60">Oper.</span></p>
+              <div className="pt-4 border-t border-white/10 flex justify-between items-center">
+                <div className="text-left">
+                  <p className="text-primary-400 text-[10px] font-bold uppercase tracking-widest mb-1">Volumen</p>
+                  <p className="text-xl font-bold leading-none">{dayCount} <span className="text-xs opacity-60">Oper.</span></p>
+                </div>
+                <div className="text-right">
+                  <p className="text-gray-400 text-[10px] font-bold uppercase tracking-widest mb-1">Venta Total (USD)</p>
+                  <p className="text-xl font-black font-mono leading-none">${dayTotal.toFixed(2)}</p>
+                </div>
               </div>
             </div>
 
@@ -1033,39 +1332,58 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             <div className="p-8 shrink-0">
               <div className="bg-gray-900 rounded-[2.5rem] p-8 text-white shadow-2xl relative overflow-hidden group">
                 <div className="absolute -top-10 -right-10 w-40 h-40 bg-primary-600/20 blur-3xl group-hover:bg-primary-600/40 transition-all duration-700 rounded-full"></div>
-                <p className="text-gray-500 text-[11px] font-black uppercase tracking-[0.2em] mb-4">Resumen Diario</p>
+                <p className="text-gray-500 text-[11px] font-black uppercase tracking-[0.2em] mb-4">Cierre de Caja</p>
                 <div className="space-y-6">
-                  <div>
-                    <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Monto de Venta</p>
-                    <h1 className="text-5xl font-black font-mono leading-none tracking-tighter">${dayTotal.toFixed(2)}</h1>
-                    <p className="text-gray-500 text-xs font-bold font-mono mt-2 opacity-60">~ Bs. {(dayTotal * exchangeRate).toFixed(2)}</p>
-                  </div>
-                  <div className="pt-6 border-t border-white/10 flex justify-between items-end">
+                  <div className="grid grid-cols-1 gap-6">
                     <div>
-                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Volumen</p>
-                      <p className="text-2xl font-black leading-none">{dayCount}</p>
-                      <p className="text-[10px] font-bold text-primary-400 uppercase mt-1">Transacciones</p>
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Efectivo / Zelle ($)</p>
+                      <h2 className="text-3xl font-black font-mono leading-none text-white">${totalInUsdPool.toFixed(2)}</h2>
                     </div>
-                    <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-primary-400">
-                      <BarChart3 size={24} />
+                    <div>
+                      <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Bolívares (Bs.)</p>
+                      <h2 className="text-3xl font-black font-mono leading-none text-primary-400">Bs. {(totalInBsPoolUsd * exchangeRate).toFixed(2)}</h2>
+                      <p className="text-[10px] font-bold text-gray-500 mt-1 uppercase">Eq. ${(totalInBsPoolUsd).toFixed(2)}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-6 border-t border-white/10">
+                    <div className="flex justify-between items-end">
+                      <div>
+                        <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider mb-1">Venta Total</p>
+                        <p className="text-2xl font-black leading-none">${dayTotal.toFixed(2)}</p>
+                        <p className="text-[10px] font-bold text-primary-400 uppercase mt-1">{dayCount} Transacciones</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-primary-400">
+                        <BarChart3 size={24} />
+                      </div>
                     </div>
                   </div>
                 </div>
               </div>
 
               <div className="mt-8 space-y-6">
-                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Desglose por Pago</h4>
+                <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Desglose por Pasarela</h4>
                 <div className="space-y-3 px-1">
-                  {['cash_usd', 'pago_movil', 'zelle', 'pos'].map(method => {
-                    const methodSales = filteredSales.filter(s => s.paymentMethods.some(pm => pm.method === method));
-                    const methodTotal = methodSales.reduce((sum, s) => sum + s.total, 0);
+                  {['cash_usd', 'zelle', 'cash_bs', 'pago_movil', 'pos'].map(method => {
+                    // Sum only the specific amount for THIS method across all relevant sales
+                    const methodTotal = filteredSales.reduce((acc, sale) => {
+                      const methodAmount = (sale.paymentMethods || [])
+                        .filter(pm => pm.method === method)
+                        .reduce((sum, pm) => sum + pm.amount, 0);
+                      return acc + methodAmount;
+                    }, 0);
+
                     const percentage = dayTotal > 0 ? (methodTotal / dayTotal) * 100 : 0;
                     
                     return (
                       <div key={method} className="space-y-1.5">
                         <div className="flex justify-between items-center text-[11px] font-bold uppercase tracking-tight">
                           <span className="text-gray-500">{method.replace('_', ' ')}</span>
-                          <span className="text-gray-900">${methodTotal.toFixed(2)}</span>
+                          <span className="text-gray-900">
+                            {['cash_bs', 'pago_movil', 'pos'].includes(method) 
+                              ? `Bs. ${formatBs(methodTotal * exchangeRate)}` 
+                              : `$${formatUSD(methodTotal)}`}
+                          </span>
                         </div>
                         <div className="h-1.5 bg-gray-100 rounded-full overflow-hidden">
                           <div 

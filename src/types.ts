@@ -1,3 +1,5 @@
+export type Page = 'home' | 'pos' | 'inventory' | 'customers' | 'settings' | 'category-inventory' | 'store' | 'admin-users' | 'activity-logs';
+
 export interface ProductVariant {
   name: string;
   stock: number;
@@ -56,6 +58,12 @@ export interface PaymentConfig {
   transferencia?: { banco: string; cuenta: string; tipo: string; ci: string };
   paypal?: { email: string };
   binance?: { email: string; id: string };
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  image: string;
 }
 
 export interface BusinessInfo {

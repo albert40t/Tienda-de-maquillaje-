@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { BusinessInfo } from '../../types';
-import { Page } from '../../App';
+import { BusinessInfo, Page } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
 
