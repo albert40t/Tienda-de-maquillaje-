@@ -9,30 +9,46 @@ class OfflineManager {
   private isSyncing = false;
 
   constructor() {
-    this.loadQueue();
-    if (typeof window !== 'undefined') {
-      window.addEventListener('online', () => this.sync());
+    this.init();
+  }
+
+  private init() {
+    try {
+      this.loadQueue();
+      if (typeof window !== 'undefined') {
+        window.addEventListener('online', () => this.sync());
+        // Also sync on load if online
+        if (navigator.onLine) {
+          this.sync();
+        }
+      }
+    } catch (e) {
+      console.error('OfflineManager init failed', e);
     }
   }
 
   private loadQueue() {
     if (typeof window === 'undefined') return;
-    const saved = localStorage.getItem(QUEUE_KEY);
-    if (saved) {
-      try {
+    try {
+      const saved = localStorage.getItem(QUEUE_KEY);
+      if (saved) {
         this.queue = JSON.parse(saved);
-      } catch (e) {
-        console.error('Failed to parse offline queue', e);
-        this.queue = [];
       }
+    } catch (e) {
+      console.error('Failed to load/parse offline queue', e);
+      this.queue = [];
     }
   }
 
   private saveQueue() {
     if (typeof window === 'undefined') return;
-    localStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
-    // Dispatch custom event for UI updates
-    window.dispatchEvent(new CustomEvent('offline-queue-changed', { detail: this.queue.length }));
+    try {
+      localStorage.setItem(QUEUE_KEY, JSON.stringify(this.queue));
+      // Dispatch custom event for UI updates
+      window.dispatchEvent(new CustomEvent('offline-queue-changed', { detail: this.queue.length }));
+    } catch (e) {
+      console.error('Failed to save offline queue', e);
+    }
   }
 
   public getQueueLength(): number {

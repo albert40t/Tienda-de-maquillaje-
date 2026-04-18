@@ -57,11 +57,16 @@ export default function App() {
   // Initialize Auth from LocalStorage (just to keep session active)
   useEffect(() => {
     const initAuth = () => {
-      const activeSession = localStorage.getItem('app_session');
-      if (activeSession) {
-        setSession(JSON.parse(activeSession));
+      try {
+        const activeSession = localStorage.getItem('app_session');
+        if (activeSession) {
+          setSession(JSON.parse(activeSession));
+        }
+      } catch (e) {
+        console.error('Auth initialization failed', e);
+      } finally {
+        setIsAuthLoading(false);
       }
-      setIsAuthLoading(false);
     };
     initAuth();
   }, []);
