@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Plus, Trash2, MoreVertical, Edit2, X, Lock, Mail, Shield } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, MoreVertical, Edit2, X, Lock, Mail, Shield, User } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { toast } from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ interface AdminUsersProps {
 
 export default function AdminUsers({ onBack }: AdminUsersProps) {
   const [users, setUsers] = useState<any[]>([]);
+  const [newName, setNewName] = useState('');
   const [newEmail, setNewEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newRole, setNewRole] = useState('worker');
@@ -18,7 +19,7 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
   
   const [activeMenuEmail, setActiveMenuEmail] = useState<string | null>(null);
   const [editingUser, setEditingUser] = useState<any | null>(null);
-  const [editFormData, setEditFormData] = useState({ email: '', password: '', role: '' });
+  const [editFormData, setEditFormData] = useState({ fullname: '', email: '', password: '', role: '' });
 
   useEffect(() => {
     loadUsers();
@@ -47,7 +48,7 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
     setError('');
     setSuccess('');
 
-    if (!newEmail || !newPassword) {
+    if (!newEmail || !newPassword || !newName) {
       setError('Por favor completa todos los campos');
       return;
     }
@@ -68,11 +69,12 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
       // Insertar nuevo usuario
       const { error: insertError } = await supabase
         .from('empleados')
-        .insert([{ email: newEmail, password: newPassword, role: newRole }]);
+        .insert([{ fullname: newName, email: newEmail, password: newPassword, role: newRole }]);
 
       if (insertError) throw insertError;
 
       setSuccess('Usuario creado exitosamente');
+      setNewName('');
       setNewEmail('');
       setNewPassword('');
       loadUsers();
@@ -91,6 +93,7 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
       const { error } = await supabase
         .from('empleados')
         .update({ 
+          fullname: editFormData.fullname,
           email: editFormData.email, 
           password: editFormData.password,
           role: editFormData.role 
@@ -146,6 +149,16 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
 
         <form onSubmit={handleAddUser} className="space-y-4">
           <div>
+            <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Nombre y Apellido</label>
+            <input
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 outline-none"
+              placeholder="Ej. Nombre y Apellido"
+            />
+          </div>
+          <div>
             <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-1">Email</label>
             <input
               type="email"
@@ -191,7 +204,8 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
         {users.map((user) => (
           <div key={user.id} className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex justify-between items-center group relative">
             <div>
-              <p className="font-bold text-gray-900">{user.email}</p>
+              <p className="font-bold text-gray-900">{user.fullname || 'Sin Nombre'}</p>
+              <p className="text-xs text-gray-500">{user.email}</p>
               <div className="flex items-center space-x-2 mt-1">
                 <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
                   user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
@@ -217,7 +231,7 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
                     <button
                       onClick={() => {
                         setEditingUser(user);
-                        setEditFormData({ email: user.email, password: user.password, role: user.role });
+                        setEditFormData({ fullname: user.fullname || '', email: user.email, password: user.password, role: user.role });
                         setActiveMenuEmail(null);
                       }}
                       className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left"
@@ -264,6 +278,21 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
 
             <form onSubmit={handleUpdateUser} className="space-y-5">
               <div className="space-y-4">
+                <div className="relative">
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Nombre y Apellido</label>
+                  <div className="relative">
+                    <User className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                    <input
+                      type="text"
+                      required
+                      value={editFormData.fullname}
+                      onChange={(e) => setEditFormData({ ...editFormData, fullname: e.target.value })}
+                      className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-primary-100 focus:bg-white focus:border-primary-300 outline-none transition-all"
+                      placeholder="Nombre y Apellido"
+                    />
+                  </div>
+                </div>
+
                 <div className="relative">
                   <label className="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1.5 ml-1">Correo Electrónico</label>
                   <div className="relative">

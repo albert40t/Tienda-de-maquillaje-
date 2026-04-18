@@ -205,6 +205,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
       title: 'Cuenta',
       items: [
         { id: 'profile', icon: User, label: 'Perfil de Usuario', color: 'text-blue-500', bg: 'bg-blue-50' },
+        { id: 'users', icon: User, label: 'Gestión de Empleados', color: 'text-rose-500', bg: 'bg-rose-50' },
         { id: 'business', icon: Store, label: 'Información del Negocio', color: 'text-purple-500', bg: 'bg-purple-50' },
         { id: 'branding', icon: Layout, label: 'Branding y PWA', color: 'text-pink-500', bg: 'bg-pink-50' },
         { id: 'payments', icon: CreditCard, label: 'Métodos de Pago', color: 'text-emerald-500', bg: 'bg-emerald-50' },
@@ -673,6 +674,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                   <button 
                     key={itemIdx}
                     onClick={() => {
+                      if (item.id === 'users') onNavigate('admin-users');
                       if (item.id === 'business') setActiveView('business');
                       if (item.id === 'branding') setActiveView('branding');
                       if (item.id === 'payments') setActiveView('payments');
