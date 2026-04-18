@@ -43,10 +43,10 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
-    name: 'Stely Beauty',
+    name: 'Stefy Beauty',
     address: 'Av. Principal, Local 4',
     phone: '+58 412-1234567',
-    email: 'contacto@stelybeauty.com',
+    email: 'contacto@stefybeauty.com',
     instagram: 'https://instagram.com',
     tiktok: 'https://tiktok.com',
     facebook: 'https://facebook.com'
@@ -71,7 +71,28 @@ export default function App() {
     initAuth();
   }, []);
 
-  // Fetch data and setup realtime subscriptions
+  // Fetch Business Info independently of session
+  useEffect(() => {
+    const fetchBusinessInfo = async () => {
+      try {
+        const { data: bData } = await supabase.from('business_info').select('*').single();
+        if (bData) {
+          setBusinessInfo({
+            ...bData,
+            paymentConfig: bData.payment_config
+          });
+          if (bData.exchange_rate) {
+            setExchangeRate(Number(bData.exchange_rate));
+          }
+        }
+      } catch (e) {
+        console.error('Error fetching business info:', e);
+      }
+    };
+    fetchBusinessInfo();
+  }, []);
+
+  // Fetch data and setup realtime subscriptions (requiring auth)
   useEffect(() => {
     if (!session) return;
 
@@ -79,18 +100,7 @@ export default function App() {
       const { data: pData } = await supabase.from('productos').select('*');
       const { data: cData } = await supabase.from('clientes').select('*');
       const { data: sData } = await supabase.from('ventas').select('*');
-      const { data: bData } = await supabase.from('business_info').select('*').single();
       
-      if (bData) {
-        setBusinessInfo({
-          ...bData,
-          paymentConfig: bData.payment_config
-        });
-        if (bData.exchange_rate) {
-          setExchangeRate(Number(bData.exchange_rate));
-        }
-      }
-
       if (pData && pData.length > 0) {
         setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
       } else {

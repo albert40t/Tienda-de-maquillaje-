@@ -14,8 +14,8 @@ export default function PWAManager({ businessInfo }: PWAManagerProps) {
     
     // 1. Update Manifest
     const manifest = {
-      name: businessInfo.name || "Stely Beauty POS",
-      short_name: businessInfo.name?.split(' ')[0] || "Stely",
+      name: businessInfo.name || "Stefy Beauty POS",
+      short_name: businessInfo.name?.split(' ')[0] || "Stefy",
       description: businessInfo.address || "Sistema de Punto de Venta",
       start_url: "/",
       display: "standalone",
@@ -39,6 +39,11 @@ export default function PWAManager({ businessInfo }: PWAManagerProps) {
         { src: "/icon-512.png", sizes: "512x512", type: "image/png" }
       ]
     };
+
+    // Update document title
+    if (businessInfo.name) {
+      document.title = businessInfo.name;
+    }
 
     const stringManifest = JSON.stringify(manifest);
     const blob = new Blob([stringManifest], {type: 'application/manifest+json'});
