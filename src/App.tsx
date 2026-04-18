@@ -9,16 +9,50 @@ import { offlineManager } from './lib/offlineManager';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { RefreshCcw, Wifi, WifiOff } from 'lucide-react';
 
-// Lazy load pages for Code Splitting (Performance Optimization)
-const Home = lazy(() => import('./components/pages/Home'));
-const POS = lazy(() => import('./components/pages/POS'));
-const Inventory = lazy(() => import('./components/pages/Inventory'));
+import Home from './components/pages/Home';
+import POS from './components/pages/POS';
+import Inventory from './components/pages/Inventory';
+import Customers from './components/pages/Customers';
+import Settings from './components/pages/Settings';
+
+// Lazy load secondary pages only
 const CategoryInventory = lazy(() => import('./components/pages/CategoryInventory'));
-const Customers = lazy(() => import('./components/pages/Customers'));
-const Settings = lazy(() => import('./components/pages/Settings'));
 const StoreFront = lazy(() => import('./components/pages/StoreFront'));
 const AdminUsers = lazy(() => import('./components/pages/AdminUsers'));
 const ActivityLogs = lazy(() => import('./components/pages/ActivityLogs'));
+
+// Error Boundary Component
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  constructor(props: any) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex-1 flex flex-col items-center justify-center p-8 text-center space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-red-500 rounded-full flex items-center justify-center">
+            <WifiOff size={32} />
+          </div>
+          <h2 className="text-xl font-bold text-gray-900">Algo salió mal</h2>
+          <p className="text-gray-500">Es posible que la conexión se haya perdido. Intenta recargar la página.</p>
+          <button 
+            onClick={() => window.location.reload()}
+            className="px-6 py-2 bg-primary-600 text-white rounded-xl font-medium"
+          >
+            Recargar
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 // Loading fallback for Suspense
 const LoadingSpinner = () => (
@@ -373,20 +407,22 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className={`flex-1 overflow-y-auto ${!isStoreView ? 'pb-28' : ''}`}>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
-            <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
-            <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} />} />
-            <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
-            <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
-            <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} />} />
-            <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} />} />
-            <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
-            <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<LoadingSpinner />}>
+            <Routes>
+              <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
+              <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
+              <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} />} />
+              <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
+              <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
+              <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} />} />
+              <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} />} />
+              <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
+              <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       {/* Bottom Navigation */}

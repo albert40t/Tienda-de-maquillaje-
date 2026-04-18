@@ -333,7 +333,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
                       {log.description}
                     </p>
                     <p className="text-[10px] text-gray-500 font-medium">
-                      {getTimeAgo(log.created_at)} • {log.user_email.split('@')[0]}
+                      {getTimeAgo(log.created_at)} • {(log.user_email || 'usuario').split('@')[0]}
                     </p>
                   </div>
                 </div>
