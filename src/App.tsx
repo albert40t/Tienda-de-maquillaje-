@@ -123,33 +123,33 @@ export default function App() {
     if (!session) return;
 
     const fetchData = async () => {
-      const { data: pData } = await supabase.from('productos').select('*');
-      const { data: cData } = await supabase.from('clientes').select('*');
-      const { data: sData } = await supabase.from('ventas').select('*');
-      const { data: catData } = await supabase.from('categorias').select('*').order('name');
-      
-      if (pData && pData.length > 0) {
-        setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
-      }
-      
-      if (cData && cData.length > 0) {
-        setCustomers(cData.map(c => ({ 
-          ...c, 
-          totalPurchases: c.total_purchases,
-          idCard: c.id_card 
-        } as Customer)));
-      }
-
-      if (sData && sData.length > 0) {
-        setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
-      }
-
-      if (catData && catData.length > 0) {
-        setCategories(catData);
+      try {
+        const { data: pData } = await supabase.from('productos').select('*');
+        const { data: cData } = await supabase.from('clientes').select('*');
+        const { data: sData } = await supabase.from('ventas').select('*');
+        const { data: catData } = await supabase.from('categorias').select('*').order('name');
+        
+        if (pData) setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
+        if (cData) setCustomers(cData.map(c => ({ ...c, totalPurchases: c.total_purchases, idCard: c.id_card } as Customer)));
+        if (sData) setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
+        if (catData) setCategories(catData);
+      } catch (err) {
+        console.error('Error in background sync:', err);
       }
     };
 
     fetchData();
+
+    // POLILLING FALLBACK: Sync every 60 seconds as a safety net
+    const pollInterval = setInterval(() => {
+      if (isOnline) fetchData();
+    }, 60000);
+
+    // REFETCH ON FOCUS: When user comes back to the app
+    const handleFocus = () => {
+      if (isOnline) fetchData();
+    };
+    window.addEventListener('focus', handleFocus);
 
     const setupRealtime = () => {
       const channel = supabase.channel('db-changes-realtime')
@@ -226,9 +226,11 @@ export default function App() {
     const channel = setupRealtime();
 
     return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('focus', handleFocus);
       supabase.removeChannel(channel);
     };
-  }, [session]);
+  }, [session, isOnline]);
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
