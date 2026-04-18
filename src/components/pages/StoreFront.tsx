@@ -200,7 +200,9 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     
     const message = `¡Hola! Quiero realizar un pedido en ${businessInfo.name} 💖%0A%0A*Datos del Cliente:*%0ANombre: ${firstName} ${lastName}%0ACédula: ${idCard}%0ATeléfono: ${phone}%0A%0A${deliveryText}%0A%0A*Pedido:*%0A${itemsText}${discountText}${notesText}%0A%0A*Total:* $${formatUSD(total)} (Bs. ${totalBs})%0A*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}`;
     
-    window.open(`https://wa.me/?text=${message}`, '_blank');
+    // Clean business phone number for WhatsApp URL
+    const cleanPhone = businessInfo.phone.replace(/\D/g, '');
+    window.open(`https://wa.me/${cleanPhone}/?text=${message}`, '_blank');
     
     // Reset after order
     setCart([]);
