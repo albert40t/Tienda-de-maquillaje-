@@ -76,4 +76,10 @@ export interface BusinessInfo {
   tiktok?: string;
   facebook?: string;
   paymentConfig?: PaymentConfig;
+  pwa_config?: {
+    icon192: string;
+    icon512: string;
+    appleTouch: string;
+    favicon: string;
+  };
 }

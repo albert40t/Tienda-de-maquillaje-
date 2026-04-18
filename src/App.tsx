@@ -2,6 +2,7 @@ import React, { useState, Suspense, lazy, useEffect } from 'react';
 import { Toaster } from 'react-hot-toast';
 import { Routes, Route, useNavigate, useLocation, Navigate } from 'react-router-dom';
 import BottomNav from './components/BottomNav';
+import PWAManager from './components/PWAManager';
 import { Product, BusinessInfo, Customer, Sale } from './types';
 import { supabase } from './lib/supabase';
 
@@ -286,6 +287,7 @@ export default function App() {
   return (
     <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden">
       <Toaster position="top-center" />
+      <PWAManager businessInfo={businessInfo} />
       {/* Header */}
       {!isStoreView && (
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between shrink-0">

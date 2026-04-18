@@ -65,26 +65,48 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
 
     try {
       setIsSaving(true);
-      const icons = await generateIcons(brandingFile);
+      toast.loading('Procesando y subiendo iconos...', { id: 'branding' });
       
-      const response = await fetch('/api/branding/icons', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(icons)
-      });
+      const icons = await generateIcons(brandingFile);
+      const uploadedIcons: { [key: string]: string } = {};
 
-      const data = await response.json();
-      if (data.success) {
-        toast.success(data.message);
-        // Refresh page after a short delay to see changes?
-        // Or just notify
-        setTimeout(() => window.location.reload(), 1500);
-      } else {
-        throw new Error(data.error);
+      // Upload each generated icon to Supabase Storage
+      for (const [key, base64] of Object.entries(icons)) {
+        const res = await fetch(base64);
+        const blob = await res.blob();
+        const fileName = `pwa/${key}_${Date.now()}.png`;
+        
+        const { error: uploadError } = await supabase.storage
+          .from('productos')
+          .upload(fileName, blob, { contentType: 'image/png', upsert: true });
+
+        if (uploadError) throw uploadError;
+
+        const { data: { publicUrl } } = supabase.storage
+          .from('productos')
+          .getPublicUrl(fileName);
+        
+        uploadedIcons[key] = publicUrl;
       }
+
+      // Save the URLs in business_info
+      const { error: dbError } = await supabase
+        .from('business_info')
+        .upsert({
+          id: 1,
+          ...formData, // Keep existing data
+          pwa_config: uploadedIcons // Save the PWA URLs in a new field
+        });
+
+      if (dbError) throw dbError;
+
+      setBusinessInfo(prev => ({ ...prev, pwa_config: uploadedIcons }));
+      toast.success('¡Branding aplicado globalmente! La app se actualizará en unos segundos.', { id: 'branding' });
+      
+      setTimeout(() => window.location.reload(), 2000);
     } catch (error: any) {
       console.error('Error applying branding:', error);
-      toast.error(`Error: ${error.message}`);
+      toast.error(`Error: ${error.message || 'Error al conectar con Supabase'}`, { id: 'branding' });
     } finally {
       setIsSaving(false);
     }
