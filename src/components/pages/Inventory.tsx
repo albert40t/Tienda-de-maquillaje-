@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2 } from 'lucide-react';
+import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Product, Category } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -249,13 +249,22 @@ export default function Inventory({ onSelectCategory, products, categories, setC
       <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 shrink-0">
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold text-gray-900">Categorías</h2>
-          <button 
-            onClick={openCreate}
-            className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
-          >
-            <Plus size={16} />
-            <span>Añadir</span>
-          </button>
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => window.location.reload()}
+              className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
+              title="Actualizar"
+            >
+              <RefreshCcw size={18} />
+            </button>
+            <button 
+              onClick={openCreate}
+              className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
+            >
+              <Plus size={16} />
+              <span>Añadir</span>
+            </button>
+          </div>
         </div>
         <div className="relative">
           <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" size={18} />

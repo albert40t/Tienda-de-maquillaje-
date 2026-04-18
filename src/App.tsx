@@ -151,63 +151,79 @@ export default function App() {
 
     fetchData();
 
-    const channel = supabase.channel('schema-db-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setProducts(prev => {
-            if (prev.find(p => p.id === payload.new.id)) return prev;
-            return [...prev, { ...payload.new, costPrice: payload.new.cost_price } as Product];
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          setProducts(prev => prev.map(p => p.id === payload.new.id ? { ...payload.new, costPrice: payload.new.cost_price } as Product : p));
-        } else if (payload.eventType === 'DELETE') {
-          setProducts(prev => prev.filter(p => p.id !== payload.old.id));
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setSales(prev => {
-            if (prev.find(s => s.id === payload.new.id)) return prev;
-            return [{ ...payload.new, paymentMethods: payload.new.payment_methods, customerId: payload.new.customer_id } as Sale, ...prev];
-          });
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setCustomers(prev => {
-            if (prev.find(c => c.id === payload.new.id)) return prev;
-            return [...prev, { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer];
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          setCustomers(prev => prev.map(c => c.id === payload.new.id ? { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer : c));
-        } else if (payload.eventType === 'DELETE') {
-          setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setCategories(prev => {
-            if (prev.find(c => c.id === payload.new.id)) return prev;
-            return [...prev, payload.new as Category];
-          });
-        } else if (payload.eventType === 'UPDATE') {
-          setCategories(prev => prev.map(c => c.id === payload.new.id ? payload.new as Category : c));
-        } else if (payload.eventType === 'DELETE') {
-          setCategories(prev => prev.filter(c => c.id !== payload.old.id));
-        }
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'business_info' }, (payload) => {
-        if (payload.eventType === 'UPDATE') {
-          setBusinessInfo({
-            ...payload.new as any,
-            paymentConfig: (payload.new as any).payment_config
-          });
-          if ((payload.new as any).exchange_rate) {
-            setExchangeRate(Number((payload.new as any).exchange_rate));
+    const setupRealtime = () => {
+      const channel = supabase.channel('db-changes-realtime')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'productos' }, (payload) => {
+          console.log('Realtime product update:', payload);
+          if (payload.eventType === 'INSERT') {
+            setProducts(prev => {
+              if (prev.find(p => p.id === payload.new.id)) return prev;
+              return [...prev, { ...payload.new, costPrice: payload.new.cost_price } as Product];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setProducts(prev => prev.map(p => p.id === payload.new.id ? { ...payload.new, costPrice: payload.new.cost_price } as Product : p));
+          } else if (payload.eventType === 'DELETE') {
+            setProducts(prev => prev.filter(p => p.id !== payload.old.id));
           }
-        }
-      })
-      .subscribe();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'ventas' }, (payload) => {
+          console.log('Realtime sale update:', payload);
+          if (payload.eventType === 'INSERT') {
+            setSales(prev => {
+              if (prev.find(s => s.id === payload.new.id)) return prev;
+              return [{ ...payload.new, paymentMethods: payload.new.payment_methods, customerId: payload.new.customer_id } as Sale, ...prev];
+            });
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'clientes' }, (payload) => {
+          console.log('Realtime customer update:', payload);
+          if (payload.eventType === 'INSERT') {
+            setCustomers(prev => {
+              if (prev.find(c => c.id === payload.new.id)) return prev;
+              return [...prev, { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setCustomers(prev => prev.map(c => c.id === payload.new.id ? { ...payload.new, totalPurchases: payload.new.total_purchases } as Customer : c));
+          } else if (payload.eventType === 'DELETE') {
+            setCustomers(prev => prev.filter(c => c.id !== payload.old.id));
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias' }, (payload) => {
+          console.log('Realtime category update:', payload);
+          if (payload.eventType === 'INSERT') {
+            setCategories(prev => {
+              if (prev.find(c => c.id === payload.new.id)) return prev;
+              return [...prev, payload.new as Category];
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setCategories(prev => prev.map(c => c.id === payload.new.id ? payload.new as Category : c));
+          } else if (payload.eventType === 'DELETE') {
+            setCategories(prev => prev.filter(c => c.id !== payload.old.id));
+          }
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'business_info' }, (payload) => {
+          console.log('Realtime business_info update:', payload);
+          if (payload.eventType === 'UPDATE') {
+            setBusinessInfo({
+              ...payload.new as any,
+              paymentConfig: (payload.new as any).payment_config
+            });
+            if ((payload.new as any).exchange_rate) {
+              setExchangeRate(Number((payload.new as any).exchange_rate));
+            }
+          }
+        })
+        .subscribe((status) => {
+          console.log('Supabase Realtime status:', status);
+          if (status === 'SUBSCRIBED') {
+            console.log('Successfully connected to all database changes.');
+          }
+        });
+
+      return channel;
+    };
+
+    const channel = setupRealtime();
 
     return () => {
       supabase.removeChannel(channel);
