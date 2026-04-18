@@ -601,6 +601,26 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                       />
                     </div>
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Público / Género</label>
+                    <div className="flex p-1 bg-gray-100 rounded-2xl">
+                      {(['Mujer', 'Hombre', 'Unisex'] as const).map((g) => (
+                        <button
+                          key={g}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, gender: g })}
+                          className={`flex-1 py-2 text-xs font-bold rounded-xl transition-all ${
+                            (formData.gender || 'Unisex') === g 
+                              ? 'bg-white text-primary-600 shadow-sm' 
+                              : 'text-gray-500 hover:text-gray-700'
+                          }`}
+                        >
+                          {g === 'Mujer' ? 'Damas' : g === 'Hombre' ? 'Caballeros' : 'Unisex'}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Stock Inicial</label>
