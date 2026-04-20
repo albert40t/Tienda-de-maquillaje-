@@ -93,7 +93,18 @@ export type OfflineActionType =
   | 'LOG_ACTIVITY'
   | 'UPDATE_BUSINESS_INFO'
   | 'UPSERT_CATEGORY'
-  | 'DELETE_CATEGORY';
+  | 'DELETE_CATEGORY'
+  | 'UPSERT_BANNER'
+  | 'DELETE_BANNER';
+
+export interface Banner {
+  id: string;
+  title: string;
+  subtitle?: string;
+  image: string;
+  bg_color?: string; // e.g., 'bg-pink-50/90'
+  active: boolean;
+}
 
 export interface PendingAction {
   id: string;

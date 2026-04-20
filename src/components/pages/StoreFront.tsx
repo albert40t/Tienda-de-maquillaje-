@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook } from 'lucide-react';
-import { Product, CartItem, BusinessInfo } from '../../types';
+import { Product, CartItem, BusinessInfo, Banner } from '../../types';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
 
 interface StoreFrontProps {
@@ -8,11 +8,12 @@ interface StoreFrontProps {
   exchangeRate: number;
   onBack: () => void;
   businessInfo: BusinessInfo;
+  banners: Banner[];
 }
 
 type CheckoutStep = 'cart' | 'details' | 'payment' | 'summary';
 
-export default function StoreFront({ products, exchangeRate, onBack, businessInfo }: StoreFrontProps) {
+export default function StoreFront({ products, exchangeRate, onBack, businessInfo, banners }: StoreFrontProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [step, setStep] = useState<CheckoutStep>('cart');
@@ -67,11 +68,13 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     scrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const carouselItems = [
-    { title: "Descubre tu belleza", subtitle: "Los mejores productos de maquillaje seleccionados para ti.", bg: "bg-pink-50/90" },
-    { title: "20% de Descuento", subtitle: "En toda la línea de cuidado facial por este mes.", bg: "bg-rose-50/90" },
-    { title: "Nuevos Labiales", subtitle: "Tonos mate de larga duración que te encantarán.", bg: "bg-fuchsia-50/90" }
-  ];
+  const carouselItems = banners.length > 0 
+    ? banners.filter(b => b.active)
+    : [
+        { title: "Descubre tu belleza", subtitle: "Los mejores productos de maquillaje seleccionados para ti.", bg_color: "bg-pink-50/90", image: "" },
+        { title: "20% de Descuento", subtitle: "En toda la línea de cuidado facial por este mes.", bg_color: "bg-rose-50/90", image: "" },
+        { title: "Nuevos Labiales", subtitle: "Tonos mate de larga duración que te encantarán.", bg_color: "bg-fuchsia-50/90", image: "" }
+      ];
 
   const [touchStart, setTouchStart] = useState<number | null>(null);
   const [touchEnd, setTouchEnd] = useState<number | null>(null);
@@ -569,12 +572,18 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
           onTouchMove={onTouchMove}
           onTouchEnd={onTouchEndHandler}
         >
-          {carouselItems.map((item, index) => (
+          {carouselItems.map((item: any, index) => (
             <div 
               key={index}
-              className={`absolute inset-0 px-6 py-6 flex flex-col justify-center transition-opacity duration-1000 ${item.bg} ${index === carouselIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+              className={`absolute inset-0 px-6 py-6 flex flex-col justify-center transition-opacity duration-1000 ${item.bg_color || item.bg || 'bg-pink-50/90'} ${index === carouselIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
             >
-              <div className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-multiply transition-transform duration-[10000ms] ease-linear" style={{ transform: index === carouselIndex ? 'scale(1.1)' : 'scale(1)' }}></div>
+              <div 
+                className="absolute inset-0 bg-cover bg-center opacity-20 mix-blend-multiply transition-transform duration-[10000ms] ease-linear" 
+                style={{ 
+                  backgroundImage: item.image ? `url(${item.image})` : 'none',
+                  transform: index === carouselIndex ? 'scale(1.1)' : 'scale(1)' 
+                }}
+              ></div>
               <div className="relative z-10">
                 <h2 className="text-3xl font-serif font-bold text-gray-900 mb-2">{item.title}</h2>
                 <p className="text-gray-800 text-sm font-medium max-w-[80%]">{item.subtitle}</p>

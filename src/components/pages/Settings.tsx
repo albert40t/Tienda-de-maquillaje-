@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe, Layout, MonitorSmartphone } from 'lucide-react';
+import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe, Layout, MonitorSmartphone, Image as ImageIcon, Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { BusinessInfo, Page } from '../../types';
+import { BusinessInfo, Page, Banner } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
 
@@ -10,15 +10,100 @@ interface SettingsProps {
   setBusinessInfo: React.Dispatch<React.SetStateAction<BusinessInfo>>;
   onNavigate: (page: Page) => void;
   onSignOut: () => void;
+  banners: Banner[];
+  setBanners: React.Dispatch<React.SetStateAction<Banner[]>>;
 }
 
-export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut }: SettingsProps) {
-  const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding'>('main');
+export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners }: SettingsProps) {
+  const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+
+  // Banner states
+  const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
+  const [bannerModal, setBannerModal] = useState(false);
+  const [bannerFormData, setBannerFormData] = useState<Partial<Banner>>({
+    title: '',
+    subtitle: '',
+    image: '',
+    bg_color: 'bg-pink-50/90',
+    active: true
+  });
   const [brandingFile, setBrandingFile] = useState<File | null>(null);
   const [previews, setPreviews] = useState<{ [key: string]: string }>({});
+
+  const handleBannerImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const compressedBlob = await compressImage(file, 1200, 0.7);
+      const compressedFile = new File([compressedBlob], `banner_${Date.now()}.webp`, { type: 'image/webp' });
+
+      const fileName = `banners/${compressedFile.name}`;
+      const { error } = await supabase.storage.from('productos').upload(fileName, compressedFile);
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage.from('productos').getPublicUrl(fileName);
+      setBannerFormData(prev => ({ ...prev, image: publicUrl }));
+      toast.success('Imagen de banner subida');
+    } catch (error: any) {
+      toast.error('Error al subir imagen: ' + error.message);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSaveBanner = async () => {
+    if (!bannerFormData.title || !bannerFormData.image) {
+      toast.error('Título e Imagen son obligatorios');
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      const bannerData = {
+        title: bannerFormData.title,
+        subtitle: bannerFormData.subtitle,
+        image: bannerFormData.image,
+        bg_color: bannerFormData.bg_color,
+        active: bannerFormData.active
+      };
+
+      if (editingBanner) {
+        const { error } = await supabase.from('banners').update(bannerData).eq('id', editingBanner.id);
+        if (error) throw error;
+        setBanners(prev => prev.map(b => b.id === editingBanner.id ? { ...b, ...bannerData } : b));
+        toast.success('Banner actualizado');
+      } else {
+        const { data, error } = await supabase.from('banners').insert([bannerData]).select().single();
+        if (error) throw error;
+        setBanners(prev => [...prev, data]);
+        toast.success('Banner creado');
+      }
+      setBannerModal(false);
+      setEditingBanner(null);
+      setBannerFormData({ title: '', subtitle: '', image: '', bg_color: 'bg-pink-50/90', active: true });
+    } catch (error: any) {
+      toast.error('Error al guardar: ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm('¿Estás seguro de eliminar este banner?')) return;
+    try {
+      const { error } = await supabase.from('banners').delete().eq('id', id);
+      if (error) throw error;
+      setBanners(prev => prev.filter(b => b.id !== id));
+      toast.success('Banner eliminado');
+    } catch (error: any) {
+      toast.error('Error al eliminar: ' + error.message);
+    }
+  };
 
   const generateIcons = async (file: File) => {
     const sizes = {
@@ -208,6 +293,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         { id: 'users', icon: User, label: 'Gestión de Empleados', color: 'text-rose-500', bg: 'bg-rose-50' },
         { id: 'business', icon: Store, label: 'Información del Negocio', color: 'text-purple-500', bg: 'bg-purple-50' },
         { id: 'branding', icon: Layout, label: 'Branding y PWA', color: 'text-pink-500', bg: 'bg-pink-50' },
+        { id: 'banners', icon: ImageIcon, label: 'Banners de la Tienda', color: 'text-amber-500', bg: 'bg-amber-50' },
         { id: 'payments', icon: CreditCard, label: 'Métodos de Pago', color: 'text-emerald-500', bg: 'bg-emerald-50' },
       ]
     },
@@ -506,6 +592,167 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     );
   }
 
+  if (activeView === 'banners') {
+    return (
+      <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
+        <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <button 
+              onClick={() => setActiveView('main')}
+              className="p-1.5 -ml-1.5 text-gray-600 hover:bg-gray-50 rounded-full transition-colors"
+            >
+              <ArrowLeft size={20} />
+            </button>
+            <h2 className="text-lg font-bold text-gray-900">Banners de la Tienda</h2>
+          </div>
+          <button 
+            onClick={() => {
+              setEditingBanner(null);
+              setBannerFormData({ title: '', subtitle: '', image: '', bg_color: 'bg-pink-50/90', active: true });
+              setBannerModal(true);
+            }}
+            className="p-2 bg-primary-600 text-white rounded-xl shadow-sm"
+          >
+            <Plus size={20} />
+          </button>
+        </div>
+
+        <div className="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
+          {banners.length === 0 ? (
+            <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
+              <ImageIcon className="mx-auto text-gray-300 mb-3" size={48} />
+              <p className="text-gray-500 text-sm">No hay banners configurados</p>
+            </div>
+          ) : (
+            banners.map(banner => (
+              <div key={banner.id} className="bg-white rounded-3xl border border-gray-100 shadow-sm overflow-hidden group">
+                <div className="relative h-32 bg-gray-100">
+                  <img src={banner.image} className="w-full h-full object-cover" alt={banner.title} />
+                  <div className="absolute top-2 right-2 flex space-x-2">
+                    <button 
+                      onClick={() => {
+                        setEditingBanner(banner);
+                        setBannerFormData(banner);
+                        setBannerModal(true);
+                      }}
+                      className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-full text-blue-600 hover:bg-white"
+                    >
+                      <Edit2 size={16} />
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteBanner(banner.id)}
+                      className="p-2 bg-white/90 backdrop-blur shadow-sm rounded-full text-red-600 hover:bg-white"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+                <div className="p-4 flex justify-between items-center">
+                  <div>
+                    <h4 className="font-bold text-gray-900">{banner.title}</h4>
+                    <p className="text-xs text-gray-500">{banner.subtitle}</p>
+                  </div>
+                  <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase ${banner.active ? 'bg-green-50 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                    {banner.active ? 'Activo' : 'Inactivo'}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+
+        {/* Banner Editor Modal */}
+        {bannerModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setBannerModal(false)} />
+            <div className="bg-white rounded-[2.5rem] p-6 w-full max-w-sm relative z-10 shadow-2xl overflow-y-auto max-h-[90vh]">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-black text-gray-900">{editingBanner ? 'Editar Banner' : 'Nuevo Banner'}</h3>
+                <button onClick={() => setBannerModal(false)} className="p-2 bg-gray-50 text-gray-400 rounded-full">
+                  <X size={20} />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Título</label>
+                  <input 
+                    type="text" 
+                    value={bannerFormData.title}
+                    onChange={e => setBannerFormData({...bannerFormData, title: e.target.value})}
+                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none"
+                    placeholder="Ej. Descubre tu belleza"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Subtítulo</label>
+                  <input 
+                    type="text" 
+                    value={bannerFormData.subtitle}
+                    onChange={e => setBannerFormData({...bannerFormData, subtitle: e.target.value})}
+                    className="w-full p-3 bg-gray-50 border border-gray-100 rounded-xl text-sm outline-none"
+                    placeholder="Ej. Los mejores productos..."
+                  />
+                </div>
+                <div>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Imagen (URL o subir)</label>
+                  <div className="space-y-2">
+                    {bannerFormData.image && (
+                      <div className="relative h-24 bg-gray-100 rounded-xl overflow-hidden border border-gray-100">
+                        <img src={bannerFormData.image} className="w-full h-full object-cover" />
+                        <button 
+                          onClick={() => setBannerFormData({...bannerFormData, image: ''})}
+                          className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-1"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    )}
+                    <div className="flex space-x-2">
+                      <label className="flex-1 flex items-center justify-center p-3 bg-gray-50 border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-100 text-gray-600 text-xs font-bold">
+                        {isUploading ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} className="mr-2" />}
+                        {isUploading ? 'Subiendo...' : 'Subir Imagen'}
+                        <input type="file" accept="image/*" className="hidden" onChange={handleBannerImageUpload} disabled={isUploading} />
+                      </label>
+                      <button 
+                        onClick={() => {
+                          const url = prompt('URL de la imagen:');
+                          if (url) setBannerFormData({...bannerFormData, image: url});
+                        }}
+                        className="p-3 bg-gray-50 border border-gray-100 rounded-xl text-gray-600"
+                      >
+                        <Globe size={16} />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-xl">
+                  <span className="text-sm font-bold text-gray-700">Banner Activo</span>
+                  <button 
+                    onClick={() => setBannerFormData({...bannerFormData, active: !bannerFormData.active})}
+                    className={`w-12 h-6 rounded-full transition-colors relative ${bannerFormData.active ? 'bg-primary-600' : 'bg-gray-300'}`}
+                  >
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${bannerFormData.active ? 'left-7' : 'left-1'}`} />
+                  </button>
+                </div>
+
+                <button 
+                  onClick={handleSaveBanner}
+                  disabled={isSaving}
+                  className="w-full bg-primary-600 text-white py-4 rounded-2xl font-bold shadow-lg hover:bg-primary-700 transition-all flex items-center justify-center disabled:opacity-50"
+                >
+                  {isSaving ? <Loader2 className="animate-spin mr-2" size={18} /> : <Save size={18} className="mr-2" />}
+                  {editingBanner ? 'Actualizar Banner' : 'Guardar Banner'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   if (activeView === 'business') {
     return (
       <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
@@ -677,6 +924,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       if (item.id === 'users') onNavigate('admin-users');
                       if (item.id === 'business') setActiveView('business');
                       if (item.id === 'branding') setActiveView('branding');
+                      if (item.id === 'banners') setActiveView('banners');
                       if (item.id === 'payments') setActiveView('payments');
                       if (item.id === 'notifications') onNavigate('activity-logs');
                     }}

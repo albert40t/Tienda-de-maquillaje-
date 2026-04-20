@@ -45,6 +45,7 @@ export default function App() {
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [banners, setBanners] = useState<any[]>([]);
   const [businessInfo, setBusinessInfo] = useState<BusinessInfo>({
     name: 'Stefy Beauty',
     address: 'Av. Principal, Local 4',
@@ -71,12 +72,14 @@ export default function App() {
         const cachedCustomers = localStorage.getItem('cache_customers');
         const cachedSales = localStorage.getItem('cache_sales');
         const cachedCategories = localStorage.getItem('cache_categories');
+        const cachedBanners = localStorage.getItem('cache_banners');
         const cachedBiz = localStorage.getItem('cache_business_info');
 
         if (cachedProducts) setProducts(JSON.parse(cachedProducts));
         if (cachedCustomers) setCustomers(JSON.parse(cachedCustomers));
         if (cachedSales) setSales(JSON.parse(cachedSales));
         if (cachedCategories) setCategories(JSON.parse(cachedCategories));
+        if (cachedBanners) setBanners(JSON.parse(cachedBanners));
         if (cachedBiz) setBusinessInfo(JSON.parse(cachedBiz));
         
       } catch (e) {
@@ -94,8 +97,9 @@ export default function App() {
     if (customers.length > 0) localStorage.setItem('cache_customers', JSON.stringify(customers));
     if (sales.length > 0) localStorage.setItem('cache_sales', JSON.stringify(sales));
     if (categories.length > 0) localStorage.setItem('cache_categories', JSON.stringify(categories));
+    if (banners.length > 0) localStorage.setItem('cache_banners', JSON.stringify(banners));
     localStorage.setItem('cache_business_info', JSON.stringify(businessInfo));
-  }, [products, customers, sales, categories, businessInfo]);
+  }, [products, customers, sales, categories, banners, businessInfo]);
 
   // Fetch Business Info independently of session
   useEffect(() => {
@@ -128,11 +132,13 @@ export default function App() {
         const { data: cData } = await supabase.from('clientes').select('*');
         const { data: sData } = await supabase.from('ventas').select('*');
         const { data: catData } = await supabase.from('categorias').select('*').order('name');
+        const { data: bData } = await supabase.from('banners').select('*').order('created_at');
         
         if (pData) setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
         if (cData) setCustomers(cData.map(c => ({ ...c, totalPurchases: c.total_purchases, idCard: c.id_card } as Customer)));
         if (sData) setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
         if (catData) setCategories(catData);
+        if (bData) setBanners(bData);
       } catch (err) {
         console.error('Error in background sync:', err);
       }
@@ -435,8 +441,8 @@ export default function App() {
             <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} />} />
             <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
             <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
-            <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} />} />
-            <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} />} />
+            <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} banners={banners} setBanners={setBanners} />} />
+            <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} banners={banners} />} />
             <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
             <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
             <Route path="*" element={<Navigate to="/" replace />} />
