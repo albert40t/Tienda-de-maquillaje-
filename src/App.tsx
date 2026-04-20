@@ -438,7 +438,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
             <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
-            <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} />} />
+            <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} businessInfo={businessInfo} />} />
             <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
             <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
             <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} banners={banners} setBanners={setBanners} />} />

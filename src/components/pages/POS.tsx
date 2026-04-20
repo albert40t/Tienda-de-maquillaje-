@@ -298,27 +298,28 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
               <button
                 key={product.id}
                 onClick={() => addToCart(product)}
-                className="group bg-white rounded-3xl md:rounded-[2rem] p-2 md:p-3 shadow-sm border border-gray-100 text-left hover:border-primary-400 hover:shadow-xl hover:shadow-primary-900/5 active:scale-95 transition-all flex flex-col h-full relative"
+                className="group bg-white rounded-3xl md:rounded-[2rem] p-2 md:p-3 shadow-sm border border-gray-100 text-left hover:border-primary-400 hover:shadow-xl hover:shadow-primary-900/10 active:scale-95 transition-all duration-300 ease-out flex flex-col h-full relative focus:ring-4 focus:ring-primary-100 outline-none"
               >
                 <div className="aspect-square rounded-2xl md:rounded-[1.5rem] overflow-hidden mb-2 md:mb-3 bg-gray-50 relative">
                   <img 
                     src={product.image} 
                     alt={product.name} 
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out" 
                     referrerPolicy="no-referrer"
                   />
-                  <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-1.5 py-0.5 rounded-lg text-[10px] md:text-[11px] font-black text-gray-900 shadow-sm border border-gray-100">
+                  <div className="absolute top-1.5 right-1.5 bg-white/90 backdrop-blur-md px-2 py-1 rounded-xl text-[10px] md:text-[11px] font-black text-gray-900 shadow-sm border border-gray-100 group-hover:bg-primary-600 group-hover:text-white transition-colors duration-300">
                     ${formatUSD(product.price)}
                   </div>
                 </div>
                 <div className="px-0.5 md:px-1 flex flex-col flex-1">
-                  <h3 className="text-[11px] md:text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5 md:mb-2">{product.name}</h3>
+                  <h3 className="text-[11px] md:text-[13px] font-bold text-gray-900 leading-tight line-clamp-2 mb-1.5 md:mb-2 group-hover:text-primary-700 transition-colors">{product.name}</h3>
                   <div className="flex items-center justify-between mt-auto pt-0.5">
-                    <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate max-w-[50px] md:max-w-[60px]">
-                      {product.brand ? product.brand : (selectedCategory ? '' : product.category)}
+                    <span className="text-[9px] md:text-[10px] font-bold text-gray-400 uppercase tracking-tighter truncate max-w-[50px] md:max-w-[80px]">
+                      {product.brand || product.category}
+                      {product.gender && <span className="ml-1 opacity-60 text-[8px]">({product.gender.charAt(0)})</span>}
                     </span>
-                    <div className="w-7 h-7 md:w-8 md:h-8 rounded-lg md:rounded-xl bg-gray-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-colors">
-                      <Plus size={16} />
+                    <div className="w-10 h-10 md:w-11 md:h-11 rounded-2xl bg-gray-50 flex items-center justify-center text-primary-600 group-hover:bg-primary-600 group-hover:text-white transition-all duration-300 group-hover:rotate-12">
+                      <Plus size={20} />
                     </div>
                   </div>
                 </div>
@@ -407,10 +408,10 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             
             <button 
               disabled={cart.length === 0}
-              className={`w-full py-5 rounded-[1.5rem] font-bold text-lg shadow-xl shadow-primary-900/10 transition-all flex items-center justify-center active:scale-[0.98] ${
+              className={`w-full py-5 rounded-[1.5rem] font-bold text-lg shadow-xl transition-all duration-300 ease-out flex items-center justify-center active:scale-[0.95] ${
                 cart.length > 0 
-                  ? 'bg-primary-600 text-white hover:bg-primary-700' 
-                  : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                  ? 'bg-primary-600 text-white hover:bg-primary-700 shadow-primary-900/20 hover:shadow-primary-900/40 hover:-translate-y-0.5' 
+                  : 'bg-gray-200 text-gray-400 cursor-not-allowed shadow-none'
               }`}
               onClick={handleCheckout}
             >
@@ -569,7 +570,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                         <select 
                           value={selectedCustomer}
                           onChange={(e) => setSelectedCustomer(e.target.value)}
-                          className="w-full pl-10 pr-10 py-3.5 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-bold text-gray-700 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none appearance-none shadow-sm transition-all"
+                          className="w-full pl-10 pr-10 py-3.5 bg-white border border-gray-100 rounded-[1.25rem] text-sm font-bold text-gray-700 focus:ring-4 focus:ring-primary-100 focus:border-primary-400 outline-none appearance-none shadow-sm transition-all duration-300 hover:shadow-md cursor-pointer"
                         >
                           <option value="">Consumidor Final</option>
                           {customers.map(c => (

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook } from 'lucide-react';
+import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
 import { Product, CartItem, BusinessInfo, Banner } from '../../types';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
 
@@ -598,6 +598,80 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
           </div>
         </div>
 
+        {/* Social Proof: Trending Section */}
+        {products.length > 0 && !selectedCategory && !searchQuery && (
+          <div className="py-8 bg-white overflow-hidden border-b border-gray-50">
+            <div className="px-6 flex items-center justify-between mb-4">
+              <div className="flex items-center space-x-2">
+                <div className="w-8 h-8 bg-pink-100 rounded-full flex items-center justify-center text-pink-600 shadow-sm shadow-pink-100/50">
+                  <TrendingUp size={16} strokeWidth={3} />
+                </div>
+                <h3 className="font-bold text-gray-900 tracking-tight">Más Vendidos</h3>
+              </div>
+              <div className="flex items-center space-x-1.5 py-1 px-3 bg-gradient-to-r from-pink-50 to-rose-50 rounded-full border border-pink-100 animate-pulse">
+                <Zap size={11} className="text-pink-500 fill-pink-500" />
+                <span className="text-[9px] font-black text-pink-600 uppercase tracking-wider">Tendencia</span>
+              </div>
+            </div>
+            
+            <div className="flex space-x-4 overflow-x-auto px-6 hide-scrollbar pb-4 -mb-4">
+              {products.slice(0, 8).map((product, idx) => (
+                <div 
+                  key={`trending-${product.id}`}
+                  onClick={() => setSelectedProduct(product)}
+                  className="shrink-0 w-36 group cursor-pointer relative"
+                >
+                  <div className="aspect-[4/5] rounded-3xl overflow-hidden mb-3 relative bg-gray-50 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:shadow-pink-900/5 group-hover:-translate-y-1">
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
+                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[8px] font-black text-gray-900 border border-gray-100 uppercase tracking-tighter flex items-center shadow-sm">
+                      <div className="w-1 h-1 bg-pink-500 rounded-full mr-1 animate-ping"></div>
+                      Popu
+                    </div>
+                    {/* Position Number Label */}
+                    <div className="absolute bottom-0 left-0 w-10 h-10 bg-black/80 backdrop-blur-md text-white flex items-center justify-center font-black text-lg rounded-tr-3xl italic">
+                      {idx + 1}
+                    </div>
+                  </div>
+                  <h4 className="text-[11px] font-bold text-gray-900 leading-tight line-clamp-1 group-hover:text-pink-600 transition-colors uppercase tracking-tight">{product.name}</h4>
+                  <div className="flex items-center justify-between mt-1">
+                    <p className="text-sm font-black text-gray-900">${formatUSD(product.price)}</p>
+                    <div className="bg-pink-50 p-1.5 rounded-xl opacity-0 group-hover:opacity-100 transition-opacity transform -rotate-12">
+                      <Plus size={12} className="text-pink-600" />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Global Trust Badges (Social Proof) */}
+        {!selectedCategory && !searchQuery && (
+          <div className="px-6 py-6 bg-pink-50/30 grid grid-cols-3 gap-2 border-b border-gray-100">
+            <div className="flex flex-col items-center text-center">
+              <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-pink-500 shadow-sm mb-2">
+                <CheckCircle2 size={18} />
+              </div>
+              <span className="text-[9px] font-bold text-gray-900 uppercase">Calidad</span>
+              <span className="text-[8px] text-gray-500 leading-tight">Garantizada</span>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-pink-500 shadow-sm mb-2">
+                <Truck size={18} />
+              </div>
+              <span className="text-[9px] font-bold text-gray-900 uppercase">Envíos</span>
+              <span className="text-[8px] text-gray-500 leading-tight">Nacionales</span>
+            </div>
+            <div className="flex flex-col items-center text-center">
+              <div className="w-10 h-10 bg-white rounded-2xl flex items-center justify-center text-pink-500 shadow-sm mb-2">
+                <ShieldCheck size={18} />
+              </div>
+              <span className="text-[9px] font-bold text-gray-900 uppercase">Pago</span>
+              <span className="text-[8px] text-gray-500 leading-tight">100% Seguro</span>
+            </div>
+          </div>
+        )}
+
         {/* Search & Categories */}
         <div className="pt-4 pb-2">
           {/* Search Bar & Controls */}
@@ -731,6 +805,20 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     >
                       <Heart size={16} className={isFavorite ? 'fill-primary-600 text-primary-600 animate-heart-burst' : ''} />
                     </button>
+
+                    {product.gender && (
+                      <div className="absolute top-3 left-3 flex flex-col space-y-1">
+                        {!badge && (
+                          <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg border backdrop-blur-md shadow-sm uppercase tracking-tighter ${
+                            product.gender === 'Mujer' ? 'bg-pink-50/80 border-pink-100 text-pink-600' : 
+                            product.gender === 'Hombre' ? 'bg-blue-50/80 border-blue-100 text-blue-600' : 
+                            'bg-purple-50/80 border-purple-100 text-purple-600'
+                          }`}>
+                            {product.gender}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* Glassmorphism Add Button */}
                     {product.stock > 0 && (
@@ -874,7 +962,18 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
               <div className="p-6 space-y-4">
                 <div className="flex justify-between items-start">
                   <div>
-                    <span className="text-xs font-bold text-pink-500 uppercase tracking-wider">{selectedProduct.category}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="text-xs font-bold text-pink-500 uppercase tracking-wider">{selectedProduct.category}</span>
+                      {selectedProduct.gender && (
+                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-tight ${
+                          selectedProduct.gender === 'Mujer' ? 'bg-pink-100 text-pink-600' : 
+                          selectedProduct.gender === 'Hombre' ? 'bg-blue-100 text-blue-600' : 
+                          'bg-purple-100 text-purple-600'
+                        }`}>
+                          {selectedProduct.gender}
+                        </span>
+                      )}
+                    </div>
                     <h2 className="text-2xl font-serif font-bold text-gray-900 leading-tight mt-1">{selectedProduct.name}</h2>
                   </div>
                   <button 

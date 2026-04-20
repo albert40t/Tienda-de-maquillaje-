@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw } from 'lucide-react';
+import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw, FileDown } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { Product, Category } from '../../types';
+import { Product, Category, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { offlineManager } from '../../lib/offlineManager';
+import { generateCatalogPDF } from '../../lib/pdfGenerator';
 import { compressImage } from '../../lib/imageUtils';
 
 const DEFAULT_CATEGORIES: Category[] = [
@@ -40,9 +41,10 @@ interface InventoryProps {
   categories: Category[];
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   isOnline: boolean;
+  businessInfo: BusinessInfo;
 }
 
-export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline }: InventoryProps) {
+export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline, businessInfo }: InventoryProps) {
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -185,6 +187,22 @@ export default function Inventory({ onSelectCategory, products, categories, setC
     }
   };
 
+  const handleExportPDF = async () => {
+    if (products.length === 0) {
+      toast.error('No hay productos para exportar');
+      return;
+    }
+    
+    const id = toast.loading('Generando catálogo PDF...');
+    try {
+      await generateCatalogPDF(products, businessInfo);
+      toast.success('Catálogo generado con éxito', { id });
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('Error al generar el PDF', { id });
+    }
+  };
+
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-300 relative">
       {/* Edit/Create Modal */}
@@ -260,6 +278,14 @@ export default function Inventory({ onSelectCategory, products, categories, setC
               title="Actualizar"
             >
               <RefreshCcw size={18} />
+            </button>
+            <button 
+              onClick={handleExportPDF}
+              className="flex items-center space-x-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+              title="Exportar Catálogo PDF"
+            >
+              <FileDown size={16} className="text-primary-600" />
+              <span>Catálogo</span>
             </button>
             <button 
               onClick={openCreate}
