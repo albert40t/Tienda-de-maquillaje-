@@ -623,39 +623,27 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Stock Inicial</label>
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                        {modalMode === 'edit' ? 'Stock Actual' : 'Stock Inicial'}
+                      </label>
                       <input 
                         type="number" 
-                        value={formData.stock || ''}
+                        value={formData.stock}
                         onChange={e => setFormData({...formData, stock: Number(e.target.value)})}
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
                         placeholder="0"
-                        disabled={modalMode === 'edit'} // Don't edit stock directly here, use stock action
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Género</label>
-                      <select 
-                        value={formData.gender || ''}
-                        onChange={e => setFormData({...formData, gender: e.target.value as any})}
+                      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Código de Barras</label>
+                      <input 
+                        type="text" 
+                        value={formData.barcode || ''}
+                        onChange={e => setFormData({...formData, barcode: e.target.value})}
                         className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
-                      >
-                        <option value="">No aplica</option>
-                        <option value="Mujer">Mujer</option>
-                        <option value="Hombre">Hombre</option>
-                        <option value="Unisex">Unisex</option>
-                      </select>
+                        placeholder="Opcional"
+                      />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Código de Barras</label>
-                    <input 
-                      type="text" 
-                      value={formData.barcode || ''}
-                      onChange={e => setFormData({...formData, barcode: e.target.value})}
-                      className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
-                      placeholder="Opcional"
-                    />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Imagen del Producto</label>
