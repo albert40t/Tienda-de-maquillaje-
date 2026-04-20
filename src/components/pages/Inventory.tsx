@@ -147,7 +147,11 @@ export default function Inventory({ onSelectCategory, products, categories, setC
   };
 
   const handleDeleteCategory = async (category: Category) => {
-    const hasProducts = products.some(p => p.category.trim() === category.id.trim());
+    // Compare by name/id case-insensitively
+    const hasProducts = products.some(p => 
+      p.category.trim().toLowerCase() === category.id.trim().toLowerCase() ||
+      p.category.trim().toLowerCase() === category.name.trim().toLowerCase()
+    );
     
     if (hasProducts) {
       toast.error('No se puede eliminar una categoría con productos asociados');
@@ -291,7 +295,10 @@ export default function Inventory({ onSelectCategory, products, categories, setC
         ) : (
           categories.map((category) => {
             const categoryStock = products
-              .filter(p => p.category.trim() === category.id.trim())
+              .filter(p => 
+                p.category.trim().toLowerCase() === category.id.trim().toLowerCase() ||
+                p.category.trim().toLowerCase() === category.name.trim().toLowerCase()
+              )
               .reduce((total, p) => total + p.stock, 0);
 
             return (

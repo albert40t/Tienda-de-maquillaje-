@@ -34,7 +34,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   const [isUploading, setIsUploading] = useState(false);
 
   const filteredProducts = products.filter(p => 
-    p.category.trim() === category.trim() && 
+    p.category.trim().toLowerCase() === category.trim().toLowerCase() && 
     p.name.toLowerCase().includes(search.toLowerCase())
   );
 

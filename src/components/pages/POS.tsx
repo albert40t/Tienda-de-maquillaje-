@@ -954,8 +954,9 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     const categoryMap = new Map();
     filteredSales.forEach(s => {
       s.items.forEach(item => {
-        const current = categoryMap.get(item.category) || 0;
-        categoryMap.set(item.category, current + (item.price * item.quantity));
+        const catKey = (item.category || 'Sin Categoría').trim().toUpperCase();
+        const current = categoryMap.get(catKey) || 0;
+        categoryMap.set(catKey, current + (item.price * item.quantity));
       });
     });
     const categoryData = Array.from(categoryMap.entries()).map(([name, value]) => ({ name, value }));

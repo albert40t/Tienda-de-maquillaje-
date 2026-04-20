@@ -108,11 +108,22 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     return () => clearInterval(interval);
   }, [carouselItems.length]);
 
-  const categories = useMemo(() => Array.from(new Set(products.map(p => p.category.trim()))), [products]);
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    products.forEach(p => {
+      if (p.category) {
+        // Keep the original case of the first one encountered or just use a standard one
+        // Better: Find the most frequent case or just use uppercase for consistency in pills
+        set.add(p.category.trim().toUpperCase());
+      }
+    });
+    return Array.from(set);
+  }, [products]);
+
   const availableBrands = useMemo(() => {
     if (!selectedCategory || selectedCategory === 'favorites') return [];
     const brands = products
-      .filter(p => p.category.trim() === selectedCategory.trim() && p.brand)
+      .filter(p => p.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase() && p.brand)
       .map(p => p.brand?.trim().toUpperCase() as string);
     return Array.from(new Set(brands)).filter(Boolean);
   }, [products, selectedCategory]);
@@ -126,7 +137,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
       const matchesSearch = pName.includes(q) || pCategory.includes(q);
       const matchesCategory = selectedCategory === 'favorites' 
         ? favorites.includes(p.id)
-        : selectedCategory ? p.category.trim() === selectedCategory.trim() : true;
+        : selectedCategory ? p.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase() : true;
       const matchesBrand = selectedBrand ? p.brand?.trim().toUpperCase() === selectedBrand : true;
       return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
