@@ -81,6 +81,7 @@ export interface BusinessInfo {
   instagram?: string;
   tiktok?: string;
   facebook?: string;
+  storeUrl?: string;
   paymentConfig?: PaymentConfig;
 }
 

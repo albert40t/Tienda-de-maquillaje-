@@ -4,6 +4,8 @@ import { toast } from 'react-hot-toast';
 import { BusinessInfo, Page, Banner } from '../../types';
 import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
+import { useOfflineSync } from '../../hooks/useOfflineSync';
+import { offlineManager } from '../../lib/offlineManager';
 
 interface SettingsProps {
   businessInfo: BusinessInfo;
@@ -15,6 +17,7 @@ interface SettingsProps {
 }
 
 export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners }: SettingsProps) {
+  const { isOnline } = useOfflineSync();
   const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
   const [isUploading, setIsUploading] = useState(false);
@@ -192,6 +195,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
           instagram: formData.instagram,
           tiktok: formData.tiktok,
           facebook: formData.facebook,
+          store_url: formData.storeUrl,
           payment_config: updatedPaymentConfig
         });
 
@@ -217,29 +221,53 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     try {
       setIsSaving(true);
       
-      const { error } = await supabase
-        .from('business_info')
-        .upsert({
-          id: 1,
-          name: formData.name,
-          address: formData.address,
-          phone: formData.phone,
+      const updateData = {
+        id: 1,
+        name: formData.name,
+        address: formData.address,
+        phone: formData.phone,
+        email: formData.email,
+        logo: formData.logo,
+        instagram: formData.instagram,
+        tiktok: formData.tiktok,
+        facebook: formData.facebook,
+        store_url: formData.storeUrl,
+        payment_config: formData.paymentConfig
+      };
+
+      if (isOnline) {
+        const { error } = await supabase
+          .from('business_info')
+          .upsert(updateData);
+
+        if (error) throw error;
+        toast.success('Información del negocio guardada exitosamente');
+      } else {
+        throw new Error('offline');
+      }
+
+      setBusinessInfo(formData);
+      setActiveView('main');
+    } catch (error: any) {
+      if (error.message === 'offline' || error.message?.includes('fetch')) {
+        offlineManager.addAction('UPDATE_BUSINESS_INFO', { id: 1, updates: { 
+          name: formData.name, 
+          address: formData.address, 
+          phone: formData.phone, 
           email: formData.email,
-          logo: formData.logo,
           instagram: formData.instagram,
           tiktok: formData.tiktok,
           facebook: formData.facebook,
+          store_url: formData.storeUrl,
           payment_config: formData.paymentConfig
-        });
-
-      if (error) throw error;
-
-      setBusinessInfo(formData);
-      toast.success('Información del negocio guardada exitosamente');
-      setActiveView('main');
-    } catch (error: any) {
-      console.error('Error saving business info:', error);
-      toast.error(`Error al guardar: ${error.message || 'Error de conexión'}`);
+        }});
+        setBusinessInfo(formData);
+        toast.success('Cambios guardados localmente (PWA offline)');
+        setActiveView('main');
+      } else {
+        console.error('Error saving business info:', error);
+        toast.error(`Error al guardar: ${error.message || 'Error de conexión'}`);
+      }
     } finally {
       setIsSaving(false);
     }
@@ -844,6 +872,21 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                 className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
                 placeholder="contacto@empresa.com"
               />
+            </div>
+
+            <div className="pt-2">
+              <label className="flex items-center space-x-2 text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                <Globe size={14} className="text-primary-500" />
+                <span>URL de la Tienda Online</span>
+              </label>
+              <input 
+                type="url" 
+                value={formData.storeUrl || ''}
+                onChange={e => setFormData({...formData, storeUrl: e.target.value})}
+                className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none"
+                placeholder="https://tulink.com"
+              />
+              <p className="text-[10px] text-gray-400 mt-1 italic">Este link se usará para compartir tu tienda y en el catálogo PDF.</p>
             </div>
             
             <div className="pt-4 border-t border-gray-100">

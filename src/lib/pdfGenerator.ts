@@ -159,7 +159,11 @@ export async function generateCatalogPDF(products: Product[], businessInfo: Busi
     doc.setPage(i);
     doc.setTextColor(180, 180, 180);
     doc.setFontSize(8);
-    doc.text(`Página ${i} de ${pageCount} | Generado por ${businessInfo.name}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+    doc.text(`Página ${i} de ${pageCount} | Generado por ${businessInfo.name}`, pageWidth / 2, pageHeight - 12, { align: 'center' });
+    if (businessInfo.storeUrl) {
+      doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+      doc.text(`Visita nuestra tienda: ${businessInfo.storeUrl}`, pageWidth / 2, pageHeight - 7, { align: 'center' });
+    }
   }
 
   doc.save(`Catalogo_${businessInfo.name || 'Tienda'}_${new Date().toISOString().split('T')[0]}.pdf`);

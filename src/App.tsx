@@ -109,7 +109,8 @@ export default function App() {
         if (bData) {
           setBusinessInfo({
             ...bData,
-            paymentConfig: bData.payment_config
+            paymentConfig: bData.payment_config,
+            storeUrl: bData.store_url
           });
           if (bData.exchange_rate) {
             setExchangeRate(Number(bData.exchange_rate));
@@ -210,12 +211,14 @@ export default function App() {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'business_info' }, (payload) => {
           console.log('Realtime business_info update:', payload);
           if (payload.eventType === 'UPDATE') {
+            const bData = payload.new as any;
             setBusinessInfo({
-              ...payload.new as any,
-              paymentConfig: (payload.new as any).payment_config
+              ...bData,
+              paymentConfig: bData.payment_config,
+              storeUrl: bData.store_url
             });
-            if ((payload.new as any).exchange_rate) {
-              setExchangeRate(Number((payload.new as any).exchange_rate));
+            if (bData.exchange_rate) {
+              setExchangeRate(Number(bData.exchange_rate));
             }
           }
         })
