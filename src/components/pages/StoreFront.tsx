@@ -10,11 +10,12 @@ interface StoreFrontProps {
   onBack: () => void;
   businessInfo: BusinessInfo;
   banners: Banner[];
+  isLoading?: boolean;
 }
 
 type CheckoutStep = 'cart' | 'details' | 'payment' | 'summary';
 
-export default function StoreFront({ products, exchangeRate, onBack, businessInfo, banners }: StoreFrontProps) {
+export default function StoreFront({ products, exchangeRate, onBack, businessInfo, banners, isLoading = false }: StoreFrontProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [step, setStep] = useState<CheckoutStep>('cart');
@@ -43,6 +44,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryReference, setDeliveryReference] = useState('');
+  const [visibleCount, setVisibleCount] = useState(10);
   const [orderNotes, setOrderNotes] = useState('');
   const [discountCode, setDiscountCode] = useState('');
   const [appliedDiscount, setAppliedDiscount] = useState(0); // percentage
@@ -58,10 +60,18 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   }, [searchQuery]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    if (e.currentTarget.scrollTop > 300) {
+    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    if (scrollTop > 300) {
       setShowScrollTop(true);
     } else {
       setShowScrollTop(false);
+    }
+
+    // Progressive loading
+    if (scrollTop + clientHeight >= scrollHeight - 400) {
+      if (visibleCount < filteredProducts.length) {
+        setVisibleCount(prev => prev + 10);
+      }
     }
   };
 
@@ -150,6 +160,10 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
       return 0; // 'newest' - assuming original array order is newest
     });
   }, [products, debouncedSearchQuery, selectedCategory, selectedBrand, favorites, sortBy]);
+
+  const displayedProducts = useMemo(() => {
+    return filteredProducts.slice(0, visibleCount);
+  }, [filteredProducts, visibleCount]);
 
   const toggleFavorite = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -773,13 +787,24 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
 
         {/* Product Grid */}
         <div className="px-6 py-6">
-        {filteredProducts.length === 0 ? (
+        {isLoading && products.length === 0 ? (
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8">
+            {[...Array(6)].map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-[4/5] bg-gray-100 rounded-2xl mb-3"></div>
+                <div className="h-3 bg-gray-100 rounded-full w-2/3 mb-2"></div>
+                <div className="h-4 bg-gray-100 rounded-full w-full mb-2"></div>
+                <div className="h-3 bg-gray-100 rounded-full w-1/3"></div>
+              </div>
+            ))}
+          </div>
+        ) : filteredProducts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-500 font-medium">No se encontraron productos.</p>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-x-4 gap-y-8">
-            {filteredProducts.map(product => {
+            {displayedProducts.map(product => {
               const badge = getProductBadge(product);
               const isFavorite = favorites.includes(product.id);
               

@@ -44,6 +44,7 @@ export default function App() {
   const { isOnline, pendingCount, sync } = useOfflineSync();
   const [session, setSession] = useState<{ email: string; role: string } | null>(null);
   const [isAuthLoading, setIsAuthLoading] = useState(true);
+  const [isProductsLoading, setIsProductsLoading] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [authError, setAuthError] = useState('');
@@ -132,38 +133,60 @@ export default function App() {
     fetchBusinessInfo();
   }, []);
 
-  // Fetch data and setup realtime subscriptions (requiring auth)
+  // Fetch Public Data (Products, Categories, Banners)
   useEffect(() => {
-    if (!session) return;
-
-    const fetchData = async () => {
+    const fetchPublicData = async () => {
       try {
         const { data: pData } = await supabase.from('productos').select('*');
-        const { data: cData } = await supabase.from('clientes').select('*');
-        const { data: sData } = await supabase.from('ventas').select('*');
         const { data: catData } = await supabase.from('categorias').select('*').order('name');
         const { data: bData } = await supabase.from('banners').select('*').order('created_at');
         
         if (pData) setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
-        if (cData) setCustomers(cData.map(c => ({ ...c, totalPurchases: c.total_purchases, idCard: c.id_card } as Customer)));
-        if (sData) setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
         if (catData) setCategories(catData);
         if (bData) setBanners(bData);
+      } catch (err) {
+        console.error('Error fetching public data:', err);
+      } finally {
+        setIsProductsLoading(false);
+      }
+    };
+
+    fetchPublicData();
+
+    if (isOnline) {
+      const pollInterval = setInterval(() => {
+        fetchPublicData();
+      }, 120000); // 2 minutes
+      return () => clearInterval(pollInterval);
+    }
+  }, [isOnline]);
+
+  // Fetch Private Data and setup realtime subscriptions (requiring auth)
+  useEffect(() => {
+    if (!session) return;
+
+    const fetchPrivateData = async () => {
+      try {
+        const { data: cData } = await supabase.from('clientes').select('*');
+        const { data: sData } = await supabase.from('ventas').select('*');
+        
+        if (cData) setCustomers(cData.map(c => ({ ...c, totalPurchases: c.total_purchases, idCard: c.id_card } as Customer)));
+        if (sData) setSales(sData.map(s => ({ ...s, paymentMethods: s.payment_methods, customerId: s.customer_id } as Sale)));
       } catch (err) {
         console.error('Error in background sync:', err);
       }
     };
 
-    fetchData();
+    fetchPrivateData();
 
     // POLILLING FALLBACK: Sync every 60 seconds as a safety net
     const pollInterval = setInterval(() => {
-      if (isOnline) fetchData();
+      if (isOnline) fetchPrivateData();
     }, 60000);
 
     // REFETCH ON FOCUS: When user comes back to the app
     const handleFocus = () => {
-      if (isOnline) fetchData();
+      if (isOnline) fetchPrivateData();
     };
     window.addEventListener('focus', handleFocus);
 
@@ -400,7 +423,7 @@ export default function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             {/* Public Route */}
-            <Route path="/" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => {}} businessInfo={businessInfo} banners={banners} />} />
+            <Route path="/" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => {}} businessInfo={businessInfo} banners={banners} isLoading={isProductsLoading} />} />
             <Route path="/login" element={
               session ? <Navigate to="/dashboard" replace /> : (
                 <Login 
