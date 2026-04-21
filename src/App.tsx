@@ -68,6 +68,18 @@ export default function App() {
 
   const isStoreView = location.pathname === '/';
 
+  // APK/Standalone Detection and Redirection
+  useEffect(() => {
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone === true;
+    const searchParams = new URLSearchParams(location.search);
+    const isApkMode = searchParams.get('mode') === 'apk' || searchParams.get('apk') === 'true';
+
+    // If it's the APK/App and they are at the root (store) without a session, send to login
+    if ((isStandalone || isApkMode) && location.pathname === '/' && !session && !isAuthLoading) {
+      navigate('/login', { replace: true });
+    }
+  }, [location, session, isAuthLoading, navigate]);
+
   // Initialize Auth and Local Data
   useEffect(() => {
     const initData = () => {
