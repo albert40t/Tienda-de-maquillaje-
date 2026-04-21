@@ -1184,6 +1184,12 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                         <p className="text-primary-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Costo de Inversión</p>
                         <h2 className="text-xl font-bold font-mono text-white/80">${formatUSD(products.reduce((sum, p) => sum + ((p.costPrice || 0) * (p.stock || 0)), 0))}</h2>
                       </div>
+                      <div className="pt-2 border-t border-white/5">
+                        <p className="text-emerald-400 text-[10px] font-black uppercase tracking-widest leading-none mb-1">Ganancia Estimada</p>
+                        <h2 className="text-2xl font-black font-mono text-emerald-400">
+                          ${formatUSD(products.reduce((sum, p) => sum + (p.price * (p.stock || 0)), 0) - products.reduce((sum, p) => sum + ((p.costPrice || 0) * (p.stock || 0)), 0))}
+                        </h2>
+                      </div>
                    </div>
                 </div>
 
