@@ -44,6 +44,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   const [deliveryMethod, setDeliveryMethod] = useState<'pickup' | 'delivery'>('pickup');
   const [deliveryAddress, setDeliveryAddress] = useState('');
   const [deliveryReference, setDeliveryReference] = useState('');
+  const [shippingAgency, setShippingAgency] = useState('');
   const [visibleCount, setVisibleCount] = useState(10);
   const [orderNotes, setOrderNotes] = useState('');
   const [discountCode, setDiscountCode] = useState('');
@@ -217,17 +218,17 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   const itemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const handleWhatsAppOrder = () => {
-    const itemsText = cart.map(item => `${item.quantity}x ${item.name} - $${formatUSD(item.price * item.quantity)}`).join('%0A');
+    const itemsText = cart.map(item => `• *${item.quantity}x* ${item.name} ($${formatUSD(item.price * item.quantity)})`).join('%0A');
     const totalBs = formatBs(total * exchangeRate);
     
     let deliveryText = deliveryMethod === 'delivery' 
-      ? `*Entrega:* Delivery ($3.00)%0A*Dirección:* ${deliveryAddress}%0A*Referencia:* ${deliveryReference}`
-      : `*Entrega:* Retiro en Tienda`;
+      ? `%0A🚚 *DATOS DE ENVÍO* 📦%0A━━━━━━━━━━━━━━━━━━%0A🤵🏻‍♀️ *Recibe:* ${firstName} ${lastName}%0A🪪 *Cédula:* ${idCard}%0A📲 *Teléfono:* ${phone}%0A🏫 *Agencia:* ${shippingAgency}%0A📍 *Dirección:* ${deliveryAddress}%0A🔍 *Referencia:* ${deliveryReference}`
+      : `%0A🏪 *ENTREGA:* Retiro en Tienda%0A━━━━━━━━━━━━━━━━━━%0A👤 *Cliente:* ${firstName} ${lastName}`;
 
-    let notesText = orderNotes ? `%0A*Notas:* ${orderNotes}` : '';
-    let discountText = appliedDiscount > 0 ? `%0A*Descuento:* -${appliedDiscount}% ($${formatUSD(discountAmountValue)})` : '';
+    let notesText = orderNotes ? `%0A%0A📝 *NOTAS:*%0A${orderNotes}` : '';
+    let discountText = appliedDiscount > 0 ? `%0A✨ *DESCUENTO:* -${appliedDiscount}% (-$${formatUSD(discountAmountValue)})` : '';
     
-    const message = `¡Hola! Quiero realizar un pedido en ${businessInfo.name} 💖%0A%0A*Datos del Cliente:*%0ANombre: ${firstName} ${lastName}%0ACédula: ${idCard}%0ATeléfono: ${phone}%0A%0A${deliveryText}%0A%0A*Pedido:*%0A${itemsText}${discountText}${notesText}%0A%0A*Total:* $${formatUSD(total)} (Bs. ${totalBs})%0A*Método de Pago:* ${paymentMethod.replace('_', ' ').toUpperCase()}`;
+    const message = `🛍️ *NUEVO PEDIDO - ${businessInfo.name.toUpperCase()}*%0A━━━━━━━━━━━━━━━━━━%0A¡Hola! 👋 Quiero realizar el siguiente pedido: 💖%0A${deliveryText}%0A%0A🛒 *DETALLE DEL PEDIDO:*%0A${itemsText}${discountText}${notesText}%0A%0A━━━━━━━━━━━━━━━━━━%0A💰 *TOTAL A PAGAR:*%0A💵 *USD:* $${formatUSD(total)}%0A💸 *BS:* ${totalBs}%0A💳 *MÉTODO:* ${paymentMethod.replace('_', ' ').toUpperCase()}%0A━━━━━━━━━━━━━━━━━━`;
     
     // Clean business phone number for WhatsApp URL
     const cleanPhone = businessInfo.phone.replace(/\D/g, '');
@@ -373,20 +374,47 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     className={`flex flex-col items-center justify-center p-4 rounded-2xl border-2 transition-all ${deliveryMethod === 'delivery' ? 'border-black bg-gray-50' : 'border-gray-100 bg-white hover:border-gray-200'}`}
                   >
                     <Truck size={24} className={`mb-2 ${deliveryMethod === 'delivery' ? 'text-black' : 'text-gray-400'}`} />
-                    <span className={`text-sm font-bold ${deliveryMethod === 'delivery' ? 'text-gray-900' : 'text-gray-500'}`}>Delivery</span>
-                    <span className="text-xs text-gray-400 mt-1">+$3.00</span>
+                    <span className={`text-sm font-bold ${deliveryMethod === 'delivery' ? 'text-gray-900' : 'text-gray-500'}`}>Envío Nacional</span>
+                    <span className="text-xs text-gray-400 mt-1">Cobro en Destino</span>
                   </button>
                 </div>
 
                 {deliveryMethod === 'delivery' && (
                   <div className="space-y-4 animate-in slide-in-from-top-2 duration-300">
+                    <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
+                      <p className="text-[10px] font-bold text-blue-800 uppercase mb-2 flex items-center">
+                        <Info size={12} className="mr-1" /> Referencias Costo Envio (Por Kilo)
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-[9px] font-medium text-blue-700">
+                        <div className="bg-white/50 p-2 rounded-lg text-center"><span className="block font-bold">MRW</span> $3.8 USD</div>
+                        <div className="bg-white/50 p-2 rounded-lg text-center"><span className="block font-bold">Zoom</span> $7.5 USD</div>
+                        <div className="bg-white/50 p-2 rounded-lg text-center"><span className="block font-bold">Tealca</span> $8 USD</div>
+                      </div>
+                      <p className="text-[8px] text-blue-600 mt-2 italic">*Tasas pueden variar según el peso y destino final.</p>
+                    </div>
+
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Dirección de Entrega</label>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-3">Selecciona tu Agencia de Envio</label>
+                      <div className="grid grid-cols-3 gap-3">
+                        {['MRW', 'ZOOM', 'TEALCA'].map(agency => (
+                          <button
+                            key={agency}
+                            type="button"
+                            onClick={() => setShippingAgency(agency)}
+                            className={`py-3 rounded-xl border-2 font-bold text-sm transition-all ${shippingAgency === agency ? 'border-black bg-gray-50 text-black' : 'border-gray-100 text-gray-400 hover:border-gray-200'}`}
+                          >
+                            {agency}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Dirección Exacta de Agencia</label>
                       <textarea 
                         value={deliveryAddress} 
                         onChange={e => setDeliveryAddress(e.target.value)} 
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none transition-all resize-none h-20" 
-                        placeholder="Ej. Urb. La Viña, Calle 1, Casa #45" 
+                        placeholder="Ej. Av. Bolívar, C.C. Los Jarales, Local 5" 
                       />
                     </div>
                     <div>
@@ -396,7 +424,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                         value={deliveryReference} 
                         onChange={e => setDeliveryReference(e.target.value)} 
                         className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-pink-200 focus:border-pink-400 outline-none transition-all" 
-                        placeholder="Ej. Frente a la panadería" 
+                        placeholder="Ej. Al lado del banco Bicentenario" 
                       />
                     </div>
                   </div>
@@ -405,7 +433,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
             </div>
             <div className="p-6 pb-28 bg-white border-t border-gray-100">
               <button 
-                disabled={!firstName || !lastName || !idCard || !phone || (deliveryMethod === 'delivery' && (!deliveryAddress || !deliveryReference))}
+                disabled={!firstName || !lastName || !idCard || !phone || (deliveryMethod === 'delivery' && (!deliveryAddress || !deliveryReference || !shippingAgency))}
                 onClick={() => setStep('payment')}
                 className="w-full bg-black disabled:bg-gray-200 disabled:text-gray-400 text-white py-4 rounded-full font-bold text-lg hover:bg-gray-900 transition-colors"
               >
@@ -526,8 +554,8 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     </div>
                   )}
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-gray-500">Entrega ({deliveryMethod === 'delivery' ? 'Delivery' : 'Retiro'})</span>
-                    <span className="font-bold text-gray-900">{deliveryFee > 0 ? `$${deliveryFee.toFixed(2)}` : 'Gratis'}</span>
+                    <span className="text-gray-500">Entrega ({deliveryMethod === 'delivery' ? 'Envío' : 'Retiro'})</span>
+                    <span className="font-bold text-gray-900">{deliveryMethod === 'delivery' ? 'Cobro en Destino' : 'Gratis'}</span>
                   </div>
                   <div className="flex justify-between items-end pt-2 border-t border-gray-100">
                     <span className="font-bold text-gray-900">Total USD</span>
