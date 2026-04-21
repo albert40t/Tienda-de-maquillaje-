@@ -15,12 +15,21 @@ import POS from './components/pages/POS';
 import Inventory from './components/pages/Inventory';
 import Customers from './components/pages/Customers';
 import Settings from './components/pages/Settings';
+import Login from './components/pages/Login';
 
 // Lazy load secondary pages only
 const CategoryInventory = lazy(() => import('./components/pages/CategoryInventory'));
 const StoreFront = lazy(() => import('./components/pages/StoreFront'));
 const AdminUsers = lazy(() => import('./components/pages/AdminUsers'));
 const ActivityLogs = lazy(() => import('./components/pages/ActivityLogs'));
+
+// Auth Guard Component
+const AuthGuard = ({ children, session }: { children: React.ReactNode, session: any }) => {
+  if (!session) {
+    return <Navigate to="/login" replace />;
+  }
+  return <>{children}</>;
+};
 
 // Loading fallback for Suspense
 const LoadingSpinner = () => (
@@ -56,7 +65,7 @@ export default function App() {
     facebook: 'https://facebook.com'
   });
 
-  const isStoreView = location.pathname === '/store';
+  const isStoreView = location.pathname === '/';
 
   // Initialize Auth and Local Data
   useEffect(() => {
@@ -285,62 +294,13 @@ export default function App() {
     setSession(null);
     setEmail('');
     setPassword('');
-    navigate('/');
+    navigate('/login');
   };
 
   if (isAuthLoading) {
     return (
       <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden justify-center items-center">
         <LoadingSpinner />
-      </div>
-    );
-  }
-
-  if (!session) {
-    return (
-      <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden justify-center px-6">
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-          <div className="text-center mb-8">
-            <h1 className="font-serif text-3xl font-bold text-primary-800 mb-2">{businessInfo.name}</h1>
-            <p className="text-gray-500 text-sm">Ingresa para gestionar tu tienda</p>
-          </div>
-
-          {authError && (
-            <div className="bg-red-50 text-red-600 p-3 rounded-xl text-sm mb-4 text-center">
-              {authError}
-            </div>
-          )}
-
-          <form onSubmit={handleAuth} className="space-y-4">
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none transition-all"
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Contraseña</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 focus:border-primary-400 outline-none transition-all"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={isAuthLoading}
-              className="w-full bg-primary-600 text-white py-3.5 rounded-xl font-bold hover:bg-primary-700 transition-colors disabled:opacity-50 mt-6"
-            >
-              {isAuthLoading ? 'Cargando...' : 'Iniciar Sesión'}
-            </button>
-          </form>
-        </div>
       </div>
     );
   }
@@ -384,7 +344,7 @@ export default function App() {
       <Toaster position="top-center" />
       <PWAManager businessInfo={businessInfo} />
       {/* Header */}
-      {!isStoreView && (
+      {session && !isStoreView && (
         <header className="bg-white px-4 py-2.5 shadow-sm z-10 flex items-center justify-between shrink-0">
           <h1 className="font-serif text-xl font-bold text-primary-800 tracking-tight">{businessInfo.name}</h1>
           
@@ -439,22 +399,40 @@ export default function App() {
       <main className={`flex-1 overflow-y-auto ${!isStoreView ? 'pb-28' : ''}`}>
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
-            <Route path="/" element={<Home onNavigate={(p: any) => navigate(`/${p === 'home' ? '' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} />} />
-            <Route path="/pos" element={<POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />} />
-            <Route path="/inventory" element={<Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} businessInfo={businessInfo} />} />
-            <Route path="/customers" element={<Customers customers={customers} sales={sales} />} />
-            <Route path="/category-inventory" element={<CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} />} />
-            <Route path="/settings" element={<Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} banners={banners} setBanners={setBanners} />} />
-            <Route path="/store" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => navigate('/')} businessInfo={businessInfo} banners={banners} />} />
-            <Route path="/admin-users" element={<AdminUsers onBack={() => navigate('/settings')} />} />
-            <Route path="/activity-logs" element={<ActivityLogs onBack={() => navigate('/settings')} />} />
+            {/* Public Route */}
+            <Route path="/" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => {}} businessInfo={businessInfo} banners={banners} />} />
+            <Route path="/login" element={
+              session ? <Navigate to="/dashboard" replace /> : (
+                <Login 
+                  email={email} 
+                  setEmail={setEmail} 
+                  password={password} 
+                  setPassword={setPassword} 
+                  authError={authError} 
+                  onAuth={handleAuth} 
+                  isLoading={isAuthLoading}
+                  businessName={businessInfo.name}
+                />
+              )
+            } />
+            
+            {/* Protected Routes */}
+            <Route path="/dashboard" element={<AuthGuard session={session}><Home onNavigate={(p: any) => navigate(`/${p === 'home' ? 'dashboard' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} /></AuthGuard>} />
+            <Route path="/pos" element={<AuthGuard session={session}><POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} /></AuthGuard>} />
+            <Route path="/inventory" element={<AuthGuard session={session}><Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} businessInfo={businessInfo} /></AuthGuard>} />
+            <Route path="/customers" element={<AuthGuard session={session}><Customers customers={customers} sales={sales} /></AuthGuard>} />
+            <Route path="/category-inventory" element={<AuthGuard session={session}><CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} /></AuthGuard>} />
+            <Route path="/settings" element={<AuthGuard session={session}><Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} banners={banners} setBanners={setBanners} /></AuthGuard>} />
+            <Route path="/admin-users" element={<AuthGuard session={session}><AdminUsers onBack={() => navigate('/settings')} /></AuthGuard>} />
+            <Route path="/activity-logs" element={<AuthGuard session={session}><ActivityLogs onBack={() => navigate('/settings')} /></AuthGuard>} />
+            
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </Suspense>
       </main>
 
       {/* Bottom Navigation */}
-      {!isStoreView && <BottomNav />}
+      {session && !isStoreView && <BottomNav />}
     </div>
   );
 }

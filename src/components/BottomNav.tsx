@@ -6,7 +6,7 @@ export default function BottomNav() {
   const location = useLocation();
 
   const navItems = [
-    { id: 'home', path: '/', label: 'Inicio', icon: Home },
+    { id: 'home', path: '/dashboard', label: 'Inicio', icon: Home },
     { id: 'pos', path: '/pos', label: 'Caja', icon: ShoppingBag },
     { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package },
     { id: 'customers', path: '/customers', label: 'Clientas', icon: Users },

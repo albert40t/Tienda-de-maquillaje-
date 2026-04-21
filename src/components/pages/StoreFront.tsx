@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Product, CartItem, BusinessInfo, Banner } from '../../types';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
 
@@ -542,9 +543,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     <div className="fixed inset-0 bg-white z-50 flex flex-col overflow-hidden font-sans animate-in fade-in duration-500">
       {/* Store Header */}
       <header className="px-6 py-4 flex items-center justify-between bg-white/90 backdrop-blur-md z-30 border-b border-gray-100">
-        <button onClick={onBack} className="p-2 -ml-2 text-gray-400 hover:text-black transition-colors">
-          <ArrowLeft size={24} />
-        </button>
+        <div className="w-10"></div> {/* Spacer to center title if needed or just remove onBack */}
         <h1 className="font-serif text-2xl font-bold text-gray-900 tracking-tight">{businessInfo.name}</h1>
         <button 
           onClick={() => { setIsCartOpen(true); setStep('cart'); }} 
@@ -857,7 +856,9 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
       {/* Footer */}
       <footer className="bg-white border-t border-gray-100 pt-10 pb-12 px-6 mt-4">
         <div className="text-center">
-          <h2 className="font-serif text-2xl font-bold text-gray-900 tracking-tight mb-3">{businessInfo.name}</h2>
+          <Link to="/login" className="inline-block">
+            <h2 className="font-serif text-2xl font-bold text-gray-900 tracking-tight mb-3 hover:text-primary-600 transition-colors uppercase tracking-widest">{businessInfo.name}</h2>
+          </Link>
           <p className="text-gray-500 text-sm mb-8 max-w-xs mx-auto leading-relaxed">
             Tu belleza, nuestra pasión. Productos de maquillaje y cuidado facial de la más alta calidad para resaltar tu brillo natural.
           </p>
