@@ -2,6 +2,12 @@ import { supabase } from '../lib/supabase';
 
 export const notificationService = {
   async isSupported() {
+    // If we are in OneSignal mode, we consider it supported because the native bridge will handle it
+    const publicKey = await this.getPublicKey();
+    if (publicKey === "ONESIGNAL_MODE") {
+      return { supported: true };
+    }
+
     const hasSW = 'serviceWorker' in navigator;
     const hasPush = 'PushManager' in window;
     
