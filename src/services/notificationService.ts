@@ -27,6 +27,35 @@ export const notificationService = {
   },
 
   async subscribeUser(userEmail: string) {
+    // If we are in OneSignal mode (server returned ONESIGNAL_MODE for public key)
+    const publicKey = await this.getPublicKey();
+    
+    if (publicKey === "ONESIGNAL_MODE") {
+      // In a Median/OneSignal environment, we usually don't need a manual service worker subscribe
+      // The native plugin handles it. We just need to register the external user ID.
+      console.log('OneSignal mode detected. Registering external user ID:', userEmail);
+      
+      // We still save to Supabase to keep track of who is an admin for the notification list
+      const { error } = await supabase
+        .from('push_subscriptions')
+        .upsert({
+          user_id: String(userEmail),
+          subscription_json: { type: 'onesignal', email: userEmail }
+        }, { onConflict: 'user_id' });
+
+      if (error) throw error;
+      
+      // If OneSignal JS SDK is present (via Median or Script)
+      const anyWindow = window as any;
+      if (anyWindow.OneSignal) {
+        anyWindow.OneSignal.push(() => {
+          anyWindow.OneSignal.setExternalUserId(userEmail);
+        });
+      }
+      
+      return { type: 'onesignal' };
+    }
+
     const support = await this.isSupported();
     if (!support.supported) {
       throw new Error(support.reason || 'Notificaciones push no soportadas');
@@ -89,6 +118,14 @@ export const notificationService = {
   },
 
   async checkSubscription() {
+    const publicKey = await this.getPublicKey();
+    if (publicKey === "ONESIGNAL_MODE") {
+      const anyWindow = window as any;
+      if (anyWindow.OneSignal) {
+        return true; // We assume true if OneSignal is initialized in Median
+      }
+    }
+
     const support = await this.isSupported();
     if (!support.supported) return false;
     const registration = await navigator.serviceWorker.ready;
@@ -98,21 +135,11 @@ export const notificationService = {
 
   async notifyAdmins(saleData: any) {
     try {
-      // 1. Get all admin subscriptions from Supabase
-      // In a real app, you'd filter by role 'admin'
-      // For now, let's assume we want to notify all saved subscriptions
-      const { data: subs, error } = await supabase
-        .from('push_subscriptions')
-        .select('subscription_json');
-        
-      if (error || !subs || subs.length === 0) return;
-
-      // 2. Call backend to send the notifications
+      // 1. Call backend to send the notifications via OneSignal
       await fetch('/api/notifications/notify-admins', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          subscriptions: subs.map(s => s.subscription_json),
           payload: {
             title: '¡Nueva Venta!',
             body: `Se ha realizado una venta por $${saleData.total.toFixed(2)}.`,

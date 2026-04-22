@@ -4,16 +4,9 @@ import path from "path";
 import fs from "fs";
 import webpush from "web-push";
 
-// VAPID keys should be in environment variables in production
-// For now using the ones generated in this session
-const PUBLIC_VAPID_KEY = process.env.VAPID_PUBLIC_KEY || "BHvAS8WcZyQ65Ja8V3TDeUT0i3MLcZeec4JsgoH6RK4ZU88qaxkWwsf3fhRact8tEQNvxesWpbVqiuf80nANCDI";
-const PRIVATE_VAPID_KEY = process.env.VAPID_PRIVATE_KEY || "RoWwOviwAUH8Zqj4EP6DTxJA4oTw7d2OjoY-fyUiclM";
-
-webpush.setVapidDetails(
-  "mailto:albertocampos0121@gmail.com",
-  PUBLIC_VAPID_KEY,
-  PRIVATE_VAPID_KEY
-);
+// OneSignal configuration
+const ONESIGNAL_APP_ID = process.env.ONESIGNAL_APP_ID;
+const ONESIGNAL_REST_API_KEY = process.env.ONESIGNAL_REST_API_KEY;
 
 async function startServer() {
   const app = express();
@@ -22,45 +15,51 @@ async function startServer() {
   // Middleware for parsing JSON with a larger limit for images
   app.use(express.json({ limit: '10mb' }));
 
-  // --- NOTIFICATION API ---
+  // --- NOTIFICATION API (OneSignal) ---
   
-  app.get("/api/notifications/vapid-public-key", (req, res) => {
-    res.json({ publicKey: PUBLIC_VAPID_KEY });
-  });
-
   app.post("/api/notifications/notify-admins", async (req, res) => {
     try {
-      const { subscriptions, payload } = req.body;
+      const { payload } = req.body;
       
-      if (!subscriptions || !Array.isArray(subscriptions)) {
-        return res.status(400).json({ error: "No subscriptions provided" });
+      if (!ONESIGNAL_APP_ID || !ONESIGNAL_REST_API_KEY) {
+        console.error("OneSignal keys are missing in environment variables");
+        return res.status(500).json({ error: "Configuración de notificaciones incompleta en el servidor" });
       }
 
-      const notificationPayload = JSON.stringify({
-        title: payload.title || "Nueva Venta",
-        body: payload.body || "Se ha realizado una nueva venta en el sistema.",
-        icon: payload.icon || "/icon-192.png",
-        badge: "/icon-192.png",
-        data: payload.data || {}
+      // We send to all subscribed users (admins) 
+      // Targeted notifications would use 'include_external_user_ids' or 'include_player_ids'
+      const response = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Basic ${ONESIGNAL_REST_API_KEY}`
+        },
+        body: JSON.stringify({
+          app_id: ONESIGNAL_APP_ID,
+          included_segments: ["Total Subscriptions"], // Or "Admins" if segments are set
+          contents: { 
+            en: payload.body || "Se ha realizado una nueva venta.",
+            es: payload.body || "Se ha realizado una nueva venta."
+          },
+          headings: {
+            en: payload.title || "Nueva Venta",
+            es: payload.title || "Nueva Venta"
+          },
+          data: payload.data || {}
+        })
       });
 
-      const results = await Promise.allSettled(
-        subscriptions.map(sub => 
-          webpush.sendNotification(sub, notificationPayload)
-            .catch(err => {
-              if (err.statusCode === 404 || err.statusCode === 410) {
-                return { error: "Subscription expired", endpoint: sub.endpoint };
-              }
-              throw err;
-            })
-        )
-      );
-
-      res.json({ success: true, results });
+      const result = await response.json();
+      res.json({ success: true, result });
     } catch (error: any) {
-      console.error("Error sending notifications:", error);
+      console.error("Error sending OneSignal notifications:", error);
       res.status(500).json({ error: error.message });
     }
+  });
+
+  // Keep compatibility for public key endpoint although not used by OneSignal
+  app.get("/api/notifications/vapid-public-key", (req, res) => {
+    res.json({ publicKey: "ONESIGNAL_MODE" });
   });
 
   // API to save branding assets
