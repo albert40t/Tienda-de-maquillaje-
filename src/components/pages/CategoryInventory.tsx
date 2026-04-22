@@ -14,11 +14,13 @@ interface CategoryInventoryProps {
   exchangeRate: number;
   products: Product[];
   setProducts: React.Dispatch<React.SetStateAction<Product[]>>;
+  userRole?: string;
 }
 
 type ModalMode = 'none' | 'details' | 'edit' | 'add' | 'stock' | 'delete';
 
-export default function CategoryInventory({ category, onBack, exchangeRate, products, setProducts }: CategoryInventoryProps) {
+export default function CategoryInventory({ category, onBack, exchangeRate, products, setProducts, userRole }: CategoryInventoryProps) {
+  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
   const [search, setSearch] = useState('');
   const { isOnline } = useOfflineSync();
   const [isFabOpen, setIsFabOpen] = useState(false);
@@ -395,39 +397,41 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                   </span>
                 </div>
               </div>
-              <div className="relative">
-                <button 
-                  className="p-2 text-gray-400 hover:text-gray-600"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setActiveMenuId(activeMenuId === product.id ? null : product.id);
-                  }}
-                >
-                  <MoreVertical size={18} />
-                </button>
-                
-                {activeMenuId === product.id && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
-                    <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
-                      <button 
-                        className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                        onClick={(e) => { e.stopPropagation(); openEdit(product); }}
-                      >
-                        <Edit2 size={16} />
-                        <span>Editar</span>
-                      </button>
-                      <button 
-                        className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center space-x-2 border-t border-gray-50"
-                        onClick={(e) => { e.stopPropagation(); openDelete(product); }}
-                      >
-                        <Trash2 size={16} />
-                        <span>Eliminar</span>
-                      </button>
-                    </div>
-                  </>
-                )}
-              </div>
+              {!isSalesperson && (
+                <div className="relative">
+                  <button 
+                    className="p-2 text-gray-400 hover:text-gray-600"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveMenuId(activeMenuId === product.id ? null : product.id);
+                    }}
+                  >
+                    <MoreVertical size={18} />
+                  </button>
+                  
+                  {activeMenuId === product.id && (
+                    <>
+                      <div className="fixed inset-0 z-40" onClick={(e) => { e.stopPropagation(); setActiveMenuId(null); }} />
+                      <div className="absolute right-0 mt-2 w-36 bg-white rounded-xl shadow-lg border border-gray-100 z-50 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+                        <button 
+                          className="w-full text-left px-4 py-3 text-sm font-medium text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
+                          onClick={(e) => { e.stopPropagation(); openEdit(product); }}
+                        >
+                          <Edit2 size={16} />
+                          <span>Editar</span>
+                        </button>
+                        <button 
+                          className="w-full text-left px-4 py-3 text-sm font-medium text-red-600 hover:bg-red-50 flex items-center space-x-2 border-t border-gray-50"
+                          onClick={(e) => { e.stopPropagation(); openDelete(product); }}
+                        >
+                          <Trash2 size={16} />
+                          <span>Eliminar</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
             </div>
           ))
         ) : (
@@ -438,7 +442,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       </div>
 
       {/* Floating Action Button (FAB) */}
-      <div className="absolute bottom-24 right-6 flex flex-col items-end z-30">
+      {!isSalesperson && (
+        <div className="absolute bottom-24 right-6 flex flex-col items-end z-30">
         {isFabOpen && (
           <div className="flex flex-col items-end space-y-3 mb-4 animate-in slide-in-from-bottom-4 fade-in duration-200">
             <button 
@@ -480,6 +485,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
           <Plus size={28} />
         </button>
       </div>
+      )}
 
       {/* Backdrop when FAB is open */}
       {isFabOpen && (

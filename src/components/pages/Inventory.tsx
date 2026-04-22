@@ -42,9 +42,11 @@ interface InventoryProps {
   setCategories: React.Dispatch<React.SetStateAction<Category[]>>;
   isOnline: boolean;
   businessInfo: BusinessInfo;
+  userRole?: string;
 }
 
-export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline, businessInfo }: InventoryProps) {
+export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline, businessInfo, userRole }: InventoryProps) {
+  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -287,13 +289,15 @@ export default function Inventory({ onSelectCategory, products, categories, setC
               <FileDown size={16} className="text-primary-600" />
               <span>Catálogo</span>
             </button>
-            <button 
-              onClick={openCreate}
-              className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
-            >
-              <Plus size={16} />
-              <span>Añadir</span>
-            </button>
+            {!isSalesperson && (
+              <button 
+                onClick={openCreate}
+                className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
+              >
+                <Plus size={16} />
+                <span>Añadir</span>
+              </button>
+            )}
           </div>
         </div>
         <div className="relative">
@@ -348,49 +352,51 @@ export default function Inventory({ onSelectCategory, products, categories, setC
                 </button>
 
                 {/* Three dots menu */}
-                <div className="absolute top-4 right-4 z-10">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setActiveMenuId(activeMenuId === category.id ? null : category.id);
-                    }}
-                    className="p-2.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-all hover:scale-110 active:scale-90"
-                  >
-                    <MoreVertical size={20} />
-                  </button>
+                {!isSalesperson && (
+                  <div className="absolute top-4 right-4 z-10">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setActiveMenuId(activeMenuId === category.id ? null : category.id);
+                      }}
+                      className="p-2.5 bg-black/40 hover:bg-black/60 backdrop-blur-md rounded-full text-white transition-all hover:scale-110 active:scale-90"
+                    >
+                      <MoreVertical size={20} />
+                    </button>
 
-                  {activeMenuId === category.id && (
-                    <>
-                      <div
-                        className="fixed inset-0 z-40"
-                        onClick={() => setActiveMenuId(null)}
-                      />
-                      <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden py-1.5 animate-in zoom-in-95 duration-200">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            openEdit(category);
-                          }}
-                          className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left font-semibold"
-                        >
-                          <Edit2 size={16} className="text-primary-500" />
-                          <span>Editar</span>
-                        </button>
-                        <div className="h-px bg-gray-100 mx-2" />
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteCategory(category);
-                          }}
-                          className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
-                        >
-                          <Trash2 size={16} />
-                          <span>Eliminar</span>
-                        </button>
-                      </div>
-                    </>
-                  )}
-                </div>
+                    {activeMenuId === category.id && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setActiveMenuId(null)}
+                        />
+                        <div className="absolute right-0 mt-2 w-48 bg-white rounded-2xl shadow-2xl border border-gray-100 z-50 overflow-hidden py-1.5 animate-in zoom-in-95 duration-200">
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEdit(category);
+                            }}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors text-left font-semibold"
+                          >
+                            <Edit2 size={16} className="text-primary-500" />
+                            <span>Editar</span>
+                          </button>
+                          <div className="h-px bg-gray-100 mx-2" />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteCategory(category);
+                            }}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors text-left font-semibold"
+                          >
+                            <Trash2 size={16} />
+                            <span>Eliminar</span>
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
               </div>
             );
           })

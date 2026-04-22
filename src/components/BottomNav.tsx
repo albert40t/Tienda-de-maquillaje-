@@ -1,21 +1,29 @@
 import { Home, ShoppingBag, Package, Users, Settings } from 'lucide-react';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-export default function BottomNav() {
+interface BottomNavProps {
+  role?: string;
+}
+
+export default function BottomNav({ role }: BottomNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const isSalesperson = role === 'vendedor' || role === 'salesperson';
+
   const navItems = [
-    { id: 'home', path: '/dashboard', label: 'Inicio', icon: Home },
-    { id: 'pos', path: '/pos', label: 'Caja', icon: ShoppingBag },
-    { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package },
-    { id: 'customers', path: '/customers', label: 'Clientas', icon: Users },
-    { id: 'settings', path: '/settings', label: 'Ajustes', icon: Settings },
+    { id: 'home', path: '/dashboard', label: 'Inicio', icon: Home, show: true },
+    { id: 'pos', path: '/pos', label: 'Caja', icon: ShoppingBag, show: !isSalesperson },
+    { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package, show: true },
+    { id: 'customers', path: '/customers', label: 'Clientas', icon: Users, show: !isSalesperson },
+    { id: 'settings', path: '/settings', label: 'Ajustes', icon: Settings, show: true },
   ] as const;
 
+  const filteredItems = navItems.filter(item => item.show);
+
   return (
-    <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-between items-center z-50">
-      {navItems.map((item) => {
+    <nav className="absolute bottom-0 w-full bg-white border-t border-gray-200 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] flex justify-around items-center z-50">
+      {filteredItems.map((item) => {
         const Icon = item.icon;
         const isActive = location.pathname === item.path || 
           (item.id === 'inventory' && location.pathname.startsWith('/inventory'));

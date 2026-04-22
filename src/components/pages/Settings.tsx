@@ -14,9 +14,11 @@ interface SettingsProps {
   onSignOut: () => void;
   banners: Banner[];
   setBanners: React.Dispatch<React.SetStateAction<Banner[]>>;
+  userRole?: string;
 }
 
-export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners }: SettingsProps) {
+export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners, userRole }: SettingsProps) {
+  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
   const { isOnline } = useOfflineSync();
   const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
@@ -313,7 +315,20 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     }
   };
 
-  const sections = [
+  const sections = isSalesperson ? [
+    {
+      title: 'Cuenta',
+      items: [
+        { id: 'payments', icon: CreditCard, label: 'Métodos de Pago', color: 'text-emerald-500', bg: 'bg-emerald-50' },
+      ]
+    },
+    {
+      title: 'Soporte',
+      items: [
+        { id: 'help', icon: CircleHelp, label: 'Ayuda y Soporte', color: 'text-gray-500', bg: 'bg-gray-100' },
+      ]
+    }
+  ] : [
     {
       title: 'Cuenta',
       items: [
@@ -500,14 +515,19 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         </div>
 
         <div className="p-4 bg-white border-t border-gray-100 pb-safe">
-          <button 
-            onClick={handleSave}
-            disabled={isSaving}
-            className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-2xl shadow-sm hover:bg-primary-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {isSaving ? <Loader2 size={18} className="animate-spin mr-2" /> : <Save size={18} className="mr-2" />}
-            {isSaving ? 'Guardando...' : 'Guardar Métodos de Pago'}
-          </button>
+          {!isSalesperson && (
+            <button 
+              onClick={handleSave}
+              disabled={isSaving}
+              className="w-full bg-primary-600 text-white font-semibold py-3.5 rounded-2xl shadow-sm hover:bg-primary-700 transition-colors flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {isSaving ? <Loader2 size={18} className="animate-spin mr-2" /> : <Save size={18} className="mr-2" />}
+              {isSaving ? 'Guardando...' : 'Guardar Métodos de Pago'}
+            </button>
+          )}
+          {isSalesperson && (
+            <p className="text-center text-xs text-gray-400 py-2">Vista de solo lectura</p>
+          )}
         </div>
       </div>
     );
@@ -949,7 +969,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         </div>
         <div>
           <h2 className="text-xl font-bold text-gray-900">{businessInfo.name}</h2>
-          <p className="text-sm text-gray-500">Administrador</p>
+          <p className="text-sm text-gray-500 capitalize">{isSalesperson ? 'Vendedor' : 'Administrador'}</p>
         </div>
       </div>
 

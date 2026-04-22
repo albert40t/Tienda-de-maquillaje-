@@ -20,11 +20,13 @@ interface HomeProps {
   products: Product[];
   sales?: Sale[];
   businessInfo: BusinessInfo;
+  userRole?: string;
 }
 
-export default function Home({ onNavigate, exchangeRate, setExchangeRate, products, sales = [], businessInfo }: HomeProps) {
+export default function Home({ onNavigate, exchangeRate, setExchangeRate, products, sales = [], businessInfo, userRole }: HomeProps) {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
+  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -156,11 +158,12 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
               value={localRate}
               onChange={(e) => handleRateChange(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && initiateRateUpdate()}
-              className="w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900"
+              readOnly={isSalesperson}
+              className={`w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900 ${isSalesperson ? 'cursor-default' : ''}`}
               step="0.01"
             />
           </div>
-          {Number(localRate) !== exchangeRate && Number(localRate) > 0 && (
+          {!isSalesperson && Number(localRate) !== exchangeRate && Number(localRate) > 0 && (
             <button 
               onClick={initiateRateUpdate}
               className="p-2 bg-primary-600 text-white rounded-xl shadow-sm hover:bg-primary-700 animate-in fade-in zoom-in duration-200"
@@ -265,18 +268,20 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
           <ChevronRight size={20} className="text-pink-100" />
         </button>
 
-        <button 
-          onClick={() => onNavigate('pos')}
-          className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-2xl p-4 flex items-center justify-between transition-colors shadow-sm"
-        >
-          <div className="flex items-center space-x-3">
-            <div className="bg-white/20 p-2 rounded-xl">
-              <TrendingUp size={20} className="text-white" />
+        {!isSalesperson && (
+          <button 
+            onClick={() => onNavigate('pos')}
+            className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-2xl p-4 flex items-center justify-between transition-colors shadow-sm"
+          >
+            <div className="flex items-center space-x-3">
+              <div className="bg-white/20 p-2 rounded-xl">
+                <TrendingUp size={20} className="text-white" />
+              </div>
+              <span className="font-medium">Nueva Venta</span>
             </div>
-            <span className="font-medium">Nueva Venta</span>
-          </div>
-          <ChevronRight size={20} className="text-primary-200" />
-        </button>
+            <ChevronRight size={20} className="text-primary-200" />
+          </button>
+        )}
       </div>
 
       {/* Top Sellers */}

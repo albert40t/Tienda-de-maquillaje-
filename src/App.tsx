@@ -452,14 +452,14 @@ export default function App() {
             } />
             
             {/* Protected Routes */}
-            <Route path="/dashboard" element={<AuthGuard session={session}><Home onNavigate={(p: any) => navigate(`/${p === 'home' ? 'dashboard' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} /></AuthGuard>} />
-            <Route path="/pos" element={<AuthGuard session={session}><POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} /></AuthGuard>} />
-            <Route path="/inventory" element={<AuthGuard session={session}><Inventory onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} businessInfo={businessInfo} /></AuthGuard>} />
-            <Route path="/customers" element={<AuthGuard session={session}><Customers customers={customers} sales={sales} /></AuthGuard>} />
-            <Route path="/category-inventory" element={<AuthGuard session={session}><CategoryInventory category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} /></AuthGuard>} />
-            <Route path="/settings" element={<AuthGuard session={session}><Settings businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} banners={banners} setBanners={setBanners} /></AuthGuard>} />
-            <Route path="/admin-users" element={<AuthGuard session={session}><AdminUsers onBack={() => navigate('/settings')} /></AuthGuard>} />
-            <Route path="/activity-logs" element={<AuthGuard session={session}><ActivityLogs onBack={() => navigate('/settings')} /></AuthGuard>} />
+            <Route path="/dashboard" element={<AuthGuard session={session}><Home userRole={session?.role} onNavigate={(p: any) => navigate(`/${p === 'home' ? 'dashboard' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} /></AuthGuard>} />
+            <Route path="/pos" element={<AuthGuard session={session}>{session?.role === 'vendedor' || session?.role === 'salesperson' ? <Navigate to="/dashboard" replace /> : <POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} />}</AuthGuard>} />
+            <Route path="/inventory" element={<AuthGuard session={session}><Inventory userRole={session?.role} onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} businessInfo={businessInfo} /></AuthGuard>} />
+            <Route path="/customers" element={<AuthGuard session={session}>{session?.role === 'vendedor' || session?.role === 'salesperson' ? <Navigate to="/dashboard" replace /> : <Customers customers={customers} sales={sales} />}</AuthGuard>} />
+            <Route path="/category-inventory" element={<AuthGuard session={session}><CategoryInventory userRole={session?.role} category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} /></AuthGuard>} />
+            <Route path="/settings" element={<AuthGuard session={session}><Settings userRole={session?.role} businessInfo={businessInfo} setBusinessInfo={setBusinessInfo} onNavigate={(p: any) => navigate(`/${p}`)} onSignOut={handleSignOut} banners={banners} setBanners={setBanners} /></AuthGuard>} />
+            <Route path="/admin-users" element={<AuthGuard session={session}>{session?.role === 'vendedor' || session?.role === 'salesperson' ? <Navigate to="/dashboard" replace /> : <AdminUsers onBack={() => navigate('/settings')} />}</AuthGuard>} />
+            <Route path="/activity-logs" element={<AuthGuard session={session}>{session?.role === 'vendedor' || session?.role === 'salesperson' ? <Navigate to="/dashboard" replace /> : <ActivityLogs onBack={() => navigate('/settings')} />}</AuthGuard>} />
             
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
@@ -467,7 +467,7 @@ export default function App() {
       </main>
 
       {/* Bottom Navigation */}
-      {session && !isStoreView && <BottomNav />}
+      {session && !isStoreView && <BottomNav role={session?.role} />}
     </div>
   );
 }
