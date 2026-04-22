@@ -456,7 +456,7 @@ export default function App() {
             
             {/* Protected Routes */}
             <Route path="/dashboard" element={<AuthGuard session={session}><Home userRole={session?.role} onNavigate={(p: any) => navigate(`/${p === 'home' ? 'dashboard' : p}`)} exchangeRate={exchangeRate} setExchangeRate={setExchangeRate} products={products} sales={sales} businessInfo={businessInfo} /></AuthGuard>} />
-            <Route path="/pos" element={<AuthGuard session={session}><POS exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} /></AuthGuard>} />
+            <Route path="/pos" element={<AuthGuard session={session}><POS userRole={session?.role} exchangeRate={exchangeRate} products={products} customers={customers} sales={sales} onProcessSale={handleProcessSale} businessInfo={businessInfo} /></AuthGuard>} />
             <Route path="/inventory" element={<AuthGuard session={session}><Inventory userRole={session?.role} onSelectCategory={handleCategorySelect} products={products} categories={categories} setCategories={setCategories} isOnline={isOnline} businessInfo={businessInfo} /></AuthGuard>} />
             <Route path="/customers" element={<AuthGuard session={session}>{isSalesperson ? <Navigate to="/dashboard" replace /> : <Customers customers={customers} sales={sales} />}</AuthGuard>} />
             <Route path="/category-inventory" element={<AuthGuard session={session}><CategoryInventory userRole={session?.role} category={selectedCategory} onBack={() => navigate('/inventory')} exchangeRate={exchangeRate} products={products} setProducts={setProducts} /></AuthGuard>} />

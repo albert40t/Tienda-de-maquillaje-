@@ -15,11 +15,14 @@ interface POSProps {
   sales?: Sale[];
   businessInfo?: BusinessInfo;
   onProcessSale?: (sale: Sale) => void;
+  userRole?: string;
 }
 
 type ViewState = 'menu' | 'new_sale' | 'reports' | 'history';
 
-export default function POS({ exchangeRate, products, customers = [], sales = [], businessInfo, onProcessSale }: POSProps) {
+export default function POS({ exchangeRate, products, customers = [], sales = [], businessInfo, onProcessSale, userRole }: POSProps) {
+  const normalizedRole = userRole?.toLowerCase().trim();
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const [view, setView] = useState<ViewState>('menu');
   const { isOnline } = useOfflineSync();
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
@@ -1519,10 +1522,10 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
           <p className="text-gray-500 text-[11px] md:text-lg font-medium">Gestión de ventas y caja</p>
         </div>
         
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 max-w-6xl mx-auto w-full pb-10">
+        <div className={`grid grid-cols-2 ${isSalesperson ? 'lg:grid-cols-1 max-w-sm' : 'lg:grid-cols-3 max-w-6xl'} gap-3 md:gap-6 mx-auto w-full pb-10`}>
           <button 
             onClick={() => setView('new_sale')}
-            className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col"
+            className={`group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col ${isSalesperson ? 'col-span-2' : ''}`}
           >
             <div className="w-10 h-10 md:w-16 md:h-16 bg-primary-50 md:bg-primary-100 text-primary-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-primary-600 group-hover:text-white transition-colors">
               <ShoppingCart className="w-5 h-5 md:w-8 md:h-8" />
@@ -1536,37 +1539,41 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             </div>
           </button>
 
-          <button 
-            onClick={() => setView('history')}
-            className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col"
-          >
-            <div className="w-10 h-10 md:w-16 md:h-16 bg-blue-50 md:bg-blue-100 text-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-              <History className="w-5 h-5 md:w-8 md:h-8" />
-            </div>
-            <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Historial</h3>
-            <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Ventas del día y cierres.</p>
-            <div className="mt-auto flex items-center text-blue-600 font-bold text-[9px] md:text-sm">
-              <span className="hidden md:inline">Ver historial completo</span>
-              <span className="inline md:hidden uppercase tracking-tighter">Ver Caja</span>
-              <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-0.5 md:ml-1 group-hover:translate-x-1 transition-transform" />
-            </div>
-          </button>
+          {!isSalesperson && (
+            <>
+              <button 
+                onClick={() => setView('history')}
+                className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col"
+              >
+                <div className="w-10 h-10 md:w-16 md:h-16 bg-blue-50 md:bg-blue-100 text-blue-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                  <History className="w-5 h-5 md:w-8 md:h-8" />
+                </div>
+                <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Historial</h3>
+                <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Ventas del día y cierres.</p>
+                <div className="mt-auto flex items-center text-blue-600 font-bold text-[9px] md:text-sm">
+                  <span className="hidden md:inline">Ver historial completo</span>
+                  <span className="inline md:hidden uppercase tracking-tighter">Ver Caja</span>
+                  <ChevronRight className="w-3 h-3 md:w-4 md:h-4 ml-0.5 md:ml-1 group-hover:translate-x-1 transition-transform" />
+                </div>
+              </button>
 
-          <button 
-            onClick={() => setView('reports')}
-            className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col opacity-80"
-          >
-            <div className="w-10 h-10 md:w-16 md:h-16 bg-purple-50 md:bg-purple-100 text-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
-              <BarChart3 className="w-5 h-5 md:w-8 md:h-8" />
-            </div>
-            <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Reportes</h3>
-            <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Gráficas y estadísticas.</p>
-            <div className="mt-auto flex items-center text-purple-600 font-bold text-[9px] md:text-sm">
-              <span className="hidden md:inline">Dashboard de analíticas</span>
-              <span className="inline md:hidden uppercase tracking-tighter">Estadísticas</span>
-              <Lock className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 ml-1" />
-            </div>
-          </button>
+              <button 
+                onClick={() => setView('reports')}
+                className="group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col opacity-80"
+              >
+                <div className="w-10 h-10 md:w-16 md:h-16 bg-purple-50 md:bg-purple-100 text-purple-600 rounded-xl md:rounded-2xl flex items-center justify-center mb-3 md:mb-6 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+                  <BarChart3 className="w-5 h-5 md:w-8 md:h-8" />
+                </div>
+                <h3 className="text-[13px] md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">Reportes</h3>
+                <p className="text-gray-400 text-[9px] md:text-sm leading-tight md:leading-relaxed mb-3 md:mb-6 line-clamp-2 md:line-clamp-none font-medium">Gráficas y estadísticas.</p>
+                <div className="mt-auto flex items-center text-purple-600 font-bold text-[9px] md:text-sm">
+                  <span className="hidden md:inline">Dashboard de analíticas</span>
+                  <span className="inline md:hidden uppercase tracking-tighter">Estadísticas</span>
+                  <Lock className="w-2.5 h-2.5 md:w-3.5 md:h-3.5 ml-1" />
+                </div>
+              </button>
+            </>
+          )}
         </div>
       </div>
     );

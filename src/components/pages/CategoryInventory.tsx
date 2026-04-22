@@ -23,6 +23,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const [search, setSearch] = useState('');
+  const [brandSearch, setBrandSearch] = useState('');
+  const [genderFilter, setGenderFilter] = useState<string>('Todos');
   const { isOnline } = useOfflineSync();
   const [isFabOpen, setIsFabOpen] = useState(false);
   
@@ -36,10 +38,14 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   const [stockAmount, setStockAmount] = useState<number>(0);
   const [isUploading, setIsUploading] = useState(false);
 
-  const filteredProducts = products.filter(p => 
-    p.category.trim().toLowerCase() === category.trim().toLowerCase() && 
-    p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredProducts = products.filter(p => {
+    const matchesCategory = p.category.trim().toLowerCase() === category.trim().toLowerCase();
+    const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
+    const matchesBrand = brandSearch === '' || (p.brand || '').toLowerCase().includes(brandSearch.toLowerCase());
+    const matchesGender = genderFilter === 'Todos' || p.gender === genderFilter;
+    
+    return matchesCategory && matchesSearch && matchesBrand && matchesGender;
+  });
 
   const openDetails = (product: Product) => {
     setSelectedProduct(product);
@@ -358,15 +364,44 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
           </button>
           <h2 className="text-lg font-bold text-gray-900">Inventario: {category}</h2>
         </div>
-        <div className="relative">
+        <div className="relative mb-2">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
           <input
             type="text"
-            placeholder={`Buscar en ${category.toLowerCase()}...`}
+            placeholder={`Buscar por nombre en ${category.toLowerCase()}...`}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="w-full pl-10 pr-4 py-2 bg-gray-50 border-none rounded-xl text-sm focus:ring-2 focus:ring-primary-200 outline-none transition-all"
           />
+        </div>
+
+        <div className="flex flex-col space-y-2">
+          <div className="relative">
+            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
+            <input
+              type="text"
+              placeholder="Filtrar por marca..."
+              value={brandSearch}
+              onChange={(e) => setBrandSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-1.5 bg-gray-50 border-none rounded-lg text-xs focus:ring-2 focus:ring-primary-200 outline-none transition-all"
+            />
+          </div>
+          
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
+            {['Todos', 'Mujer', 'Hombre', 'Unisex'].map((g) => (
+              <button
+                key={g}
+                onClick={() => setGenderFilter(g)}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 ${
+                  genderFilter === g 
+                    ? 'bg-primary-600 text-white shadow-sm' 
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {g === 'Todos' ? 'Todos' : g === 'Mujer' ? 'Damas' : g === 'Hombre' ? 'Caballeros' : 'Unisex'}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
