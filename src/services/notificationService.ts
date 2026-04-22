@@ -2,22 +2,43 @@ import { supabase } from '../lib/supabase';
 
 export const notificationService = {
   async isSupported() {
-    return 'serviceWorker' in navigator && 'PushManager' in window;
+    const hasSW = 'serviceWorker' in navigator;
+    const hasPush = 'PushManager' in window;
+    
+    if (!hasSW || !hasPush) {
+      return { 
+        supported: false, 
+        reason: !hasSW ? 'Service Worker no soportado' : 'Push Manager no soportado' 
+      };
+    }
+    return { supported: true };
   },
 
   async getPublicKey() {
-    const response = await fetch('/api/notifications/vapid-public-key');
-    const { publicKey } = await response.json();
-    return publicKey;
+    try {
+      const response = await fetch('/api/notifications/vapid-public-key');
+      if (!response.ok) throw new Error('Error al obtener llave pública');
+      const { publicKey } = await response.json();
+      return publicKey;
+    } catch (e) {
+      console.error('Error fetching VAPID public key:', e);
+      return "BHvAS8WcZyQ65Ja8V3TDeUT0i3MLcZeec4JsgoH6RK4ZU88qaxkWwsf3fhRact8tEQNvxesWpbVqiuf80nANCDI";
+    }
   },
 
   async subscribeUser(userEmail: string) {
-    if (!await this.isSupported()) return null;
+    const support = await this.isSupported();
+    if (!support.supported) {
+      throw new Error(support.reason || 'Notificaciones push no soportadas');
+    }
 
     try {
       const registration = await navigator.serviceWorker.ready;
       
-      // Get public key from server
+      if (!registration.pushManager) {
+        throw new Error('Push Manager no está disponible');
+      }
+
       const publicKey = await this.getPublicKey();
       
       const subscription = await registration.pushManager.subscribe({
@@ -68,7 +89,8 @@ export const notificationService = {
   },
 
   async checkSubscription() {
-    if (!await this.isSupported()) return false;
+    const support = await this.isSupported();
+    if (!support.supported) return false;
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     return !!subscription;

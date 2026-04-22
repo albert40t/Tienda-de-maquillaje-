@@ -43,15 +43,12 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         toast.success('Notificaciones desactivadas');
       } else {
         const sub = await notificationService.subscribeUser(businessInfo.email || 'admin');
-        if (sub) {
-          setIsPushEnabled(true);
-          toast.success('¡Notificaciones activadas!');
-        } else {
-          toast.error('Tu navegador no soporta notificaciones push');
-        }
+        setIsPushEnabled(true);
+        toast.success('¡Notificaciones activadas!');
       }
     } catch (error: any) {
-      toast.error('Error: ' + error.message);
+      console.error('Push error:', error);
+      toast.error(error.message || 'Error al configurar notificaciones');
     } finally {
       setIsSaving(false);
     }
