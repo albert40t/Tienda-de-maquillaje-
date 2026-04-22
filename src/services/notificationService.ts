@@ -56,7 +56,7 @@ export const notificationService = {
       const { error } = await supabase
         .from('push_subscriptions')
         .upsert({
-          user_id: userEmail, // Using email as ID for simplicity if auth.users is not used
+          user_id: String(userEmail), // Force string to match text column in DB
           subscription_json: JSON.parse(JSON.stringify(subscription))
         }, { onConflict: 'user_id, subscription_json' });
 
