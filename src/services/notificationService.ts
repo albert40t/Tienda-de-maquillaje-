@@ -152,6 +152,25 @@ export const notificationService = {
     }
   },
 
+  async sendTestNotification() {
+    try {
+      await fetch('/api/notifications/notify-admins', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payload: {
+            title: '🔔 Notificación de Prueba',
+            body: '¡Felicidades! El sistema de notificaciones de Stefy Beauty está activo y funcionando.',
+            data: { type: 'test' }
+          }
+        })
+      });
+    } catch (error) {
+      console.error('Error sending test notification:', error);
+      throw error;
+    }
+  },
+
   urlBase64ToUint8Array(base64String: string) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);
     const base64 = (base64String + padding)

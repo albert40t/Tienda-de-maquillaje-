@@ -28,6 +28,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPushEnabled, setIsPushEnabled] = useState(false);
+  const [testCountdown, setTestCountdown] = useState<number | null>(null);
 
   // Load push status
   React.useEffect(() => {
@@ -52,6 +53,33 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleTestNotification = async () => {
+    if (!isPushEnabled) {
+      toast.error('Primero debes activar las notificaciones');
+      return;
+    }
+
+    setTestCountdown(10);
+    const interval = setInterval(() => {
+      setTestCountdown(prev => {
+        if (prev === null || prev <= 1) {
+          clearInterval(interval);
+          return null;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    setTimeout(async () => {
+      try {
+        await notificationService.sendTestNotification();
+        toast.success('Notificación de prueba enviada');
+      } catch (error) {
+        toast.error('Error al enviar prueba');
+      }
+    }, 10000);
   };
 
   // Banner states
@@ -882,6 +910,35 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
             <h4 className="text-sm font-bold text-blue-900 mb-2">¿Cómo funciona?</h4>
             <p className="text-xs text-blue-800 leading-relaxed">
               Al activar esta opción, vinculamos este dispositivo a tu cuenta de administrador. Cuando un trabajador registre una venta, el servidor enviará una señal cifrada que despertará tu teléfono o computadora para mostrarte el monto de la venta al instante.
+            </p>
+          </div>
+
+          <div className="pt-4">
+            <button
+              onClick={handleTestNotification}
+              disabled={testCountdown !== null || !isPushEnabled}
+              className={`w-full py-4 rounded-2xl font-bold flex items-center justify-center space-x-2 transition-all ${
+                testCountdown !== null 
+                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
+                  : isPushEnabled 
+                    ? 'bg-orange-50 text-orange-600 hover:bg-orange-100 border border-orange-200' 
+                    : 'bg-gray-50 text-gray-300 cursor-not-allowed border border-gray-100'
+              }`}
+            >
+              {testCountdown !== null ? (
+                <>
+                  <Loader2 size={18} className="animate-spin" />
+                  <span>Enviando en {testCountdown}s...</span>
+                </>
+              ) : (
+                <>
+                  <Bell size={18} />
+                  <span>Probar Notificación</span>
+                </>
+              )}
+            </button>
+            <p className="text-[10px] text-center text-gray-400 mt-2">
+              Envía una notificación de prueba a todos los administradores suscritos.
             </p>
           </div>
         </div>
