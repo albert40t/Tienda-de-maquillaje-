@@ -20,7 +20,8 @@ interface CategoryInventoryProps {
 type ModalMode = 'none' | 'details' | 'edit' | 'add' | 'stock' | 'delete';
 
 export default function CategoryInventory({ category, onBack, exchangeRate, products, setProducts, userRole }: CategoryInventoryProps) {
-  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
+  const normalizedRole = userRole?.toLowerCase().trim();
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const [search, setSearch] = useState('');
   const { isOnline } = useOfflineSync();
   const [isFabOpen, setIsFabOpen] = useState(false);

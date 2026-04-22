@@ -26,7 +26,8 @@ interface HomeProps {
 export default function Home({ onNavigate, exchangeRate, setExchangeRate, products, sales = [], businessInfo, userRole }: HomeProps) {
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
-  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
+  const normalizedRole = userRole?.toLowerCase().trim();
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
 
   useEffect(() => {
     const fetchLogs = async () => {

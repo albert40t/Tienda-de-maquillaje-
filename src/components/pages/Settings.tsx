@@ -18,7 +18,8 @@ interface SettingsProps {
 }
 
 export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners, userRole }: SettingsProps) {
-  const isSalesperson = userRole === 'vendedor' || userRole === 'salesperson';
+  const normalizedRole = userRole?.toLowerCase().trim();
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const { isOnline } = useOfflineSync();
   const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);

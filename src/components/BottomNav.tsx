@@ -9,7 +9,8 @@ export default function BottomNav({ role }: BottomNavProps) {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isSalesperson = role === 'vendedor' || role === 'salesperson';
+  const normalizedRole = role?.toLowerCase().trim();
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
 
   const navItems = [
     { id: 'home', path: '/dashboard', label: 'Inicio', icon: Home, show: true },
