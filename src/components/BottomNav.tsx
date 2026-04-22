@@ -14,7 +14,7 @@ export default function BottomNav({ role }: BottomNavProps) {
 
   const navItems = [
     { id: 'home', path: '/dashboard', label: 'Inicio', icon: Home, show: true },
-    { id: 'pos', path: '/pos', label: 'Caja', icon: ShoppingBag, show: !isSalesperson },
+    { id: 'pos', path: '/pos', label: 'Caja', icon: ShoppingBag, show: true },
     { id: 'inventory', path: '/inventory', label: 'Inventario', icon: Package, show: true },
     { id: 'customers', path: '/customers', label: 'Clientas', icon: Users, show: !isSalesperson },
     { id: 'settings', path: '/settings', label: 'Ajustes', icon: Settings, show: true },

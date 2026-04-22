@@ -1,4 +1,4 @@
-import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart, Check, X as CloseIcon } from 'lucide-react';
+import { TrendingUp, PackageMinus, Clock, ChevronRight, DollarSign, AlertTriangle, Award, Store, Activity, Package, Edit2, Trash2, ShoppingCart, Check, X as CloseIcon, ShoppingBag } from 'lucide-react';
 import React, { useEffect, useState } from 'react';
 import { toast } from 'react-hot-toast';
 import { Product, Sale, BusinessInfo, Page } from '../../types';
@@ -269,20 +269,18 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
           <ChevronRight size={20} className="text-pink-100" />
         </button>
 
-        {!isSalesperson && (
-          <button 
-            onClick={() => onNavigate('pos')}
-            className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-2xl p-4 flex items-center justify-between transition-colors shadow-sm"
-          >
-            <div className="flex items-center space-x-3">
-              <div className="bg-white/20 p-2 rounded-xl">
-                <TrendingUp size={20} className="text-white" />
-              </div>
-              <span className="font-medium">Nueva Venta</span>
+        <button 
+          onClick={() => onNavigate('pos')}
+          className="w-full bg-primary-600 hover:bg-primary-700 text-white rounded-2xl p-4 flex items-center justify-between transition-colors shadow-sm"
+        >
+          <div className="flex items-center space-x-3">
+            <div className="bg-white/20 p-2 rounded-xl">
+              <ShoppingBag size={20} className="text-white" />
             </div>
-            <ChevronRight size={20} className="text-primary-200" />
-          </button>
-        )}
+            <span className="font-medium">Nueva Venta (Caja)</span>
+          </div>
+          <ChevronRight size={20} className="text-primary-200" />
+        </button>
       </div>
 
       {/* Top Sellers */}

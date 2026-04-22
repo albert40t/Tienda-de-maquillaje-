@@ -389,8 +389,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       pagoMovil: { ...(formData.paymentConfig?.pagoMovil || { telf: '', ci: '' }), banco: e.target.value }
                     }
                   })}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                   placeholder="Ej. Banesco"
+                  readOnly={isSalesperson}
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
@@ -406,8 +407,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                         pagoMovil: { ...(formData.paymentConfig?.pagoMovil || { banco: '', ci: '' }), telf: e.target.value }
                       }
                     })}
-                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                     placeholder="0412..."
+                    readOnly={isSalesperson}
                   />
                 </div>
                 <div>
@@ -422,8 +424,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                         pagoMovil: { ...(formData.paymentConfig?.pagoMovil || { banco: '', telf: '' }), ci: e.target.value }
                       }
                     })}
-                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                     placeholder="V-0000..."
+                    readOnly={isSalesperson}
                   />
                 </div>
               </div>
@@ -449,8 +452,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       zelle: { ...(formData.paymentConfig?.zelle || { nombre: '' }), email: e.target.value }
                     }
                   })}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                   placeholder="zelle@ejemplo.com"
+                  readOnly={isSalesperson}
                 />
               </div>
               <div>
@@ -465,8 +469,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       zelle: { ...(formData.paymentConfig?.zelle || { email: '' }), nombre: e.target.value }
                     }
                   })}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                   placeholder="Nombre completo"
+                  readOnly={isSalesperson}
                 />
               </div>
             </div>
@@ -491,8 +496,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       paypal: { email: e.target.value }
                     }
                   })}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                   placeholder="paypal@ejemplo.com"
+                  readOnly={isSalesperson}
                 />
               </div>
               <div>
@@ -507,8 +513,9 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       binance: { ...(formData.paymentConfig?.binance || { id: '' }), email: e.target.value }
                     }
                   })}
-                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none"
+                  className="w-full p-3 bg-white border border-gray-200 rounded-xl text-sm outline-none disabled:opacity-75 disabled:bg-gray-50"
                   placeholder="Email o Pay ID"
+                  readOnly={isSalesperson}
                 />
               </div>
             </div>
