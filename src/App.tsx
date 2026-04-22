@@ -8,7 +8,8 @@ import { supabase } from './lib/supabase';
 import { offlineManager } from './lib/offlineManager';
 import { useOfflineSync } from './hooks/useOfflineSync';
 import { RefreshCcw, Wifi, WifiOff } from 'lucide-react';
-import { Category } from './types';
+import { Category, Banner } from './types';
+import { notificationService } from './services/notificationService';
 
 import Home from './components/pages/Home';
 import POS from './components/pages/POS';
@@ -365,6 +366,14 @@ export default function App() {
       try {
         const { error } = await supabase.from('ventas').insert(saleData);
         if (error) throw error;
+
+        // If a worker made the sale, notify admins
+        const normalizedRole = session?.role?.toLowerCase().trim();
+        const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+        
+        if (isSalesperson) {
+          notificationService.notifyAdmins(sale);
+        }
       } catch (e) {
         console.error('Error sharing sale online, queueing...', e);
         offlineManager.addAction('CREATE_SALE', saleData);

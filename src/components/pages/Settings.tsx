@@ -7,6 +7,8 @@ import { compressImage } from '../../lib/imageUtils';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { offlineManager } from '../../lib/offlineManager';
 
+import { notificationService } from '../../services/notificationService';
+
 interface SettingsProps {
   businessInfo: BusinessInfo;
   setBusinessInfo: React.Dispatch<React.SetStateAction<BusinessInfo>>;
@@ -21,10 +23,39 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const { isOnline } = useOfflineSync();
-  const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners'>('main');
+  const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners' | 'notifications'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);
   const [isUploading, setIsUploading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isPushEnabled, setIsPushEnabled] = useState(false);
+
+  // Load push status
+  React.useEffect(() => {
+    notificationService.checkSubscription().then(setIsPushEnabled);
+  }, []);
+
+  const handleTogglePush = async () => {
+    try {
+      setIsSaving(true);
+      if (isPushEnabled) {
+        await notificationService.unsubscribeUser(businessInfo.email || 'admin');
+        setIsPushEnabled(false);
+        toast.success('Notificaciones desactivadas');
+      } else {
+        const sub = await notificationService.subscribeUser(businessInfo.email || 'admin');
+        if (sub) {
+          setIsPushEnabled(true);
+          toast.success('¡Notificaciones activadas!');
+        } else {
+          toast.error('Tu navegador no soporta notificaciones push');
+        }
+      }
+    } catch (error: any) {
+      toast.error('Error: ' + error.message);
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   // Banner states
   const [editingBanner, setEditingBanner] = useState<Banner | null>(null);
@@ -809,6 +840,58 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     );
   }
 
+  if (activeView === 'notifications') {
+    return (
+      <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
+        <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 flex items-center space-x-2">
+          <button 
+            onClick={() => setActiveView('main')}
+            className="p-1.5 -ml-1.5 text-gray-600 hover:bg-gray-50 rounded-full transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="text-lg font-bold text-gray-900">Notificaciones Push</h2>
+        </div>
+
+        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className={`p-3 rounded-2xl ${isPushEnabled ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
+                  <Bell size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-gray-900">Alertas de Venta</h3>
+                  <p className="text-xs text-gray-500">Recibe un aviso cada vez que se realice una venta.</p>
+                </div>
+              </div>
+              <button 
+                onClick={handleTogglePush}
+                disabled={isSaving}
+                className={`w-14 h-7 rounded-full transition-all relative ${isPushEnabled ? 'bg-orange-500' : 'bg-gray-300'} ${isSaving ? 'opacity-50 cursor-wait' : ''}`}
+              >
+                <div className={`absolute top-1 w-5 h-5 bg-white rounded-full transition-all shadow-sm ${isPushEnabled ? 'left-8' : 'left-1'}`} />
+              </button>
+            </div>
+            
+            <div className="pt-4 border-t border-gray-50">
+              <p className="text-[10px] text-gray-400 font-medium leading-relaxed">
+                * Las notificaciones requieren permiso del navegador. Si no recibes alertas, verifica los ajustes del sitio en tu navegador o APK.
+              </p>
+            </div>
+          </div>
+          
+          <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100">
+            <h4 className="text-sm font-bold text-blue-900 mb-2">¿Cómo funciona?</h4>
+            <p className="text-xs text-blue-800 leading-relaxed">
+              Al activar esta opción, vinculamos este dispositivo a tu cuenta de administrador. Cuando un trabajador registre una venta, el servidor enviará una señal cifrada que despertará tu teléfono o computadora para mostrarte el monto de la venta al instante.
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (activeView === 'business') {
     return (
       <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
@@ -997,7 +1080,8 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                       if (item.id === 'branding') setActiveView('branding');
                       if (item.id === 'banners') setActiveView('banners');
                       if (item.id === 'payments') setActiveView('payments');
-                      if (item.id === 'notifications') onNavigate('activity-logs');
+                      if (item.id === 'notifications') setActiveView('notifications');
+                      if (item.id === 'privacy') onNavigate('activity-logs');
                     }}
                     className={`w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors ${
                       itemIdx !== section.items.length - 1 ? 'border-b border-gray-50' : ''

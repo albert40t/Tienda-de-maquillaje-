@@ -2,6 +2,18 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import path from "path";
 import fs from "fs";
+import webpush from "web-push";
+
+// VAPID keys should be in environment variables in production
+// For now using the ones generated in this session
+const PUBLIC_VAPID_KEY = process.env.VAPID_PUBLIC_KEY || "BHvAS8WcZyQ65Ja8V3TDeUT0i3MLcZeec4JsgoH6RK4ZU88qaxkWwsf3fhRact8tEQNvxesWpbVqiuf80nANCDI";
+const PRIVATE_VAPID_KEY = process.env.VAPID_PRIVATE_KEY || "RoWwOviwAUH8Zqj4EP6DTxJA4oTw7d2OjoY-fyUiclM";
+
+webpush.setVapidDetails(
+  "mailto:albertocampos0121@gmail.com",
+  PUBLIC_VAPID_KEY,
+  PRIVATE_VAPID_KEY
+);
 
 async function startServer() {
   const app = express();
@@ -9,6 +21,47 @@ async function startServer() {
 
   // Middleware for parsing JSON with a larger limit for images
   app.use(express.json({ limit: '10mb' }));
+
+  // --- NOTIFICATION API ---
+  
+  app.get("/api/notifications/vapid-public-key", (req, res) => {
+    res.json({ publicKey: PUBLIC_VAPID_KEY });
+  });
+
+  app.post("/api/notifications/notify-admins", async (req, res) => {
+    try {
+      const { subscriptions, payload } = req.body;
+      
+      if (!subscriptions || !Array.isArray(subscriptions)) {
+        return res.status(400).json({ error: "No subscriptions provided" });
+      }
+
+      const notificationPayload = JSON.stringify({
+        title: payload.title || "Nueva Venta",
+        body: payload.body || "Se ha realizado una nueva venta en el sistema.",
+        icon: payload.icon || "/icon-192.png",
+        badge: "/icon-192.png",
+        data: payload.data || {}
+      });
+
+      const results = await Promise.allSettled(
+        subscriptions.map(sub => 
+          webpush.sendNotification(sub, notificationPayload)
+            .catch(err => {
+              if (err.statusCode === 404 || err.statusCode === 410) {
+                return { error: "Subscription expired", endpoint: sub.endpoint };
+              }
+              throw err;
+            })
+        )
+      );
+
+      res.json({ success: true, results });
+    } catch (error: any) {
+      console.error("Error sending notifications:", error);
+      res.status(500).json({ error: error.message });
+    }
+  });
 
   // API to save branding assets
   app.post("/api/branding/icons", (req, res) => {

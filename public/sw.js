@@ -35,6 +35,58 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// --- PUSH NOTIFICATIONS ---
+
+self.addEventListener('push', (event) => {
+  let data = { title: 'Nueva Notificación', body: 'Has recibido un mensaje.' };
+  
+  if (event.data) {
+    try {
+      data = event.data.json();
+    } catch (e) {
+      data = { title: 'Notificación', body: event.data.text() };
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon || '/icon-192.png',
+    badge: data.badge || '/icon-192.png',
+    data: data.data || {},
+    vibrate: [100, 50, 100],
+    actions: [
+      { action: 'open', title: 'Ver Detalles' },
+      { action: 'close', title: 'Cerrar' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+
+  if (event.action === 'close') return;
+
+  // Open the app or a specific URL
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
+      if (clientList.length > 0) {
+        let client = clientList[0];
+        for (let i = 0; i < clientList.length; i++) {
+          if (clientList[i].focused) {
+            client = clientList[i];
+          }
+        }
+        return client.focus();
+      }
+      return clients.openWindow('/');
+    })
+  );
+});
+
 self.addEventListener('fetch', (event) => {
   // Network First strategy (especially for index.html and manifest)
   event.respondWith(
