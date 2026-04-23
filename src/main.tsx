@@ -15,10 +15,14 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+import { TutorialProvider } from './components/TutorialProvider';
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <BrowserRouter>
-      <App />
+      <TutorialProvider>
+        <App />
+      </TutorialProvider>
     </BrowserRouter>
   </StrictMode>,
 );

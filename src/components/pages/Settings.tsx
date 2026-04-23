@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe, Layout, MonitorSmartphone, Image as ImageIcon, Plus, Trash2, Edit2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { BusinessInfo, Page, Banner } from '../../types';
@@ -6,8 +6,8 @@ import { supabase } from '../../lib/supabase';
 import { compressImage } from '../../lib/imageUtils';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
 import { offlineManager } from '../../lib/offlineManager';
-
 import { notificationService } from '../../services/notificationService';
+import { useTutorial } from '../TutorialProvider';
 
 interface SettingsProps {
   businessInfo: BusinessInfo;
@@ -20,6 +20,7 @@ interface SettingsProps {
 }
 
 export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners, userRole }: SettingsProps) {
+  const { startTutorial } = useTutorial();
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const { isOnline } = useOfflineSync();
@@ -382,6 +383,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     {
       title: 'Soporte',
       items: [
+        { id: 'tutorial', icon: CircleHelp, label: 'Guía Interactiva (Tutorial)', color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'help', icon: CircleHelp, label: 'Ayuda y Soporte', color: 'text-gray-500', bg: 'bg-gray-100' },
       ]
     }
@@ -407,6 +409,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     {
       title: 'Soporte',
       items: [
+        { id: 'tutorial', icon: CircleHelp, label: 'Guía Interactiva (Tutorial)', color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'help', icon: CircleHelp, label: 'Ayuda y Soporte', color: 'text-gray-500', bg: 'bg-gray-100' },
       ]
     }
@@ -1129,6 +1132,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                   <button 
                     key={itemIdx}
                     onClick={() => {
+                      if (item.id === 'tutorial') startTutorial();
                       if (item.id === 'users') onNavigate('admin-users');
                       if (item.id === 'business') setActiveView('business');
                       if (item.id === 'branding') setActiveView('branding');

@@ -211,7 +211,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div id="dashboard-stats" className="grid grid-cols-2 gap-4">
         <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex flex-col justify-between h-32">
           <div className="flex justify-between items-start">
             <div className="w-8 h-8 rounded-full bg-green-50 flex items-center justify-center text-green-600">

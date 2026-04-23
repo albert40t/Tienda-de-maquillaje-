@@ -32,6 +32,7 @@ export default function BottomNav({ role }: BottomNavProps) {
         return (
           <button
             key={item.id}
+            id={`nav-${item.id}`}
             onClick={() => navigate(item.path)}
             className={`flex flex-col items-center justify-center w-14 transition-colors duration-200 ${
               isActive ? 'text-primary-600' : 'text-gray-400 hover:text-primary-400'

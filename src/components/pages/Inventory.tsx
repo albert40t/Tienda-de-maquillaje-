@@ -292,6 +292,7 @@ export default function Inventory({ onSelectCategory, products, categories, setC
             </button>
             {!isSalesperson && (
               <button 
+                id="btn-add-category"
                 onClick={openCreate}
                 className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
               >
