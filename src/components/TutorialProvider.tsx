@@ -88,6 +88,7 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
   totalSteps: number;
 }) => {
   const [coords, setCoords] = useState({ top: 0, left: 0, width: 0, height: 0 });
+  const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     const updatePosition = () => {
@@ -100,101 +101,162 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
           width: rect.width,
           height: rect.height
         });
+        setIsVisible(true);
       } else {
+        // Fallback to center spotlight if target not found yet
         setCoords({
-          top: window.innerHeight / 2 - 50,
-          left: window.innerWidth / 2 - 150,
-          width: 300,
-          height: 100
+          top: window.innerHeight / 2 - 2,
+          left: window.innerWidth / 2 - 2,
+          width: 4,
+          height: 4
         });
+        setIsVisible(false);
       }
     };
 
     updatePosition();
-    const timer = setTimeout(updatePosition, 300);
+    // Use an interval for a short time to catch dynamic renders/animations
+    const timer = setTimeout(updatePosition, 100);
+    const timer2 = setTimeout(updatePosition, 500);
+    
     window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition, true);
+
     return () => {
       clearTimeout(timer);
+      clearTimeout(timer2);
       window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition, true);
     };
   }, [step]);
 
-  const spacing = 15;
-  const bubbleWidth = 280;
+  const spacing = 16;
+  const bubbleWidth = Math.min(window.innerWidth - 32, 320);
   
-  // Calculate horizontal position to keep bubble within viewport
   const getHorizontalPos = () => {
     let left = coords.left + coords.width / 2 - bubbleWidth / 2;
-    // Keep at least 10px from edges
-    return Math.max(10, Math.min(window.innerWidth - bubbleWidth - 10, left));
+    return Math.max(16, Math.min(window.innerWidth - bubbleWidth - 16, left));
   };
 
   const bubblePos = step.position === 'bottom' 
     ? { 
-        top: Math.min(window.innerHeight - 200, coords.top + coords.height + spacing), 
+        top: Math.min(window.innerHeight - 240, coords.top + coords.height + spacing), 
         left: getHorizontalPos() 
       }
     : step.position === 'top'
     ? { 
-        top: Math.max(10, coords.top - 180 - spacing), 
+        top: Math.max(16, coords.top - 220 - spacing), 
         left: getHorizontalPos() 
       }
     : { 
-        top: window.innerHeight / 2 - 80, 
-        left: window.innerWidth / 2 - 140 
+        top: window.innerHeight / 2 - 120, 
+        left: window.innerWidth / 2 - bubbleWidth / 2 
       };
 
   return (
-    <div className="fixed inset-0 z-[9999] pointer-events-none">
-      <div className="absolute inset-0 bg-black/40 backdrop-blur-[1px] transition-all duration-500">
-        <svg className="w-full h-full">
-          <defs>
-            <mask id="hole">
-              <rect width="100%" height="100%" fill="white" />
-              <rect 
-                x={coords.left - 5} 
-                y={coords.top - 5} 
-                width={coords.width + 10} 
-                height={coords.height + 10} 
-                rx="8" 
-                fill="black" 
-              />
-            </mask>
-          </defs>
-          <rect width="100%" height="100%" mask="url(#hole)" fill="currentColor" className="text-black/60" />
-        </svg>
-      </div>
+    <div className="fixed inset-0 z-[9999] pointer-events-none overflow-hidden select-none">
+      {/* High-End Spotlight Overlay with Smooth transition */}
+      <motion.div 
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="absolute inset-0 bg-black/70 backdrop-blur-[2px]"
+        style={{
+          clipPath: isVisible ? `polygon(
+            0% 0%, 
+            100% 0%, 
+            100% 100%, 
+            0% 100%, 
+            0% 0%, 
+            ${coords.left - 4}px 0%, 
+            ${coords.left - 4}px ${coords.top - 4}px, 
+            ${coords.left + coords.width + 4}px ${coords.top - 4}px, 
+            ${coords.left + coords.width + 4}px ${coords.top + coords.height + 4}px, 
+            ${coords.left - 4}px ${coords.top + coords.height + 4}px, 
+            ${coords.left - 4}px 0%
+          )` : 'none'
+        }}
+      />
 
+      {/* Target Focus Ring */}
+      <AnimatePresence>
+        {isVisible && (
+          <motion.div
+            initial={{ opacity: 0, scale: 1.2, rotate: -2 }}
+            animate={{ opacity: 1, scale: 1, rotate: 0 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            style={{
+              position: 'absolute',
+              top: coords.top - 12,
+              left: coords.left - 12,
+              width: coords.width + 24,
+              height: coords.height + 24,
+              borderRadius: '1.25rem',
+              boxShadow: '0 0 0 2px rgba(255, 255, 255, 0.4), 0 0 20px rgba(var(--primary-500), 0.5)',
+              pointerEvents: 'none'
+            }}
+            className="ring-4 ring-primary-500/20 backdrop-brightness-125"
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Modern Glassmorphism Bubble */}
       <motion.div
-        initial={{ opacity: 0, scale: 0.9, y: 10 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        style={{ top: bubblePos.top, left: bubblePos.left }}
-        className="absolute w-[280px] bg-white rounded-3xl shadow-2xl p-5 pointer-events-auto border border-primary-100"
+        key={step.id}
+        initial={{ opacity: 0, y: 30, scale: 0.9, rotateX: 15 }}
+        animate={{ opacity: 1, y: 0, scale: 1, rotateX: 0 }}
+        exit={{ opacity: 0, scale: 0.9, rotateX: -15 }}
+        transition={{ 
+          type: "spring", 
+          damping: 22, 
+          stiffness: 260,
+          mass: 1 
+        }}
+        style={{ 
+          top: bubblePos.top, 
+          left: bubblePos.left,
+          width: bubbleWidth
+        }}
+        className="absolute bg-white/95 rounded-[2.5rem] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.4)] p-7 pointer-events-auto border border-white/40 backdrop-blur-2xl ring-1 ring-black/5"
       >
         <button 
           onClick={onClose}
-          className="absolute top-3 right-3 p-1 text-gray-300 hover:text-gray-500 rounded-full"
+          className="absolute top-5 right-5 p-2 text-gray-300 hover:text-gray-900 hover:bg-gray-100/50 rounded-full transition-all group"
+          title="Cerrar Guía"
         >
-          <X size={16} />
+          <X size={20} className="group-hover:rotate-90 transition-transform" />
         </button>
 
-        <div className="flex items-center space-x-2 mb-2 text-primary-600">
-          <Info size={16} className="shrink-0" />
-          <h4 className="font-bold text-sm leading-tight">{step.title}</h4>
+        <div className="flex items-center space-x-4 mb-5">
+          <div className="w-12 h-12 rounded-[1.25rem] bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white shadow-xl shadow-primary-500/20">
+            <Info size={24} />
+          </div>
+          <div>
+            <h4 className="font-black text-lg text-gray-900 leading-none mb-1">{step.title}</h4>
+            <div className="flex items-center space-x-2">
+              <span className="text-[10px] font-black text-primary-600 uppercase tracking-widest bg-primary-50 px-2 py-0.5 rounded-md">
+                Paso {stepIndex + 1}
+              </span>
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">de {totalSteps}</span>
+            </div>
+          </div>
         </div>
 
-        <p className="text-xs text-gray-600 leading-relaxed mb-4">
+        <p className="text-[13px] text-gray-600 font-medium leading-relaxed mb-8">
           {step.content}
         </p>
 
         <div className="flex items-center justify-between">
-          <div className="flex space-x-1">
+          <div className="flex space-x-2">
             {Array.from({ length: totalSteps }).map((_, idx) => (
               <div 
                 key={idx} 
-                className={`h-1 rounded-full transition-all ${
-                  idx === stepIndex ? 'w-4 bg-primary-500' : 'w-1 bg-gray-200'
+                className={`h-1.5 rounded-full transition-all duration-500 ${
+                  idx === stepIndex 
+                    ? 'w-8 bg-primary-600' 
+                    : idx < stepIndex 
+                    ? 'w-2 bg-primary-200'
+                    : 'w-2 bg-gray-200'
                 }`}
               />
             ))}
@@ -202,16 +264,17 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
           
           <button
             onClick={onNext}
-            className="flex items-center space-x-1 bg-primary-600 text-white px-4 py-2 rounded-full text-xs font-bold hover:bg-primary-700 shadow-lg shadow-primary-200"
+            className="flex items-center space-x-2 bg-gray-900 text-white px-7 py-3.5 rounded-[1.25rem] text-sm font-black hover:bg-primary-600 hover:shadow-2xl hover:shadow-primary-600/30 active:scale-95 transition-all group"
           >
-            <span>{isLast ? 'Finalizar' : 'Siguiente'}</span>
-            {!isLast && <ChevronRight size={14} />}
+            <span>{isLast ? 'Finalizar Guía' : 'Siguiente'}</span>
+            {!isLast && <ChevronRight size={18} className="group-hover:translate-x-1 transition-transform" />}
           </button>
         </div>
 
+        {/* Professional Arrow */}
         <div 
-          className={`absolute left-1/2 -translateX-1/2 w-4 h-4 bg-white rotate-45 border border-primary-100 border-t-0 border-l-0 ${
-            step.position === 'bottom' ? '-top-2 border-t border-l border-b-0 border-r-0' : '-bottom-2'
+          className={`absolute left-1/2 -translateX-1/2 w-5 h-5 bg-white/95 rotate-45 border-white/20 ring-1 ring-black/5 z-[-1] ${
+            step.position === 'bottom' ? '-top-2.5' : '-bottom-2.5'
           }`}
         />
       </motion.div>
