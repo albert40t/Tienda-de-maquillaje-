@@ -45,7 +45,10 @@ interface InventoryProps {
   userRole?: string;
 }
 
+import { useTutorial } from '../TutorialProvider';
+
 export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline, businessInfo, userRole }: InventoryProps) {
+  const { isActive: isTutorialActive, nextStep: tutorialNextStep } = useTutorial();
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -133,6 +136,12 @@ export default function Inventory({ onSelectCategory, products, categories, setC
     
     setEditingCategory(null);
     setIsCreating(false);
+
+    if (isTutorialActive) {
+      toast.success('¡MODO TUTORIAL: Categoría simulada con éxito!');
+      tutorialNextStep();
+      return;
+    }
 
     // Supabase update/upsert with offline support
     if (isOnline) {

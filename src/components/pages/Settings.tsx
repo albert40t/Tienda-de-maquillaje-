@@ -1131,6 +1131,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                 return (
                   <button 
                     key={itemIdx}
+                    id={`setting-item-${item.id}`}
                     onClick={() => {
                       if (item.id === 'tutorial') startTutorial();
                       if (item.id === 'users') onNavigate('admin-users');

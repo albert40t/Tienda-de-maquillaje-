@@ -20,7 +20,10 @@ interface POSProps {
 
 type ViewState = 'menu' | 'new_sale' | 'reports' | 'history';
 
+import { useTutorial } from '../TutorialProvider';
+
 export default function POS({ exchangeRate, products, customers = [], sales = [], businessInfo, onProcessSale, userRole }: POSProps) {
+  const { isActive: isTutorialActive, nextStep: tutorialNextStep } = useTutorial();
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const [view, setView] = useState<ViewState>('menu');
@@ -93,6 +96,14 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
       profit: cart.reduce((sum, item) => sum + ((item.price - (item.costPrice || 0)) * item.quantity), 0) - (subtotal * (discount / 100))
     };
     
+    if (isTutorialActive) {
+      setIsCheckoutOpen(false);
+      setIsSuccess(true);
+      toast.success('¡MODO TUTORIAL: Venta simulada con éxito!');
+      tutorialNextStep();
+      return;
+    }
+
     if (onProcessSale) {
       onProcessSale(newSale);
     }
@@ -1524,6 +1535,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
         
         <div className={`grid grid-cols-2 ${isSalesperson ? 'lg:grid-cols-1 max-w-sm' : 'lg:grid-cols-3 max-w-6xl'} gap-3 md:gap-6 mx-auto w-full pb-10`}>
           <button 
+            id="pos-simulate-target"
             onClick={() => setView('new_sale')}
             className={`group relative bg-white p-3 md:p-8 rounded-3xl md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-2xl hover:shadow-primary-900/10 hover:-translate-y-1 transition-all text-left flex flex-col ${isSalesperson ? 'col-span-2' : ''}`}
           >

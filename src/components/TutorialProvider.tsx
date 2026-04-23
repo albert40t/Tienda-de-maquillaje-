@@ -30,6 +30,14 @@ const tutorialSteps: TutorialStep[] = [
     position: 'top'
   },
   {
+    id: 'pos-simulation',
+    path: '/pos',
+    targetId: 'pos-simulate-target',
+    title: 'Caja Registradora',
+    content: 'En este modo tutorial, nada de lo que hagas se guardará realmente. ¡Prueba sin miedo!',
+    position: 'bottom'
+  },
+  {
     id: 'inventory-nav',
     path: '/pos',
     targetId: 'nav-inventory',
@@ -41,8 +49,8 @@ const tutorialSteps: TutorialStep[] = [
     id: 'add-category',
     path: '/inventory',
     targetId: 'btn-add-category',
-    title: 'Nuevas Categorías',
-    content: 'Usa este botón para organizar tus productos (ej. Shampoos, Tintes, Cremas).',
+    title: 'Categorías y Productos',
+    content: 'Prueba añadir una categoría. Recuerda que en modo tutorial los cambios son simulados.',
     position: 'bottom'
   },
   {
@@ -60,6 +68,14 @@ const tutorialSteps: TutorialStep[] = [
     title: 'Configuraciones',
     content: 'Personaliza tu negocio, banners y activa las notificaciones push aquí.',
     position: 'top'
+  },
+  {
+    id: 'branding-nav',
+    path: '/settings',
+    targetId: 'setting-item-branding',
+    title: 'Branding y Tienda',
+    content: 'Desde aquí puedes cambiar los banners de la tienda y la apariencia de tu App.',
+    position: 'bottom'
   }
 ];
 
@@ -104,11 +120,29 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
   }, [step]);
 
   const spacing = 15;
+  const bubbleWidth = 280;
+  
+  // Calculate horizontal position to keep bubble within viewport
+  const getHorizontalPos = () => {
+    let left = coords.left + coords.width / 2 - bubbleWidth / 2;
+    // Keep at least 10px from edges
+    return Math.max(10, Math.min(window.innerWidth - bubbleWidth - 10, left));
+  };
+
   const bubblePos = step.position === 'bottom' 
-    ? { top: coords.top + coords.height + spacing, left: Math.max(10, coords.left + coords.width / 2 - 140) }
+    ? { 
+        top: Math.min(window.innerHeight - 200, coords.top + coords.height + spacing), 
+        left: getHorizontalPos() 
+      }
     : step.position === 'top'
-    ? { top: coords.top - 160 - spacing, left: Math.max(10, coords.left + coords.width / 2 - 140) }
-    : { top: window.innerHeight / 2 - 80, left: window.innerWidth / 2 - 140 };
+    ? { 
+        top: Math.max(10, coords.top - 180 - spacing), 
+        left: getHorizontalPos() 
+      }
+    : { 
+        top: window.innerHeight / 2 - 80, 
+        left: window.innerWidth / 2 - 140 
+      };
 
   return (
     <div className="fixed inset-0 z-[9999] pointer-events-none">
