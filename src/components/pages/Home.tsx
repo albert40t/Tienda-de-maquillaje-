@@ -136,7 +136,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
 
   return (
     <div className="p-4 space-y-5 animate-in fade-in duration-300">
-      <div className="space-y-0.5">
+      <div id="tutorial-welcome" className="space-y-0.5">
         <h2 className="text-xs font-medium text-gray-500">Hola, {businessInfo.name}</h2>
         <p className="text-xl font-semibold text-gray-900">Resumen de hoy</p>
       </div>

@@ -308,9 +308,10 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
           </div>
 
           <div className="flex-1 overflow-y-auto p-2.5 md:p-6 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4 gap-2.5 md:gap-4 pb-28 lg:pb-6">
-            {filteredProducts.map(product => (
+            {filteredProducts.map((product, index) => (
               <button
                 key={product.id}
+                id={index === 0 ? "pos-simulate-target" : undefined}
                 onClick={() => addToCart(product)}
                 className="group bg-white rounded-3xl md:rounded-[2rem] p-2 md:p-3 shadow-sm border border-gray-100 text-left hover:border-primary-400 hover:shadow-xl hover:shadow-primary-900/10 active:scale-95 transition-all duration-300 ease-out flex flex-col h-full relative focus:ring-4 focus:ring-primary-100 outline-none"
               >
