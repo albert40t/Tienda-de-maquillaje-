@@ -19,6 +19,7 @@ export interface Product {
   description?: string;
   gender?: 'Hombre' | 'Mujer' | 'Unisex';
   variants?: ProductVariant[];
+  showLowStockBadge?: boolean;
 }
 
 export interface CartItem extends Product {

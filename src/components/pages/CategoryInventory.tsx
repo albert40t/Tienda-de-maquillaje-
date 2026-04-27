@@ -227,11 +227,17 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         images: formData.images?.length ? formData.images : [mainImage],
         description: (formData.description || '').trim(),
         gender: formData.gender as 'Hombre' | 'Mujer' | 'Unisex',
+        showLowStockBadge: formData.showLowStockBadge ?? true,
       };
       
       // Optimistic update
       setProducts(prev => [...prev, newProduct]);
       
+      let dbDescription = newProduct.description || '';
+      if (!newProduct.showLowStockBadge) {
+        dbDescription += ' <!--NO_LOW_STOCK-->';
+      }
+
       // Supabase insert
       const insertData = {
         id: String(newProduct.id),
@@ -242,9 +248,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         cost_price: newProduct.costPrice,
         barcode: newProduct.barcode,
         stock: newProduct.stock,
-        image: newProduct.image,
-        images: newProduct.images,
-        description: newProduct.description,
+        image: newProduct.images && newProduct.images.length > 0 ? newProduct.images.join('|') : newProduct.image,
+        description: dbDescription,
         gender: newProduct.gender
       };
 
@@ -298,12 +303,18 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         gender: formData.gender as 'Hombre' | 'Mujer' | 'Unisex',
         price: Number(formData.price), 
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
-        stock: Number(formData.stock) 
+        stock: Number(formData.stock),
+        showLowStockBadge: formData.showLowStockBadge ?? true,
       } as Product;
       
       // Optimistic update
       setProducts(prev => prev.map(p => p.id === selectedProduct.id ? updatedProduct : p));
       
+      let dbDescription = updatedProduct.description || '';
+      if (!updatedProduct.showLowStockBadge) {
+        dbDescription += ' <!--NO_LOW_STOCK-->';
+      }
+
       // Supabase update
       const updateData = {
         name: updatedProduct.name,
@@ -313,9 +324,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         cost_price: updatedProduct.costPrice,
         barcode: updatedProduct.barcode,
         stock: updatedProduct.stock,
-        image: updatedProduct.image,
-        images: updatedProduct.images,
-        description: updatedProduct.description,
+        image: updatedProduct.images && updatedProduct.images.length > 0 ? updatedProduct.images.join('|') : updatedProduct.image,
+        description: dbDescription,
         gender: updatedProduct.gender
       };
 
@@ -689,6 +699,24 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                       ))}
                     </div>
                   </div>
+
+                  <label className="flex items-center space-x-3 bg-gray-50 p-3 border border-gray-200 rounded-xl cursor-pointer">
+                    <div className="relative flex items-center">
+                      <input
+                        type="checkbox"
+                        className="sr-only"
+                        checked={formData.showLowStockBadge ?? true}
+                        onChange={(e) => setFormData({ ...formData, showLowStockBadge: e.target.checked })}
+                      />
+                      <div className={`w-10 h-6 rounded-full transition-colors ${formData.showLowStockBadge !== false ? 'bg-primary-500' : 'bg-gray-200'}`}></div>
+                      <div className={`absolute left-1 top-1 bg-white w-4 h-4 rounded-full transition-transform ${formData.showLowStockBadge !== false ? 'translate-x-4' : ''}`}></div>
+                    </div>
+                    <div>
+                      <span className="text-sm font-semibold text-gray-700 block">Etiqueta "Últimos"</span>
+                      <span className="text-[10px] text-gray-500">Mostrar cuando quedan 5 o menos</span>
+                    </div>
+                  </label>
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">

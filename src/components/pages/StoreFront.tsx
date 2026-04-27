@@ -175,9 +175,9 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   };
 
   const getProductBadge = (product: Product) => {
-    if (product.stock > 0 && product.stock <= 5) return { text: 'POCAS UNIDADES', color: 'bg-black text-white' };
+    if (product.stock > 0 && product.stock <= 5 && product.showLowStockBadge !== false) return { text: 'ÚLTIMOS', color: 'bg-rose-500 text-white' };
     if (product.price < 10) return { text: 'OFERTA', color: 'bg-[#D4AF37] text-white' }; // Gold
-    if (product.id.charCodeAt(0) % 3 === 0) return { text: 'BESTSELLER', color: 'bg-white text-black border border-gray-200' };
+    if (product.id.charCodeAt(0) % 3 === 0) return { text: 'TOP', color: 'bg-white text-black border border-gray-200' };
     return null;
   };
 
@@ -838,7 +838,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     {/* Badges */}
                     {badge && product.stock > 0 && (
                       <div className="absolute top-2.5 left-2.5 z-10">
-                        <span className={`${badge.color} text-[9px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm`}>
+                        <span className={`${badge.color} text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm`}>
                           {badge.text}
                         </span>
                       </div>

@@ -154,7 +154,25 @@ export default function App() {
         const { data: catData } = await supabase.from('categorias').select('*').order('name');
         const { data: bData } = await supabase.from('banners').select('*').order('created_at');
         
-        if (pData) setProducts(pData.map(p => ({ ...p, costPrice: p.cost_price } as Product)));
+        if (pData) {
+          setProducts(pData.map(p => {
+            const imgField = p.image || '';
+            const imagesArray = imgField.split('|').filter(Boolean);
+            const defaultImage = imagesArray.length > 0 ? imagesArray[0] : '';
+            const descRaw = p.description || '';
+            const showLowStockBadge = !descRaw.includes('<!--NO_LOW_STOCK-->');
+            const cleanDesc = descRaw.replace(' <!--NO_LOW_STOCK-->', '').replace('<!--NO_LOW_STOCK-->', '');
+            
+            return {
+              ...p,
+              costPrice: p.cost_price,
+              image: defaultImage,
+              images: imagesArray,
+              description: cleanDesc,
+              showLowStockBadge
+            } as Product;
+          }));
+        }
         if (catData) setCategories(catData);
         if (bData) setBanners(bData);
       } catch (err) {
@@ -210,10 +228,44 @@ export default function App() {
           if (payload.eventType === 'INSERT') {
             setProducts(prev => {
               if (prev.find(p => p.id === payload.new.id)) return prev;
-              return [...prev, { ...payload.new, costPrice: payload.new.cost_price } as Product];
+              const imgField = payload.new.image || '';
+              const imagesArray = imgField.split('|').filter(Boolean);
+              
+              const defaultImage = imagesArray.length > 0 ? imagesArray[0] : '';
+              const descRaw = payload.new.description || '';
+              const showLowStockBadge = !descRaw.includes('<!--NO_LOW_STOCK-->');
+              const cleanDesc = descRaw.replace(' <!--NO_LOW_STOCK-->', '').replace('<!--NO_LOW_STOCK-->', '');
+              
+              const parsedProduct = {
+                ...payload.new,
+                costPrice: payload.new.cost_price,
+                image: defaultImage,
+                images: imagesArray,
+                description: cleanDesc,
+                showLowStockBadge
+              } as Product;
+              
+              return [...prev, parsedProduct];
             });
           } else if (payload.eventType === 'UPDATE') {
-            setProducts(prev => prev.map(p => p.id === payload.new.id ? { ...payload.new, costPrice: payload.new.cost_price } as Product : p));
+            setProducts(prev => prev.map(p => {
+              if (p.id !== payload.new.id) return p;
+              const imgField = payload.new.image || '';
+              const imagesArray = imgField.split('|').filter(Boolean);
+              const defaultImage = imagesArray.length > 0 ? imagesArray[0] : '';
+              const descRaw = payload.new.description || '';
+              const showLowStockBadge = !descRaw.includes('<!--NO_LOW_STOCK-->');
+              const cleanDesc = descRaw.replace(' <!--NO_LOW_STOCK-->', '').replace('<!--NO_LOW_STOCK-->', '');
+              
+              return {
+                ...payload.new,
+                costPrice: payload.new.cost_price,
+                image: defaultImage,
+                images: imagesArray,
+                description: cleanDesc,
+                showLowStockBadge
+              } as Product;
+            }));
           } else if (payload.eventType === 'DELETE') {
             setProducts(prev => prev.filter(p => p.id !== payload.old.id));
           }
