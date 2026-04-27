@@ -62,18 +62,11 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
   }, [searchQuery]);
 
   const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
-    const { scrollTop, scrollHeight, clientHeight } = e.currentTarget;
+    const { scrollTop } = e.currentTarget;
     if (scrollTop > 300) {
       setShowScrollTop(true);
     } else {
       setShowScrollTop(false);
-    }
-
-    // Progressive loading
-    if (scrollTop + clientHeight >= scrollHeight - 400) {
-      if (visibleCount < filteredProducts.length) {
-        setVisibleCount(prev => prev + 10);
-      }
     }
   };
 
@@ -665,12 +658,12 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                 >
                   <div className="aspect-[4/5] rounded-3xl overflow-hidden mb-3 relative bg-gray-50 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:shadow-pink-900/5 group-hover:-translate-y-1">
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
-                    <div className="absolute top-2 left-2 bg-white/90 backdrop-blur-md px-2 py-0.5 rounded-lg text-[8px] font-black text-gray-900 border border-gray-100 uppercase tracking-tighter flex items-center shadow-sm">
+                    <div className="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded-lg text-[8px] font-black text-gray-900 border border-gray-100 uppercase tracking-tighter flex items-center shadow-sm">
                       <div className="w-1 h-1 bg-pink-500 rounded-full mr-1 animate-ping"></div>
                       Popu
                     </div>
                     {/* Position Number Label */}
-                    <div className="absolute bottom-0 left-0 w-10 h-10 bg-black/80 backdrop-blur-md text-white flex items-center justify-center font-black text-lg rounded-tr-3xl italic">
+                    <div className="absolute bottom-0 left-0 w-10 h-10 bg-black/90 text-white flex items-center justify-center font-black text-lg rounded-tr-3xl italic">
                       {idx + 1}
                     </div>
                   </div>
@@ -832,20 +825,20 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
             <p className="text-gray-500 font-medium">No se encontraron productos.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-6 sm:gap-x-6 sm:gap-y-10">
             {displayedProducts.map(product => {
               const badge = getProductBadge(product);
               const isFavorite = favorites.includes(product.id);
               
               return (
                 <div key={product.id} className="group flex flex-col cursor-pointer" onClick={() => setSelectedProduct(product)}>
-                  <div className="relative aspect-[4/5] rounded-2xl overflow-hidden bg-gray-100 mb-3">
-                    <img src={product.image} alt={product.name} loading="lazy" className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
+                  <div className="relative aspect-[4/5] rounded-[1.5rem] overflow-hidden bg-pink-50/30 mb-3 shadow-[0_8px_20px_-12px_rgba(0,0,0,0.1)] border border-pink-100/50">
+                    <img src={product.image} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 ease-out" />
                     
                     {/* Badges */}
                     {badge && product.stock > 0 && (
-                      <div className="absolute top-3 left-3 z-10">
-                        <span className={`${badge.color} text-[9px] font-bold px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm`}>
+                      <div className="absolute top-2.5 left-2.5 z-10">
+                        <span className={`${badge.color} text-[9px] font-bold px-3 py-1.5 rounded-full uppercase tracking-widest shadow-sm`}>
                           {badge.text}
                         </span>
                       </div>
@@ -854,18 +847,18 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     {/* Favorite Button */}
                     <button 
                       onClick={(e) => toggleFavorite(product.id, e)}
-                      className="absolute top-3 right-3 z-10 w-8 h-8 bg-white/40 backdrop-blur-md rounded-full flex items-center justify-center text-gray-700 hover:text-primary-600 transition-colors"
+                      className="absolute top-2.5 right-2.5 z-10 w-8 h-8 bg-white/90 rounded-full flex items-center justify-center text-gray-500 hover:text-pink-500 transition-colors shadow-sm"
                     >
-                      <Heart size={16} className={isFavorite ? 'fill-primary-600 text-primary-600 animate-heart-burst' : ''} />
+                      <Heart size={16} className={isFavorite ? 'fill-pink-500 text-pink-500 animate-heart-burst' : ''} />
                     </button>
 
                     {product.gender && (
-                      <div className="absolute top-3 left-3 flex flex-col space-y-1">
+                      <div className="absolute top-2.5 left-2.5 flex flex-col space-y-1">
                         {!badge && (
-                          <span className={`text-[8px] font-black px-2 py-0.5 rounded-lg border backdrop-blur-md shadow-sm uppercase tracking-tighter ${
-                            product.gender === 'Mujer' ? 'bg-pink-50/80 border-pink-100 text-pink-600' : 
-                            product.gender === 'Hombre' ? 'bg-blue-50/80 border-blue-100 text-blue-600' : 
-                            'bg-purple-50/80 border-purple-100 text-purple-600'
+                          <span className={`text-[8px] font-black px-3 py-1.5 rounded-full border shadow-sm uppercase tracking-widest ${
+                            product.gender === 'Mujer' ? 'bg-pink-100/80 border-pink-200 text-pink-700' : 
+                            product.gender === 'Hombre' ? 'bg-blue-100/80 border-blue-200 text-blue-700' : 
+                            'bg-purple-100/80 border-purple-200 text-purple-700'
                           }`}>
                             {product.gender}
                           </span>
@@ -877,21 +870,24 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                     {product.stock > 0 && (
                       <button 
                         onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-                        className="absolute bottom-3 right-3 z-10 w-10 h-10 bg-white/30 backdrop-blur-md border border-white/40 text-gray-900 rounded-full flex items-center justify-center hover:bg-white/50 transition-colors shadow-sm"
+                        className="absolute bottom-2 right-2 z-10 w-10 h-10 bg-white/90 border border-white text-gray-900 rounded-full flex items-center justify-center hover:bg-pink-500 hover:text-white hover:border-pink-500 transition-all shadow-md group-hover:shadow-lg"
                       >
                         <Plus size={20} />
                       </button>
                     )}
 
+                    {/* Soft gradient overlay at bottom for contrast */}
+                    <div className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/5 to-transparent pointer-events-none" />
+
                     {product.stock === 0 && (
-                      <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-20">
-                        <span className="bg-black text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider">Agotado</span>
+                      <div className="absolute inset-0 bg-white/80 flex items-center justify-center z-20">
+                        <span className="bg-black text-white text-[10px] font-bold px-4 py-2 rounded-full uppercase tracking-widest shadow-lg">Agotado</span>
                       </div>
                     )}
                   </div>
                   <div className="flex flex-col flex-1 px-1">
                     <div className="flex justify-between items-start mb-1">
-                      <span className="text-[10px] font-bold text-primary-600 uppercase tracking-widest">{product.category}</span>
+                      <span className="text-[9px] font-bold text-pink-500 uppercase tracking-widest">{product.category}</span>
                       <div className="flex items-center text-[10px] text-gray-500 font-medium">
                         <span className="text-[#D4AF37] mr-0.5">★</span>
                         <span>4.8</span>
@@ -903,6 +899,18 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
                 </div>
               );
             })}
+          </div>
+        )}
+        
+        {/* Load More Button */}
+        {!isLoading && filteredProducts.length > visibleCount && (
+          <div className="mt-10 px-6 flex justify-center">
+            <button
+              onClick={() => setVisibleCount(prev => prev + 10)}
+              className="py-3 px-8 bg-black text-white rounded-full font-bold text-sm shadow-md hover:bg-gray-800 transition-colors"
+            >
+              Mostrar más
+            </button>
           </div>
         )}
       </div>
