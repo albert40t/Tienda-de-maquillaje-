@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
+import { LayoutGrid, ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { Product, CartItem, BusinessInfo, Banner } from '../../types';
+import { Product, CartItem, BusinessInfo, Banner, Category } from '../../types';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
 import ProductDetails from './ProductDetails';
 
 interface StoreFrontProps {
   products: Product[];
+  categories?: Category[];
   exchangeRate: number;
   onBack: () => void;
   businessInfo: BusinessInfo;
@@ -16,7 +17,7 @@ interface StoreFrontProps {
 
 type CheckoutStep = 'cart' | 'details' | 'payment' | 'summary';
 
-export default function StoreFront({ products, exchangeRate, onBack, businessInfo, banners, isLoading = false }: StoreFrontProps) {
+export default function StoreFront({ products, categories = [], exchangeRate, onBack, businessInfo, banners, isLoading = false }: StoreFrontProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [step, setStep] = useState<CheckoutStep>('cart');
@@ -117,7 +118,7 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     return () => clearInterval(interval);
   }, [carouselItems.length]);
 
-  const categories = useMemo(() => {
+  const productCategories = useMemo(() => {
     const set = new Set<string>();
     products.forEach(p => {
       if (p.category) {
@@ -756,30 +757,48 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
             </div>
           </div>
 
-          {/* Categories (Pills) */}
-          <div className="px-6 mt-5 overflow-x-auto hide-scrollbar">
-            <div className="flex space-x-2 pb-2">
-              <button
+          {/* Categories Grid/Row */}
+          <div className="px-6 mt-6 overflow-x-auto hide-scrollbar pb-2">
+            <div className="flex space-x-6">
+              <div 
+                className="flex flex-col items-center text-center cursor-pointer group"
                 onClick={() => {
                   setSelectedCategory(null);
                   setSelectedBrand(null);
                 }}
-                className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === null ? 'bg-gray-900 text-white shadow-md' : 'bg-white/60 border border-gray-200/50 text-gray-600 hover:bg-white'}`}
               >
-                Todos
-              </button>
-              {categories.map(category => (
-                <button
-                  key={category}
-                  onClick={() => {
-                    setSelectedCategory(category);
-                    setSelectedBrand(null);
-                  }}
-                  className={`shrink-0 px-5 py-2 rounded-full text-sm font-bold transition-all ${selectedCategory === category ? 'bg-gray-900 text-white shadow-md' : 'bg-white/60 border border-gray-200/50 text-gray-600 hover:bg-white'}`}
-                >
-                  {category}
-                </button>
-              ))}
+                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm mb-2 transition-all ${selectedCategory === null ? 'bg-black text-white border-none scale-105' : 'bg-white text-gray-400 group-hover:text-pink-500 border border-gray-100'}`}>
+                  <LayoutGrid size={20} />
+                </div>
+                <span className={`text-[10px] font-bold uppercase transition-colors ${selectedCategory === null ? 'text-black' : 'text-gray-500 group-hover:text-gray-900'}`}>Todos</span>
+              </div>
+              
+              {categories.map(category => {
+                const isSelected = selectedCategory === category.name.toUpperCase();
+                return (
+                  <div 
+                    key={category.id}
+                    className="flex flex-col items-center text-center cursor-pointer group shrink-0"
+                    onClick={() => {
+                      setSelectedCategory(category.name.toUpperCase());
+                      setSelectedBrand(null);
+                    }}
+                  >
+                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm mb-2 transition-all overflow-hidden bg-white border ${isSelected ? 'border-pink-500 p-[2px] scale-105' : 'border-gray-100 p-1 group-hover:border-pink-200'}`}>
+                      <div className="w-full h-full rounded-[12px] bg-gray-50 flex items-center justify-center overflow-hidden">
+                        {category.image ? (
+                          <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <span className="text-[10px] font-bold text-gray-300">N/A</span>
+                        )}
+                      </div>
+                    </div>
+                    <span className={`text-[10px] font-bold uppercase whitespace-nowrap transition-colors max-w-[60px] truncate ${isSelected ? 'text-pink-600' : 'text-gray-500 group-hover:text-gray-900'}`}>
+                      {category.name}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

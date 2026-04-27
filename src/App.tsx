@@ -499,7 +499,7 @@ export default function App() {
         <Suspense fallback={<LoadingSpinner />}>
           <Routes>
             {/* Public Route */}
-            <Route path="/" element={<StoreFront products={products} exchangeRate={exchangeRate} onBack={() => {}} businessInfo={businessInfo} banners={banners} isLoading={isProductsLoading} />} />
+            <Route path="/" element={<StoreFront products={products} categories={categories} exchangeRate={exchangeRate} onBack={() => {}} businessInfo={businessInfo} banners={banners} isLoading={isProductsLoading} />} />
             <Route path="/login" element={
               session ? <Navigate to="/dashboard" replace /> : (
                 <Login 

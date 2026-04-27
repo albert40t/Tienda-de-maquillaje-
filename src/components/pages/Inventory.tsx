@@ -228,7 +228,7 @@ export default function Inventory({ onSelectCategory, products, categories, setC
             
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Imagen de Portada</label>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Icono de Categoría</label>
                 <div className="flex items-center space-x-4">
                   <div className="w-20 h-20 bg-gray-100 rounded-xl overflow-hidden relative border border-gray-200">
                     {formData.image && <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />}
@@ -236,13 +236,13 @@ export default function Inventory({ onSelectCategory, products, categories, setC
                   <div className="flex-1">
                     <label className="flex items-center justify-center w-full bg-white border border-gray-300 text-gray-700 font-medium py-2.5 px-4 rounded-xl cursor-pointer hover:bg-gray-50 transition-colors">
                       {isUploading ? <Loader2 size={18} className="animate-spin mr-2" /> : <Camera size={18} className="mr-2" />}
-                      <span>{isUploading ? 'Subiendo...' : 'Cambiar Imagen'}</span>
+                      <span>{isUploading ? 'Subiendo...' : 'Cambiar Icono'}</span>
                       <input 
                         type="file" 
                         accept="image/*" 
                         onChange={handleImageUpload}
                         disabled={isUploading}
-                        className="hidden" 
+                        className="hidden"
                       />
                     </label>
                   </div>
