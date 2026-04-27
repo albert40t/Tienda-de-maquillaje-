@@ -178,7 +178,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
   const getProductBadge = (product: Product) => {
     if (product.stock > 0 && product.stock <= 5 && product.showLowStockBadge !== false) return { text: 'ÚLTIMOS', color: 'bg-rose-500 text-white' };
     if (product.price < 10) return { text: 'OFERTA', color: 'bg-[#D4AF37] text-white' }; // Gold
-    if (product.id.charCodeAt(0) % 3 === 0) return { text: 'TOP', color: 'bg-white text-black border border-gray-200' };
+    if (product.id.charCodeAt(0) % 3 === 0) return { text: 'POPULAR', color: 'bg-black text-white' };
     return null;
   };
 
@@ -659,9 +659,9 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                 >
                   <div className="aspect-[4/5] rounded-3xl overflow-hidden mb-3 relative bg-gray-50 shadow-sm transition-all duration-500 group-hover:shadow-xl group-hover:shadow-pink-900/5 group-hover:-translate-y-1">
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" referrerPolicy="no-referrer" />
-                    <div className="absolute top-2 left-2 bg-white/90 px-2 py-0.5 rounded-lg text-[8px] font-black text-gray-900 border border-gray-100 uppercase tracking-tighter flex items-center shadow-sm">
+                    <div className="absolute top-2 left-2 bg-black text-white px-2 py-0.5 rounded-md text-[7px] font-bold uppercase tracking-wider flex items-center shadow-sm backdrop-blur-sm">
                       <div className="w-1 h-1 bg-pink-500 rounded-full mr-1 animate-ping"></div>
-                      Popu
+                      POPULAR
                     </div>
                     {/* Position Number Label */}
                     <div className="absolute bottom-0 left-0 w-10 h-10 bg-black/90 text-white flex items-center justify-center font-black text-lg rounded-tr-3xl italic">
@@ -857,7 +857,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                     {/* Badges */}
                     {badge && product.stock > 0 && (
                       <div className="absolute top-2.5 left-2.5 z-10">
-                        <span className={`${badge.color} text-[8px] font-black px-2.5 py-1 rounded-full uppercase tracking-widest shadow-sm`}>
+                        <span className={`${badge.color} text-[7px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider shadow-sm backdrop-blur-sm`}>
                           {badge.text}
                         </span>
                       </div>
@@ -874,10 +874,10 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                     {product.gender && (
                       <div className="absolute top-2.5 left-2.5 flex flex-col space-y-1">
                         {!badge && (
-                          <span className={`text-[8px] font-black px-3 py-1.5 rounded-full border shadow-sm uppercase tracking-widest ${
-                            product.gender === 'Mujer' ? 'bg-pink-100/80 border-pink-200 text-pink-700' : 
-                            product.gender === 'Hombre' ? 'bg-blue-100/80 border-blue-200 text-blue-700' : 
-                            'bg-purple-100/80 border-purple-200 text-purple-700'
+                          <span className={`text-[7px] font-bold px-2 py-0.5 rounded-md border shadow-sm uppercase tracking-wider backdrop-blur-sm ${
+                            product.gender === 'Mujer' ? 'bg-pink-50/90 border-pink-100 text-pink-600' : 
+                            product.gender === 'Hombre' ? 'bg-blue-50/90 border-blue-100 text-blue-600' : 
+                            'bg-purple-50/90 border-purple-100 text-purple-600'
                           }`}>
                             {product.gender}
                           </span>
