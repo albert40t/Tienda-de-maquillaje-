@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe, Layout, MonitorSmartphone, Image as ImageIcon, Plus, Trash2, Edit2 } from 'lucide-react';
+import { User, Store, Bell, Shield, CircleHelp, LogOut, ChevronRight, ArrowLeft, Save, Camera, Upload, Loader2, X, CreditCard, Banknote, Smartphone, Globe, Layout, MonitorSmartphone, Image as ImageIcon, Plus, Trash2, Edit2, Info } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { BusinessInfo, Page, Banner } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -733,6 +733,12 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
         </div>
 
         <div className="p-4 space-y-4 flex-1 overflow-y-auto pb-24">
+          <div className="bg-blue-50 text-blue-700 p-4 rounded-2xl flex items-start space-x-3 text-sm mb-2 border border-blue-100">
+            <Info size={20} className="shrink-0 mt-0.5 text-blue-500" />
+            <p>
+              <strong>Recomendación de dimensiones:</strong> Para que tus banners se vean perfectos tanto en celulares como en computadoras, te recomendamos usar imágenes horizontales (ej. <strong>1200x500 pixeles</strong>). Mantén cualquier texto o detalle importante en el centro de la imagen.
+            </p>
+          </div>
           {banners.length === 0 ? (
             <div className="text-center py-12 bg-white rounded-3xl border border-dashed border-gray-200">
               <ImageIcon className="mx-auto text-gray-300 mb-3" size={48} />
@@ -811,6 +817,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Imagen (URL o subir)</label>
+                  <p className="text-[10px] text-blue-600 bg-blue-50 p-2 rounded-lg mb-2">Recomendado: Imagen horizontal (ej. 1200x500px). El diseño se recorta automáticamente para adaptarse al dispositivo.</p>
                   <div className="space-y-2">
                     {bannerFormData.image && (
                       <div className="relative h-24 bg-gray-100 rounded-xl overflow-hidden border border-gray-100">
