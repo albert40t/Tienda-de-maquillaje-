@@ -102,7 +102,7 @@ export type OfflineActionType =
 
 export interface Banner {
   id: string;
-  title: string;
+  title?: string;
   subtitle?: string;
   image: string;
   bg_color?: string; // e.g., 'bg-pink-50/90'

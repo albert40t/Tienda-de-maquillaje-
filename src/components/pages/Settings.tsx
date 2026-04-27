@@ -120,18 +120,18 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
   };
 
   const handleSaveBanner = async () => {
-    if (!bannerFormData.title || !bannerFormData.image) {
-      toast.error('Título e Imagen son obligatorios');
+    if (!bannerFormData.image) {
+      toast.error('La imagen es obligatoria');
       return;
     }
 
     try {
       setIsSaving(true);
       const bannerData = {
-        title: bannerFormData.title,
-        subtitle: bannerFormData.subtitle,
+        title: bannerFormData.title || '',
+        subtitle: bannerFormData.subtitle || '',
         image: bannerFormData.image,
-        bg_color: bannerFormData.bg_color,
+        bg_color: bannerFormData.bg_color || 'bg-pink-50/90',
         active: bannerFormData.active
       };
 
@@ -796,7 +796,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
 
               <div className="space-y-4">
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Título</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Título (Opcional)</label>
                   <input 
                     type="text" 
                     value={bannerFormData.title}
@@ -806,7 +806,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Subtítulo</label>
+                  <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Subtítulo (Opcional)</label>
                   <input 
                     type="text" 
                     value={bannerFormData.subtitle}
