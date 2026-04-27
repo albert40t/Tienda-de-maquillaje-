@@ -611,7 +611,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
           {carouselItems.map((item: any, index) => (
             <div 
               key={index}
-              className={`absolute inset-0 px-6 py-6 flex flex-col justify-center transition-opacity duration-1000 ${item.bg_color || item.bg || 'bg-pink-50/90'} ${index === carouselIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
+              className={`absolute inset-0 flex flex-col justify-center transition-opacity duration-1000 ${item.bg_color || item.bg || 'bg-pink-50/90'} ${index === carouselIndex ? 'opacity-100 z-10' : 'opacity-0 z-0'}`}
             >
               <div 
                 className={`absolute inset-0 bg-cover bg-center transition-transform duration-[10000ms] ease-linear ${(!item.title && !item.subtitle) ? 'opacity-100' : 'opacity-20 mix-blend-multiply'}`} 
@@ -621,9 +621,10 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                 }}
               ></div>
               {(item.title || item.subtitle) && (
-                <div className="relative z-10">
+                <div className="relative z-10 px-6">
                   {item.title && <h2 className="text-3xl font-serif font-bold text-gray-900 mb-2">{item.title}</h2>}
-                  {item.subtitle && <p className="text-gray-800 text-sm font-medium max-w-[80%]">{item.subtitle}</p>}
+                  {item.subtitle && <p className="text-gray-800 text-sm font-medium max-w-[80%]">{item.subtitle}</p>
+}
                 </div>
               )}
             </div>
