@@ -15,6 +15,7 @@ export interface Product {
   barcode?: string;
   stock: number;
   image: string;
+  images?: string[];
   description?: string;
   gender?: 'Hombre' | 'Mujer' | 'Unisex';
   variants?: ProductVariant[];

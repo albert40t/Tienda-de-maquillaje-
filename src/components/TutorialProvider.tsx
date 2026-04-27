@@ -66,11 +66,11 @@ const tutorialSteps: TutorialStep[] = [
     path: '/customers',
     targetId: 'nav-settings',
     title: 'Configuraciones',
-    content: 'Personaliza tu negocio, banners y activa las notificaciones push aquí.',
+    content: 'Toca aquí para entrar a las configuraciones de la aplicación.',
     position: 'top'
   },
   {
-    id: 'branding-nav',
+    id: 'banners-nav',
     path: '/settings',
     targetId: 'setting-item-banners',
     title: 'Banners de la Tienda',
@@ -92,9 +92,25 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
   const [isMinimized, setIsMinimized] = useState(false);
 
   useEffect(() => {
+    let resizeObserver: ResizeObserver | null = null;
+    let targetElement: HTMLElement | null = null;
+
     const updatePosition = () => {
       const element = document.getElementById(step.targetId);
       if (element) {
+        if (element !== targetElement) {
+          if (resizeObserver && targetElement) {
+            resizeObserver.unobserve(targetElement);
+          }
+          targetElement = element;
+          if (!resizeObserver) {
+            resizeObserver = new ResizeObserver(() => {
+              updatePosition();
+            });
+          }
+          resizeObserver.observe(element);
+        }
+
         const rect = element.getBoundingClientRect();
         setCoords({
           top: rect.top,
@@ -111,18 +127,25 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
     updatePosition();
     const t1 = setTimeout(updatePosition, 100);
     const t2 = setTimeout(updatePosition, 1000);
+    const interval = setInterval(updatePosition, 500); // Polling as fallback
+
     window.addEventListener('resize', updatePosition);
     window.addEventListener('scroll', updatePosition, true);
+
     return () => {
       clearTimeout(t1);
       clearTimeout(t2);
+      clearInterval(interval);
       window.removeEventListener('resize', updatePosition);
       window.removeEventListener('scroll', updatePosition, true);
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
     };
   }, [step]);
 
   const isMobile = window.innerWidth < 768;
-  const isTargetAtTop = coords.top < 120; // If target is in the top 120px, move banner to bottom
+  const isTargetAtTop = coords.top < window.innerHeight / 2; // If target is in the top half, move banner to bottom
 
   return (
     <div className="fixed inset-0 z-[10000] pointer-events-none select-none">
@@ -156,22 +179,28 @@ const TutorialOverlay = ({ step, onNext, onClose, isLast, stepIndex, totalSteps 
       </AnimatePresence>
 
       {/* Tutorial Banner - Intelligent Placement */}
-      <div className={`fixed left-0 right-0 z-[10001] pointer-events-auto transition-all ${
+      <div className={`fixed left-0 right-0 z-[10001] pointer-events-none transition-all ${
         isMobile 
-          ? (isTargetAtTop ? 'bottom-20 px-4' : 'top-0') 
+          ? (isTargetAtTop ? 'bottom-4 px-4' : 'top-4 px-4') 
           : 'bottom-8 px-8 flex justify-center'
       }`}>
         <motion.div
           key={step.id}
-          initial={isMobile ? { y: isTargetAtTop ? 100 : -100 } : { y: 100, opacity: 0 }}
+          drag={isMobile}
+          dragMomentum={false}
+          dragConstraints={{ top: -window.innerHeight + 100, bottom: window.innerHeight - 100, left: 0, right: 0 }}
+          initial={isMobile ? { y: isTargetAtTop ? 50 : -50, opacity: 0 } : { y: 100, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className={`bg-white shadow-[0_10px_40px_rgba(0,0,0,0.15)] border-gray-100 ${
+          className={`bg-white pointer-events-auto shadow-[0_20px_60px_rgba(0,0,0,0.3)] ${
             isMobile 
-              ? `w-full ${isTargetAtTop ? 'rounded-2xl border mb-2' : 'border-b'}` 
-              : 'w-[420px] rounded-3xl border p-6'
+              ? `w-full rounded-2xl border border-gray-200/50` 
+              : 'w-[420px] rounded-3xl border border-gray-200/50 p-6'
           }`}
         >
-          <div className={isMobile ? 'px-4 py-3 bg-white/90 backdrop-blur-md' : ''}>
+          <div className={isMobile ? 'px-4 py-3 bg-white/90 backdrop-blur-md flex flex-col' : ''}>
+            {isMobile && (
+              <div className="w-10 h-1 bg-gray-200 rounded-full mx-auto mb-2 cursor-grab active:cursor-grabbing" />
+            )}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
                 <div className="w-8 h-8 rounded-lg bg-primary-600 flex items-center justify-center text-white shrink-0 shadow-sm">

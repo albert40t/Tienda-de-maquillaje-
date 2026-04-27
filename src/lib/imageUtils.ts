@@ -13,7 +13,14 @@ export const compressImage = async (file: File, maxWidth = 1024, quality = 0.8):
     const compressedFile = await imageCompression(file, options);
     return compressedFile;
   } catch (error) {
-    console.error('Image compression error:', error);
-    throw error;
+    console.warn('Image compression with WebWorker failed, retrying without WebWorker:', error);
+    try {
+      options.useWebWorker = false;
+      const fallbackFile = await imageCompression(file, options);
+      return fallbackFile;
+    } catch (fallbackError) {
+      console.error('Image compression error:', fallbackError);
+      throw fallbackError;
+    }
   }
 };

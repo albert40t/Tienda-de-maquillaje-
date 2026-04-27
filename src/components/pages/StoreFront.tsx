@@ -3,6 +3,7 @@ import { ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, Cre
 import { Link } from 'react-router-dom';
 import { Product, CartItem, BusinessInfo, Banner } from '../../types';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
+import ProductDetails from './ProductDetails';
 
 interface StoreFrontProps {
   products: Product[];
@@ -187,13 +188,13 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
     return null;
   };
 
-  const addToCart = (product: Product) => {
+  const addToCart = (product: Product, quantity: number = 1) => {
     setCart(prev => {
       const existing = prev.find(item => item.id === product.id);
       if (existing) {
-        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item);
+        return prev.map(item => item.id === product.id ? { ...item, quantity: item.quantity + quantity } : item);
       }
-      return [...prev, { ...product, quantity: 1 }];
+      return [...prev, { ...product, quantity }];
     });
     
     // Trigger cart animation
@@ -991,100 +992,18 @@ export default function StoreFront({ products, exchangeRate, onBack, businessInf
 
       {/* Product Detail Modal */}
       {selectedProduct && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in" onClick={() => setSelectedProduct(null)} />
-          <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl h-[85vh] sm:h-auto sm:max-h-[90vh] flex flex-col relative animate-in slide-in-from-bottom sm:zoom-in duration-300 shadow-2xl overflow-hidden">
-            <button 
-              onClick={() => setSelectedProduct(null)}
-              className="absolute top-4 right-4 z-10 w-10 h-10 bg-white/80 backdrop-blur-md rounded-full flex items-center justify-center text-gray-900 shadow-sm hover:bg-white transition-colors"
-            >
-              <X size={20} />
-            </button>
-            
-            <div className="flex-1 overflow-y-auto">
-              <div className="h-64 sm:h-80 w-full bg-gray-100 relative shrink-0">
-                <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
-                {getProductBadge(selectedProduct) && selectedProduct.stock > 0 && (
-                  <div className="absolute top-4 left-4">
-                    <span className={`${getProductBadge(selectedProduct)?.color} text-white text-xs font-bold px-3 py-1.5 rounded-full uppercase tracking-wider shadow-md`}>
-                      {getProductBadge(selectedProduct)?.text}
-                    </span>
-                  </div>
-                )}
-              </div>
-              
-              <div className="p-6 space-y-4">
-                <div className="flex justify-between items-start">
-                  <div>
-                    <div className="flex items-center space-x-2">
-                      <span className="text-xs font-bold text-pink-500 uppercase tracking-wider">{selectedProduct.category}</span>
-                      {selectedProduct.gender && (
-                        <span className={`text-[10px] font-black px-2 py-0.5 rounded-lg uppercase tracking-tight ${
-                          selectedProduct.gender === 'Mujer' ? 'bg-pink-100 text-pink-600' : 
-                          selectedProduct.gender === 'Hombre' ? 'bg-blue-100 text-blue-600' : 
-                          'bg-purple-100 text-purple-600'
-                        }`}>
-                          {selectedProduct.gender}
-                        </span>
-                      )}
-                    </div>
-                    <h2 className="text-2xl font-serif font-bold text-gray-900 leading-tight mt-1">{selectedProduct.name}</h2>
-                  </div>
-                  <button 
-                    onClick={(e) => toggleFavorite(selectedProduct.id, e)}
-                    className="w-10 h-10 rounded-full flex items-center justify-center text-gray-400 hover:text-pink-500 hover:bg-pink-50 transition-colors shrink-0"
-                  >
-                    <Heart size={24} className={favorites.includes(selectedProduct.id) ? 'fill-pink-500 text-pink-500' : ''} />
-                  </button>
-                </div>
-                
-                <div className="flex items-end space-x-2">
-                  <span className="text-3xl font-black text-gray-900">${selectedProduct.price.toFixed(2)}</span>
-                  {selectedProduct.price < 10 && (
-                    <span className="text-lg text-gray-400 line-through mb-1">${(selectedProduct.price * 1.2).toFixed(2)}</span>
-                  )}
-                </div>
-
-                <div className="pt-4 border-t border-gray-100">
-                  <h4 className="font-bold text-gray-900 mb-2 flex items-center">
-                    <Info size={16} className="mr-2 text-pink-500" />
-                    Descripción
-                  </h4>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    {selectedProduct.description || `Este hermoso producto de la categoría ${selectedProduct.category.toLowerCase()} es perfecto para resaltar tu belleza natural. Formulado con ingredientes de alta calidad para un acabado profesional y duradero.`}
-                  </p>
-                </div>
-
-                {selectedProduct.variants && selectedProduct.variants.length > 0 && (
-                  <div className="pt-4 border-t border-gray-100">
-                    <h4 className="font-bold text-gray-900 mb-3">Tonos Disponibles</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {selectedProduct.variants.map((v, i) => (
-                        <div key={i} className="px-3 py-1.5 border border-gray-200 rounded-full text-xs font-medium text-gray-700 bg-gray-50">
-                          {v.name}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="p-6 bg-white border-t border-gray-100 pb-8 sm:pb-6">
-              <button 
-                disabled={selectedProduct.stock === 0}
-                onClick={() => {
-                  addToCart(selectedProduct);
-                  setSelectedProduct(null);
-                  setIsCartOpen(true);
-                }}
-                className="w-full bg-black disabled:bg-gray-200 disabled:text-gray-400 text-white py-4 rounded-full font-bold text-lg hover:bg-gray-900 transition-colors flex items-center justify-center shadow-lg shadow-black/10"
-              >
-                <ShoppingBag size={20} className="mr-2" />
-                {selectedProduct.stock === 0 ? 'Agotado' : 'Agregar a la Bolsa'}
-              </button>
-            </div>
-          </div>
+        <div className="fixed inset-0 z-[60] bg-white animate-in slide-in-from-bottom duration-300">
+          <ProductDetails 
+            product={selectedProduct}
+            exchangeRate={exchangeRate}
+            onBack={() => setSelectedProduct(null)}
+            isCustomer={true}
+            onAddToCart={(quantity) => {
+              addToCart(selectedProduct, quantity);
+              setSelectedProduct(null);
+              setIsCartOpen(true);
+            }}
+          />
         </div>
       )}
     </div>

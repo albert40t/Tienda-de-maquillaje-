@@ -7,6 +7,7 @@ import { compressImage } from '../../lib/imageUtils';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
 import { offlineManager } from '../../lib/offlineManager';
 import { useOfflineSync } from '../../hooks/useOfflineSync';
+import ProductDetails from './ProductDetails';
 
 interface CategoryInventoryProps {
   category: string;
@@ -125,45 +126,69 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+    e.preventDefault();
+    const target = e.target;
+    const files = Array.from(target.files || []);
+    if (files.length === 0) return;
 
     try {
       setIsUploading(true);
       
-      // 1. Compress the image
-      const compressedBlob = await compressImage(file, 1024, 0.8);
-      const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
-        type: 'image/webp'
-      });
+      const newUrls: string[] = [];
 
-      // 2. Upload to Supabase Storage
-      const fileName = `${Date.now()}_${compressedFile.name}`;
-      const { data, error } = await supabase.storage
-        .from('productos')
-        .upload(fileName, compressedFile, {
-          cacheControl: '3600',
-          upsert: false
+      for (const file of files) {
+        // 1. Compress the image
+        const compressedBlob = await compressImage(file, 1024, 0.8);
+        const compressedFile = new File([compressedBlob], file.name.replace(/\.[^/.]+$/, "") + ".webp", {
+          type: 'image/webp'
         });
 
-      if (error) {
-        console.error('Error uploading image:', error);
-        alert(`Error de Supabase: ${error.message}`);
-        return;
+        // 2. Upload to Supabase Storage
+        const fileName = `${Date.now()}_${compressedFile.name}`;
+        const { error } = await supabase.storage
+          .from('productos')
+          .upload(fileName, compressedFile, {
+            cacheControl: '3600',
+            upsert: false
+          });
+
+        if (error) {
+          console.error('Error uploading image:', error);
+          toast.error(`Error de Supabase: ${error.message}`);
+          continue;
+        }
+
+        // 3. Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('productos')
+          .getPublicUrl(fileName);
+
+        newUrls.push(publicUrl);
       }
 
-      // 3. Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('productos')
-        .getPublicUrl(fileName);
-
       // 4. Update form data
-      setFormData(prev => ({ ...prev, image: publicUrl }));
+      setFormData(prev => {
+        const currentImages = prev.images || (prev.image ? [prev.image] : []);
+        const updatedImages = [...currentImages, ...newUrls];
+        return { 
+          ...prev, 
+          image: updatedImages.length > 0 ? updatedImages[0] : prev.image,
+          images: updatedImages
+        };
+      });
+      
+      if (newUrls.length > 0) {
+        toast.success(`${newUrls.length} imagen(es) subida(s)`);
+      }
     } catch (error: any) {
       console.error('Error compressing/uploading:', error);
-      alert(`Error al procesar la imagen: ${error.message || 'Desconocido'}`);
+      toast.error(`Error al procesar: ${error instanceof Error ? error.message : (error?.message || 'Desconocido')}`);
     } finally {
       setIsUploading(false);
+      // Reset the file input so the same files can be selected again
+      if (target) {
+        target.value = '';
+      }
     }
   };
 
@@ -187,6 +212,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
     }
 
     if (modalMode === 'add') {
+      const fallbackImage = 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800';
+      const mainImage = formData.image || formData.images?.[0] || fallbackImage;
       const newProduct: Product = {
         id: Math.random().toString(36).substr(2, 9),
         name: formData.name.trim(),
@@ -196,7 +223,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         costPrice: formData.costPrice ? Number(formData.costPrice) : undefined,
         barcode: (formData.barcode || '').trim(),
         stock: Number(formData.stock) || 0,
-        image: formData.image || 'https://images.unsplash.com/photo-1556228578-0d85b1a4d571?auto=format&fit=crop&q=80&w=800',
+        image: mainImage,
+        images: formData.images?.length ? formData.images : [mainImage],
         description: (formData.description || '').trim(),
         gender: formData.gender as 'Hombre' | 'Mujer' | 'Unisex',
       };
@@ -215,6 +243,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         barcode: newProduct.barcode,
         stock: newProduct.stock,
         image: newProduct.image,
+        images: newProduct.images,
         description: newProduct.description,
         gender: newProduct.gender
       };
@@ -251,6 +280,9 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       };
 
       executeSave();
+      setSelectedProduct(newProduct);
+      setModalMode('details');
+      return;
       
     } else if (modalMode === 'edit' && selectedProduct) {
       const updatedProduct = { 
@@ -260,6 +292,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         category: formData.category?.trim(),
         brand: formData.brand?.trim(),
         barcode: formData.barcode?.trim(),
+        image: formData.image || formData.images?.[0] || selectedProduct.image,
+        images: formData.images?.length ? formData.images : (formData.image ? [formData.image] : selectedProduct.images),
         description: formData.description?.trim(),
         gender: formData.gender as 'Hombre' | 'Mujer' | 'Unisex',
         price: Number(formData.price), 
@@ -280,6 +314,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
         barcode: updatedProduct.barcode,
         stock: updatedProduct.stock,
         image: updatedProduct.image,
+        images: updatedProduct.images,
         description: updatedProduct.description,
         gender: updatedProduct.gender
       };
@@ -307,6 +342,9 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
       };
 
       executeUpdate();
+      setSelectedProduct(updatedProduct);
+      setModalMode('details');
+      return;
     }
     
     setModalMode('none');
@@ -351,6 +389,18 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
     
     setModalMode('none');
   };
+
+  if (modalMode === 'details' && selectedProduct) {
+    return (
+      <ProductDetails 
+        product={selectedProduct} 
+        exchangeRate={exchangeRate} 
+        onBack={() => setModalMode('none')}
+        onEdit={() => openEdit(selectedProduct)}
+        userRole={userRole}
+      />
+    );
+  }
 
   return (
     <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative">
@@ -544,86 +594,22 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
             modalMode === 'delete' ? 'h-auto' : 'h-[90%]'
           }`}>
             
-            {/* Modal Header/Image */}
-            {modalMode === 'details' && selectedProduct ? (
-              <div className="relative h-56 sm:h-64 bg-gray-100 shrink-0">
-                <img src={selectedProduct.image} alt={selectedProduct.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/0 to-black/20" />
-                <button 
-                  onClick={() => setModalMode('none')} 
-                  className="absolute top-4 right-4 p-2 bg-white/20 backdrop-blur-md text-white rounded-full hover:bg-white/40 transition-colors"
-                >
-                  <X size={20} />
-                </button>
-                <div className="absolute bottom-4 left-6 right-6">
-                  <span className="bg-white/20 backdrop-blur-md text-white px-3 py-1 rounded-full text-xs font-semibold mb-2 inline-block shadow-sm">
-                    {selectedProduct.brand || 'Marca Genérica'}
-                  </span>
-                  <h2 className="text-3xl font-serif font-bold text-white leading-tight drop-shadow-md">{selectedProduct.name}</h2>
-                </div>
-              </div>
-            ) : (
-              <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
-                <h2 className="text-lg font-bold text-gray-900">
-                  {modalMode === 'edit' ? 'Editar Producto' : 
-                   modalMode === 'add' ? 'Nuevo Producto' : 
-                   modalMode === 'delete' ? 'Eliminar Producto' :
-                   stockAction === 'add' ? 'Ingresar Stock' : 'Retirar Stock'}
-                </h2>
-                <button onClick={() => setModalMode('none')} className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full">
-                  <X size={20} />
-                </button>
-              </div>
-            )}
+            {/* Modal Header */}
+            <div className="p-4 border-b border-gray-100 flex items-center justify-between shrink-0">
+              <h2 className="text-lg font-bold text-gray-900">
+                {modalMode === 'edit' ? 'Editar Producto' : 
+                 modalMode === 'add' ? 'Nuevo Producto' : 
+                 modalMode === 'delete' ? 'Eliminar Producto' :
+                 stockAction === 'add' ? 'Ingresar Stock' : 'Retirar Stock'}
+              </h2>
+              <button onClick={() => setModalMode('none')} className="p-2 text-gray-400 hover:text-gray-600 bg-gray-50 rounded-full">
+                <X size={20} />
+              </button>
+            </div>
             
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto flex-1 pb-safe">
               
-              {/* DETAILS MODE */}
-              {modalMode === 'details' && selectedProduct && (
-                <div className="space-y-6">
-                  <div className="flex items-center space-x-2">
-                    <span className="bg-gray-100 text-gray-600 px-3 py-1 rounded-full text-xs font-semibold flex items-center">
-                      <Tag size={12} className="mr-1" /> {selectedProduct.category}
-                    </span>
-                    {selectedProduct.gender && (
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                        selectedProduct.gender === 'Mujer' ? 'bg-pink-50 text-pink-600' : 
-                        selectedProduct.gender === 'Hombre' ? 'bg-blue-50 text-blue-600' : 
-                        'bg-purple-50 text-purple-600'
-                      }`}>
-                        {selectedProduct.gender}
-                      </span>
-                    )}
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                      selectedProduct.stock > 20 ? 'bg-green-50 text-green-600' : 
-                      selectedProduct.stock > 0 ? 'bg-orange-50 text-orange-600' : 
-                      'bg-red-50 text-red-600'
-                    }`}>
-                      {selectedProduct.stock} en stock
-                    </span>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-primary-50 to-primary-100/50 p-4 rounded-2xl border border-primary-100/50">
-                    <h3 className="text-xs font-bold text-primary-600/80 uppercase tracking-wider mb-1">Precio de Venta</h3>
-                    <div className="flex items-end space-x-3">
-                      <span className="text-3xl font-bold text-primary-900">${formatUSD(selectedProduct.price)}</span>
-                      <span className="text-base font-medium text-primary-700/70 mb-1">Bs. {formatBs(selectedProduct.price * exchangeRate)}</span>
-                    </div>
-                  </div>
-
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center">
-                      <span className="w-1.5 h-1.5 rounded-full bg-primary-500 mr-2"></span>
-                      Descripción del Producto
-                    </h3>
-                    <p className="text-gray-600 leading-relaxed text-sm bg-gray-50 p-4 rounded-2xl">
-                      {selectedProduct.description || 'No hay descripción disponible para este producto. Puedes agregar una editando el producto.'}
-                    </p>
-                  </div>
-                </div>
-              )}
-
               {/* EDIT / ADD MODE */}
               {(modalMode === 'edit' || modalMode === 'add') && (
                 <div className="space-y-4">
@@ -728,51 +714,73 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
                     </div>
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Imagen del Producto</label>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Imágenes del Producto</label>
                     
-                    {formData.image && (
-                      <div className="mb-3 relative w-full h-40 bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
-                        <img src={formData.image} alt="Preview" className="w-full h-full object-cover" />
-                        <button 
-                          type="button"
-                          onClick={() => setFormData({...formData, image: ''})}
-                          className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full hover:bg-black/70 transition-colors"
-                        >
-                          <X size={16} />
-                        </button>
+                    {(formData.images?.length ? formData.images : (formData.image ? [formData.image] : [])).length > 0 && (
+                      <div className="mb-3">
+                        <div className="flex overflow-x-auto gap-2 pb-2 hide-scrollbar">
+                          {(formData.images?.length ? formData.images : (formData.image ? [formData.image] : [])).map((imgUrl, i) => (
+                            <div key={i} className="relative w-24 h-24 shrink-0 bg-gray-100 rounded-xl overflow-hidden border border-gray-200">
+                              <img src={imgUrl} alt="Preview" className="w-full h-full object-cover" />
+                              <button 
+                                type="button"
+                                onClick={() => {
+                                  const currentImages = formData.images?.length ? formData.images : (formData.image ? [formData.image] : []);
+                                  const newImages = currentImages.filter((_, index) => index !== i);
+                                  setFormData({
+                                    ...formData, 
+                                    images: newImages,
+                                    image: newImages.length > 0 ? newImages[0] : ''
+                                  });
+                                }}
+                                className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full hover:bg-black/80 transition-colors"
+                              >
+                                <X size={12} />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
 
                     {isUploading && (
                       <div className="mb-3 flex items-center justify-center p-4 bg-primary-50 text-primary-600 rounded-xl border border-primary-100">
                         <Loader2 size={20} className="animate-spin mr-2" />
-                        <span className="text-sm font-medium">Optimizando y subiendo imagen...</span>
+                        <span className="text-sm font-medium">Optimizando y subiendo imágenes...</span>
                       </div>
                     )}
 
                     <div className="grid grid-cols-3 gap-3">
                       <label className="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                         <Camera size={20} className="text-gray-500 mb-1.5" />
-                        <span className="text-[10px] font-medium text-gray-600">Cámara</span>
-                        <input type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageUpload} />
+                        <span className="text-[10px] font-medium text-gray-600 text-center leading-tight">Cámara</span>
+                        <input type="file" accept="image/*" capture="environment" multiple className="hidden" onChange={handleImageUpload} />
                       </label>
                       
                       <label className="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer hover:bg-gray-100 transition-colors">
                         <Upload size={20} className="text-gray-500 mb-1.5" />
-                        <span className="text-[10px] font-medium text-gray-600">Galería</span>
-                        <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                        <span className="text-[10px] font-medium text-gray-600 text-center leading-tight">Galería</span>
+                        <input type="file" accept="image/*" multiple className="hidden" onChange={handleImageUpload} />
                       </label>
 
                       <button 
                         type="button"
                         onClick={() => {
                           const url = prompt('Ingresa la URL de la imagen:');
-                          if (url) setFormData({...formData, image: url});
+                          if (url) {
+                            const currentImages = formData.images?.length ? formData.images : (formData.image ? [formData.image] : []);
+                            const newImages = [...currentImages, url];
+                            setFormData({
+                              ...formData, 
+                              images: newImages,
+                              image: newImages[0]
+                            });
+                          }
                         }}
                         className="flex flex-col items-center justify-center p-3 bg-gray-50 border border-gray-200 rounded-xl hover:bg-gray-100 transition-colors"
                       >
                         <LinkIcon size={20} className="text-gray-500 mb-1.5" />
-                        <span className="text-[10px] font-medium text-gray-600">URL</span>
+                        <span className="text-[10px] font-medium text-gray-600 text-center leading-tight">Añadir URL</span>
                       </button>
                     </div>
                   </div>
