@@ -770,7 +770,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                 <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm mb-2 transition-all ${selectedCategory === null ? 'bg-black text-white border-none scale-105' : 'bg-white text-gray-400 group-hover:text-pink-500 border border-gray-100'}`}>
                   <LayoutGrid size={20} />
                 </div>
-                <span className={`text-[10px] font-bold uppercase transition-colors ${selectedCategory === null ? 'text-black' : 'text-gray-500 group-hover:text-gray-900'}`}>Todos</span>
+                <span className={`text-[9px] font-bold uppercase transition-colors ${selectedCategory === null ? 'text-black' : 'text-gray-500 group-hover:text-gray-900'}`}>Todos</span>
               </div>
               
               {categories.map(category => {
@@ -793,7 +793,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                         )}
                       </div>
                     </div>
-                    <span className={`text-[10px] font-bold uppercase whitespace-nowrap transition-colors max-w-[60px] truncate ${isSelected ? 'text-pink-600' : 'text-gray-500 group-hover:text-gray-900'}`}>
+                    <span className={`text-[9px] font-bold uppercase leading-tight transition-colors px-1 text-center ${isSelected ? 'text-pink-600' : 'text-gray-500 group-hover:text-gray-900'}`}>
                       {category.name}
                     </span>
                   </div>
