@@ -24,11 +24,14 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
   const [search, setSearch] = useState('');
-  const [brandSearch, setBrandSearch] = useState('');
+  const [brandFilter, setBrandFilter] = useState<string>('Todas');
   const [genderFilter, setGenderFilter] = useState<string>('Todos');
   const { isOnline } = useOfflineSync();
   const [isFabOpen, setIsFabOpen] = useState(false);
   
+  const categoryProducts = products.filter(p => p.category.trim().toLowerCase() === category.trim().toLowerCase());
+  const uniqueBrands = ['Todas', ...Array.from(new Set(categoryProducts.map(p => p.brand || 'Sin Marca')))].sort((a,b) => a === 'Todas' ? -1 : b === 'Todas' ? 1 : a.localeCompare(b));
+
   const [modalMode, setModalMode] = useState<ModalMode>('none');
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -42,7 +45,7 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
   const filteredProducts = products.filter(p => {
     const matchesCategory = p.category.trim().toLowerCase() === category.trim().toLowerCase();
     const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
-    const matchesBrand = brandSearch === '' || (p.brand || '').toLowerCase().includes(brandSearch.toLowerCase());
+    const matchesBrand = brandFilter === 'Todas' || (p.brand || 'Sin Marca') === brandFilter;
     const matchesGender = genderFilter === 'Todos' || p.gender === genderFilter;
     
     return matchesCategory && matchesSearch && matchesBrand && matchesGender;
@@ -435,16 +438,21 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
           />
         </div>
 
-        <div className="flex flex-col space-y-2">
-          <div className="relative">
-            <Tag className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={14} />
-            <input
-              type="text"
-              placeholder="Filtrar por marca..."
-              value={brandSearch}
-              onChange={(e) => setBrandSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-1.5 bg-gray-50 border-none rounded-lg text-xs focus:ring-2 focus:ring-primary-200 outline-none transition-all"
-            />
+        <div className="flex flex-col space-y-3">
+          <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
+            {uniqueBrands.map((b) => (
+              <button
+                key={b}
+                onClick={() => setBrandFilter(b)}
+                className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider transition-all whitespace-nowrap shrink-0 ${
+                  brandFilter === b 
+                    ? 'bg-primary-600 text-white shadow-sm' 
+                    : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                }`}
+              >
+                {b}
+              </button>
+            ))}
           </div>
           
           <div className="flex items-center space-x-2 overflow-x-auto pb-1 no-scrollbar">
