@@ -85,6 +85,7 @@ export interface BusinessInfo {
   facebook?: string;
   storeUrl?: string;
   paymentConfig?: PaymentConfig;
+  top10?: string[];
 }
 
 export type OfflineActionType = 

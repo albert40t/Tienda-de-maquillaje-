@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw, FileDown } from 'lucide-react';
+import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw, FileDown, Award } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Product, Category, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -56,6 +56,41 @@ export default function Inventory({ onSelectCategory, products, categories, setC
   const [isCreating, setIsCreating] = useState(false);
   const [formData, setFormData] = useState<Partial<Category>>({});
   const [isUploading, setIsUploading] = useState(false);
+  const [isTop10ModalOpen, setIsTop10ModalOpen] = useState(false);
+  const [topTenItems, setTopTenItems] = useState<(string | null)[]>(businessInfo.top10 || Array(10).fill(null));
+  const [modalMode, setModalMode] = useState<'view' | 'select'>('view');
+  const [selectingForIndex, setSelectingForIndex] = useState<number | null>(null);
+
+  const saveTop10 = async () => {
+    try {
+      const { error } = await supabase.from('business_info').update({ top10: topTenItems }).eq('id', 1);
+      if (error) throw error;
+      toast.success('Top 10 actualizado');
+      setIsTop10ModalOpen(false);
+      setModalMode('view');
+    } catch (e: any) {
+      toast.error('Error al guardar: ' + e.message);
+    }
+  };
+
+  const [selectCategory, setSelectCategory] = useState<string>('Todos');
+  const [selectBrand, setSelectBrand] = useState<string>('Todas');
+
+  const filteredProductsForSelect = products.filter(p => {
+    const selectedCategoryObj = categories.find(c => c.name === selectCategory);
+    let matchesCategory = false;
+    if (selectCategory === 'Todos') {
+      matchesCategory = true;
+    } else if (selectedCategoryObj) {
+      matchesCategory = p.category.trim().toLowerCase() === selectedCategoryObj.id.trim().toLowerCase() ||
+                        p.category.trim().toLowerCase() === selectedCategoryObj.name.trim().toLowerCase();
+    } else {
+      matchesCategory = p.category.trim().toLowerCase() === selectCategory.trim().toLowerCase();
+    }
+    
+    const matchesBrand = selectBrand === 'Todas' || (p.brand || 'Sin Marca') === selectBrand;
+    return matchesCategory && matchesBrand;
+  });
 
   const openEdit = (category: Category) => {
     setEditingCategory(category);
@@ -217,6 +252,86 @@ export default function Inventory({ onSelectCategory, products, categories, setC
 
   return (
     <div className="h-full flex flex-col animate-in fade-in duration-300 relative">
+      {/* Top 10 Modal */}
+      {isTop10ModalOpen && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setIsTop10ModalOpen(false)} />
+          <div className="bg-white rounded-3xl p-6 w-full max-w-sm relative z-10 animate-in zoom-in-95 duration-200 h-[80vh] flex flex-col">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">{modalMode === 'view' ? 'Top 10 Más Vendidos' : 'Seleccionar Producto'}</h3>
+            
+            {modalMode === 'view' ? (
+              <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+                {topTenItems.map((prodId, idx) => {
+                  const product = products.find(p => p.id === prodId);
+                  return (
+                    <div key={idx} className="p-2 border rounded-xl flex items-center justify-between">
+                      <div className="flex items-center space-x-3">
+                        <span className="text-lg font-bold text-gray-400 w-6 text-center">{idx + 1}</span>
+                        {product ? (
+                          <>
+                            <img src={product.image} className="w-10 h-10 rounded-lg object-cover" alt={product.name} />
+                            <span className="font-semibold text-gray-900 text-sm">{product.name}</span>
+                          </>
+                        ) : (
+                          <span className="text-gray-400 text-sm italic">Vacío</span>
+                        )}
+                      </div>
+                      <button 
+                        onClick={() => { setModalMode('select'); setSelectingForIndex(idx); }}
+                        className="text-primary-600 border border-primary-600 rounded-lg px-2 py-1 text-xs"
+                      >
+                        {product ? 'Cambiar' : 'Seleccionar'}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-2 mb-4">
+                <div className="flex space-x-2 mb-2">
+                  <select value={selectCategory} onChange={e => setSelectCategory(e.target.value)} className="text-xs border rounded-lg p-1">
+                    <option value="Todos">Todas las categorías</option>
+                    {categories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                  </select>
+                </div>
+                {filteredProductsForSelect.map(product => (
+                  <div key={product.id} className="p-2 border rounded-xl flex items-center justify-between">
+                    <div className="flex items-center space-x-3">
+                      <img src={product.image} className="w-10 h-10 rounded-lg object-cover" alt={product.name} />
+                      <span className="font-semibold text-gray-900 text-sm">{product.name}</span>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        const newTopTen = [...topTenItems];
+                        newTopTen[selectingForIndex!] = product.id;
+                        setTopTenItems(newTopTen);
+                        setModalMode('view');
+                      }}
+                      className="text-primary-600 border border-primary-600 rounded-lg px-2 py-1 text-xs"
+                    >
+                      Seleccionar
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <button
+              onClick={() => { 
+                if (modalMode === 'view') {
+                  saveTop10();
+                } else {
+                  setModalMode('view');
+                }
+              }}
+              className="w-full py-3 bg-primary-600 text-white font-semibold rounded-xl hover:bg-primary-700 transition-colors"
+            >
+              {modalMode === 'view' ? 'Guardar Cambios' : 'Cancelar'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Edit/Create Modal */}
       {editingCategory && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-4">
@@ -281,31 +396,38 @@ export default function Inventory({ onSelectCategory, products, categories, setC
       )}
 
       <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 shrink-0">
-        <div className="flex items-center justify-between mb-2">
-          <h2 className="text-lg font-bold text-gray-900">Categorías</h2>
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+          <h2 className="text-lg font-bold text-gray-900 leading-none">Categorías</h2>
+          <div className="flex items-center gap-2 flex-wrap justify-end">
+            <button 
+              onClick={() => setIsTop10ModalOpen(true)}
+              className="flex items-center space-x-1.5 bg-amber-100 text-amber-700 px-2 py-1.5 rounded-xl text-[10px] font-bold hover:bg-amber-200 transition-all active:scale-95 whitespace-nowrap"
+            >
+              <Award size={14} />
+              <span>Top 10</span>
+            </button>
             <button 
               onClick={() => window.location.reload()}
               className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-primary-50 rounded-lg transition-colors"
               title="Actualizar"
             >
-              <RefreshCcw size={18} />
+              <RefreshCcw size={16} />
             </button>
             <button 
               onClick={handleExportPDF}
-              className="flex items-center space-x-1.5 bg-white border border-gray-200 text-gray-700 px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all active:scale-95 shadow-sm"
+              className="flex items-center space-x-1.5 bg-white border border-gray-200 text-gray-700 px-2 py-1.5 rounded-xl text-[10px] font-bold hover:bg-gray-50 transition-all active:scale-95 shadow-sm whitespace-nowrap"
               title="Exportar Catálogo PDF"
             >
-              <FileDown size={16} className="text-primary-600" />
+              <FileDown size={14} className="text-primary-600" />
               <span>Catálogo</span>
             </button>
             {!isSalesperson && (
               <button 
                 id="btn-add-category"
                 onClick={openCreate}
-                className="flex items-center space-x-1.5 bg-primary-600 text-white px-3 py-1.5 rounded-xl text-xs font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200"
+                className="flex items-center space-x-1.5 bg-primary-600 text-white px-2 py-1.5 rounded-xl text-[10px] font-bold hover:bg-primary-700 transition-all active:scale-95 shadow-md shadow-primary-200 whitespace-nowrap"
               >
-                <Plus size={16} />
+                <Plus size={14} />
                 <span>Añadir</span>
               </button>
             )}

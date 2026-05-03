@@ -659,7 +659,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
             </div>
             
             <div className="flex space-x-4 overflow-x-auto px-6 hide-scrollbar pb-4 -mb-4">
-              {products.slice(0, 8).map((product, idx) => (
+              {(businessInfo.top10 && businessInfo.top10.length > 0 ? businessInfo.top10.map(id => products.find(p => p.id === id)).filter((p): p is Product => !!p) : products.slice(0, 8)).map((product, idx) => (
                 <div 
                   key={`trending-${product.id}`}
                   onClick={() => setSelectedProduct(product)}
