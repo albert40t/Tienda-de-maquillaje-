@@ -139,6 +139,8 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
   }, [products, selectedCategory]);
 
   const filteredProducts = useMemo(() => {
+    const selectedCategoryObj = categories.find(c => c.name.toUpperCase() === selectedCategory);
+    
     return products.filter(p => {
       const pName = p.name.toLowerCase();
       const pCategory = p.category.toLowerCase().trim();
@@ -147,7 +149,10 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
       const matchesSearch = pName.includes(q) || pCategory.includes(q);
       const matchesCategory = selectedCategory === 'favorites' 
         ? favorites.includes(p.id)
-        : selectedCategory ? p.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase() : true;
+        : selectedCategoryObj 
+          ? (p.category.trim().toLowerCase() === selectedCategoryObj.id.trim().toLowerCase() ||
+             p.category.trim().toLowerCase() === selectedCategoryObj.name.trim().toLowerCase()) 
+          : selectedCategory ? p.category.trim().toLowerCase() === selectedCategory.trim().toLowerCase() : true;
       const matchesBrand = selectedBrand ? p.brand?.trim().toUpperCase() === selectedBrand : true;
       return matchesSearch && matchesCategory && matchesBrand;
     }).sort((a, b) => {
@@ -155,7 +160,7 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
       if (sortBy === 'price_desc') return b.price - a.price;
       return 0; // 'newest' - assuming original array order is newest
     });
-  }, [products, debouncedSearchQuery, selectedCategory, selectedBrand, favorites, sortBy]);
+  }, [products, debouncedSearchQuery, selectedCategory, selectedBrand, favorites, sortBy, categories]);
 
   const displayedProducts = useMemo(() => {
     return filteredProducts.slice(0, visibleCount);
