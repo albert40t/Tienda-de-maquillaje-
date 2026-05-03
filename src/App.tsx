@@ -103,7 +103,11 @@ export default function App() {
         if (cachedSales) setSales(JSON.parse(cachedSales));
         if (cachedCategories) setCategories(JSON.parse(cachedCategories));
         if (cachedBanners) setBanners(JSON.parse(cachedBanners));
-        if (cachedBiz) setBusinessInfo(JSON.parse(cachedBiz));
+        if (cachedBiz) {
+          const biz = JSON.parse(cachedBiz);
+          setBusinessInfo(biz);
+          if (biz.exchange_rate) setExchangeRate(Number(biz.exchange_rate));
+        }
         
       } catch (e) {
         console.error('Data initialization failed', e);
