@@ -423,8 +423,30 @@ export default function App() {
 
     if (isOnline) {
       try {
-        const { error } = await supabase.from('ventas').insert(saleData);
-        if (error) throw error;
+        // Enviar la venta a Supabase
+        const { error: saleError } = await supabase.from('ventas').insert(saleData);
+        if (saleError) throw saleError;
+
+        // Actualizar el stock de cada producto vendido
+        // Lo hacemos en paralelo para mayor velocidad
+        const stockUpdates = sale.items.map(async (item) => {
+          // Buscamos el producto actual para obtener su stock real (evitar race conditions)
+          const { data: product } = await supabase
+            .from('productos')
+            .select('stock')
+            .eq('id', item.id)
+            .single();
+          
+          if (product) {
+            const newStock = Math.max(0, product.stock - item.quantity);
+            return supabase
+              .from('productos')
+              .update({ stock: newStock })
+              .eq('id', item.id);
+          }
+        });
+
+        await Promise.all(stockUpdates);
 
         // If a worker made the sale, notify admins
         const normalizedRole = session?.role?.toLowerCase().trim();

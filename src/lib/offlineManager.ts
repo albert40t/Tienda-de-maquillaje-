@@ -119,12 +119,26 @@ class OfflineManager {
     try {
       switch (type) {
         case 'CREATE_SALE':
-          // Insert sale into vent_history (assuming that's the table name or similar based on onProcessSale context)
-          // Wait, I need to check where sales are actually stored in Supabase.
-          // In POS.tsx it calls onProcessSale, but also insert activity_logs.
-          // I'll need to make sure I know the table names.
-          const { error: saleError } = await supabase.from('ventas' as any).insert(data);
+          // Insert sale into ventas
+          const { error: saleError } = await supabase.from('ventas').insert(data);
           if (saleError) throw saleError;
+
+          // Actualizar stock de productos de la venta sincronizada
+          if (data.items && Array.isArray(data.items)) {
+            const stockPromises = data.items.map(async (item: any) => {
+              const { data: p } = await supabase
+                .from('productos')
+                .select('stock')
+                .eq('id', item.id)
+                .single();
+              
+              if (p) {
+                const newStock = Math.max(0, p.stock - item.quantity);
+                return supabase.from('productos').update({ stock: newStock }).eq('id', item.id);
+              }
+            });
+            await Promise.all(stockPromises);
+          }
           return true;
 
         case 'UPDATE_PRODUCT_STOCK':

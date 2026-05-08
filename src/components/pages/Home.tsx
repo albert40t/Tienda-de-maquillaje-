@@ -77,8 +77,12 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
   const lowStockCount = products.filter(p => p.stock > 0 && p.stock <= 10).length;
   const outOfStockCount = products.filter(p => p.stock === 0).length;
   
-  const totalSales = sales.reduce((sum, sale) => sum + sale.total, 0);
-  const totalProfit = sales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
+  // Filtrar ventas para mostrar SOLO las de hoy en el resumen
+  const today = new Date().toISOString().split('T')[0];
+  const todaySales = sales.filter(s => s.date.startsWith(today));
+  
+  const totalSales = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+  const totalProfit = todaySales.reduce((sum, sale) => sum + (sale.profit || 0), 0);
 
   const topSellers = products.slice(0, 3);
 
