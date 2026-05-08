@@ -27,7 +27,8 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker' || normalizedRole === 'worker_inventory';
+  const isAdmin = normalizedRole === 'admin';
+  const isSalesperson = !isAdmin;
 
   useEffect(() => {
     const fetchLogs = async () => {
@@ -174,18 +175,25 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
           </div>
         </div>
         <div className="flex items-center space-x-2">
-          <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-gray-200">
-            <span className="text-gray-500 font-medium mr-1">Bs.</span>
-            <input
-              type="number"
-              value={localRate}
-              onChange={(e) => handleRateChange(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && initiateRateUpdate()}
-              readOnly={isSalesperson}
-              className={`w-16 text-right font-bold text-lg bg-transparent outline-none text-gray-900 ${isSalesperson ? 'cursor-default' : ''}`}
-              step="0.01"
-            />
-          </div>
+          {!isSalesperson ? (
+            <label className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-gray-200 cursor-text focus-within:border-blue-400 focus-within:ring-2 focus-within:ring-blue-100 transition-all">
+              <span className="text-gray-500 font-medium mr-1">Bs.</span>
+              <input
+                type="number"
+                value={localRate}
+                onChange={(e) => handleRateChange(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && initiateRateUpdate()}
+                className="w-20 text-right font-bold text-lg bg-transparent outline-none text-gray-900 appearance-none"
+                step="0.01"
+                min="0.01"
+              />
+            </label>
+          ) : (
+            <div className="flex items-center bg-gray-50 rounded-xl px-3 py-1 border border-gray-200">
+              <span className="text-gray-500 font-medium mr-1">Bs.</span>
+              <span className="w-16 text-right font-bold text-lg text-gray-900">{formatBs(Number(localRate))}</span>
+            </div>
+          )}
           {!isSalesperson && Number(localRate) !== exchangeRate && Number(localRate) > 0 && (
             <button 
               onClick={initiateRateUpdate}
