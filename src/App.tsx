@@ -125,8 +125,11 @@ export default function App() {
     if (sales.length > 0) localStorage.setItem('cache_sales', JSON.stringify(sales));
     if (categories.length > 0) localStorage.setItem('cache_categories', JSON.stringify(categories));
     if (banners.length > 0) localStorage.setItem('cache_banners', JSON.stringify(banners));
-    localStorage.setItem('cache_business_info', JSON.stringify(businessInfo));
-  }, [products, customers, sales, categories, banners, businessInfo]);
+    
+    // Sync exchange rate into the cached business info
+    const businessInfoToCache = { ...businessInfo, exchange_rate: exchangeRate };
+    localStorage.setItem('cache_business_info', JSON.stringify(businessInfoToCache));
+  }, [products, customers, sales, categories, banners, businessInfo, exchangeRate]);
 
   // Fetch Business Info independently of session
   useEffect(() => {
@@ -311,7 +314,7 @@ export default function App() {
         })
         .on('postgres_changes', { event: '*', schema: 'public', table: 'business_info' }, (payload) => {
           console.log('Realtime business_info update:', payload);
-          if (payload.eventType === 'UPDATE') {
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
             const bData = payload.new as any;
             setBusinessInfo({
               ...bData,

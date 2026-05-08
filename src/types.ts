@@ -28,7 +28,7 @@ export interface CartItem extends Product {
 }
 
 export interface PaymentMethod {
-  method: 'cash_usd' | 'cash_bs' | 'zelle' | 'pago_movil' | 'pos';
+  method: 'cash_usd' | 'cash_bs' | 'zelle' | 'pago_movil' | 'pos' | 'binance' | 'paypal';
   amount: number;
   reference?: string;
 }
@@ -86,6 +86,7 @@ export interface BusinessInfo {
   storeUrl?: string;
   paymentConfig?: PaymentConfig;
   top10?: string[];
+  exchange_rate?: number;
 }
 
 export type OfflineActionType = 

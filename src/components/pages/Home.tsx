@@ -111,26 +111,48 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
     // Optimistic UI update
     setExchangeRate(rateToSave);
     
+    // Update local cache object
+    if (businessInfo) {
+      businessInfo.exchange_rate = rateToSave;
+    }
+    
     const loadingToast = toast.loading('Sincronizando tasa con la base de datos...');
     
     try {
-      const { error } = await supabase
-        .from('business_info')
-        .update({ exchange_rate: rateToSave })
-        .eq('id', 1);
+      const { data: existing } = await supabase.from('business_info').select('id').eq('id', 1).single();
+      let saveError;
+      
+      if (existing) {
+        const { error } = await supabase
+          .from('business_info')
+          .update({ exchange_rate: rateToSave })
+          .eq('id', 1);
+        saveError = error;
+      } else {
+        const { error } = await supabase
+          .from('business_info')
+          .insert({ id: 1, exchange_rate: rateToSave });
+        saveError = error;
+      }
 
-      if (error) throw error;
+      if (saveError) throw saveError;
       
       toast.success(`¡Sincronizado! Tasa oficial: Bs. ${formatBs(rateToSave)}`, {
         id: loadingToast,
         icon: '✅',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error updating exchange rate:', error);
-      toast.error('Error al guardar en la base de datos. Se mantuvo el valor anterior.', {
-        id: loadingToast,
-      });
-      // Rollback logic could be added here if session state needs to revert
+      if (error?.message?.includes('could not find the') || error?.message?.includes('schema cache')) {
+        toast.error('Atención: La tasa se guardó temporalmente. Para guardarla en la base de datos, debes ejecutar el script SQL de migración "20240417000001_add_exchange_rate" en Supabase.', {
+          id: loadingToast,
+          duration: 10000,
+        });
+      } else {
+        toast.error(`Error al guardar en la base de datos: ${error?.message || 'Se mantuvo el valor anterior.'}`, {
+          id: loadingToast,
+        });
+      }
     }
   };
 

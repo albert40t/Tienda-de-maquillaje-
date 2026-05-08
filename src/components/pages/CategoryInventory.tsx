@@ -130,8 +130,8 @@ export default function CategoryInventory({ category, onBack, exchangeRate, prod
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const target = e.target;
-    const files = Array.from(target.files || []);
+    const target = e.target as HTMLInputElement;
+    const files = Array.from(target.files || []) as File[];
     if (files.length === 0) return;
 
     try {

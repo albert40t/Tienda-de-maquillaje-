@@ -627,9 +627,11 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                       )}
                     </div>
                     
-                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-2.5 md:gap-3">
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5 md:gap-3">
                       {[
-                        { id: 'zelle', label: 'Zelle', icon: Smartphone, color: 'text-purple-600', bg: 'bg-purple-50' },
+                        { id: 'zelle', label: 'Zelle', icon: DollarSign, color: 'text-purple-600', bg: 'bg-purple-50' },
+                        { id: 'binance', label: 'Binance', icon: Smartphone, color: 'text-yellow-600', bg: 'bg-yellow-50' },
+                        { id: 'paypal', label: 'PayPal', icon: Smartphone, color: 'text-blue-500', bg: 'bg-blue-50' },
                         { id: 'pago_movil', label: 'Pago Móvil', icon: Smartphone, color: 'text-emerald-600', bg: 'bg-emerald-50' },
                         { id: 'cash_usd', label: 'Efectivo ($)', icon: Banknote, color: 'text-amber-600', bg: 'bg-amber-50' },
                         { id: 'cash_bs', label: 'Efectivo (Bs)', icon: Banknote, color: 'text-orange-600', bg: 'bg-orange-50' },
@@ -665,7 +667,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                           {/* Amount Column */}
                           <div className="space-y-2">
                             <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                              {['pago_movil', 'pos', 'cash_bs'].includes(currentPaymentMethod) ? 'Monto en Bs.' : 'Monto en $'}
+                              {['cash_usd', 'cash_bs'].includes(currentPaymentMethod) ? 'Monto Recibido' : (['pago_movil', 'pos', 'cash_bs'].includes(currentPaymentMethod) ? 'Monto en Bs.' : 'Monto en $')}
                             </label>
                             <div className="relative group">
                               <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-gray-300">
@@ -709,10 +711,10 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                           </div>
 
                           {/* Reference Column (Only for electronic payments) */}
-                          {['zelle', 'pago_movil', 'pos'].includes(currentPaymentMethod) && (
+                          {['zelle', 'pago_movil', 'pos', 'binance', 'paypal'].includes(currentPaymentMethod) && (
                             <div className="space-y-2">
                               <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest px-1">
-                                Referencia {currentPaymentMethod === 'pago_movil' ? '(Obligatorio)' : '(Opcional)'}
+                                Referencia {['pago_movil', 'binance', 'paypal'].includes(currentPaymentMethod) ? '(Obligatorio)' : '(Opcional)'}
                               </label>
                               <div className="relative group">
                                 <Landmark className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-300 group-within:text-primary-600 transition-colors" size={18} />
@@ -726,25 +728,6 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                               </div>
                             </div>
                           )}
-
-                          {['cash_usd', 'cash_bs'].includes(currentPaymentMethod) && (
-                            <div className="space-y-2">
-                              <label className="block text-[10px] font-black text-emerald-600 uppercase tracking-widest px-1">Calculadora de Cambio</label>
-                              <div className="relative group">
-                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xl font-black text-gray-300 group-within:text-emerald-600 transition-colors">
-                                  {currentPaymentMethod === 'cash_usd' ? '$' : 'Bs.'}
-                                </span>
-                                <input 
-                                  type="number" 
-                                  step="any"
-                                  value={amountReceived}
-                                  onChange={(e) => setAmountReceived(e.target.value === '' ? '' : Number(e.target.value))}
-                                  placeholder="Recibido..."
-                                  className="w-full pl-10 pr-4 py-3 bg-emerald-50/50 border-none rounded-2xl text-xl font-black text-emerald-900 focus:ring-4 focus:ring-emerald-100 outline-none transition-all placeholder:text-emerald-200"
-                                />
-                              </div>
-                            </div>
-                          )}
                         </div>
 
                       {/* Addition Button */}
@@ -752,13 +735,14 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                         <button 
                           onClick={() => {
                             const remaining = total - payments.reduce((sum, p) => sum + p.amount, 0);
-                            const amount = currentPaymentAmount === '' ? remaining : Number(currentPaymentAmount);
+                            const enteredAmount = currentPaymentAmount === '' ? remaining : Number(currentPaymentAmount);
+                            const amount = Math.min(remaining, enteredAmount);
                             
                             if (amount <= 0 && remaining > 0) return;
                             
-                            // Mandatory reference for Pago Móvil
-                            if (currentPaymentMethod === 'pago_movil' && !paymentReference.trim()) {
-                              toast.error('La referencia es obligatoria para Pago Móvil');
+                            // Mandatory references
+                            if (['pago_movil', 'binance', 'paypal'].includes(currentPaymentMethod) && !paymentReference.trim()) {
+                              toast.error(`La referencia es obligatoria para ${currentPaymentMethod.replace('_', ' ')}`);
                               return;
                             }
 
@@ -782,58 +766,53 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
                       </div>
 
                       {/* Change Reminder Card */}
-                      {['cash_usd', 'cash_bs'].includes(currentPaymentMethod) && amountReceived !== '' && (
-                        <div className="bg-emerald-600 p-4 rounded-2xl text-white flex justify-between items-center animate-in zoom-in-95 shadow-lg">
-                          <div className="flex items-center space-x-3">
-                            <div className="p-2 bg-white/20 rounded-xl">
-                              <Banknote size={20} />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-bold uppercase opacity-80 leading-none mb-1">Cambio a entregar</p>
+                      {['cash_usd', 'cash_bs'].includes(currentPaymentMethod) && currentPaymentAmount !== '' && Number(currentPaymentAmount) > (total - payments.reduce((sum, p) => sum + p.amount, 0)) && (
+                        <div className="bg-emerald-600 p-4 rounded-2xl text-white flex flex-col space-y-3 animate-in zoom-in-95 shadow-lg">
+                          <div className="flex items-center space-x-2">
+                            <div className="p-1 px-2 bg-white/20 rounded-md text-xs font-bold">CALCULADORA DE VUELTO</div>
+                            <span className="text-emerald-100 text-xs">Tasa: Bs. {formatBs(exchangeRate)}</span>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4">
+                            <div className="bg-emerald-700/50 p-3 rounded-xl border border-emerald-500/30">
+                              <p className="text-[10px] font-bold uppercase opacity-80 leading-none mb-1 text-emerald-100">Vuelto en Bolívares</p>
                               <div className="text-xl font-black font-mono">
                                 {(() => {
-                                  // Remaining total to be paid in THE ENTIRE order
                                   const totalAlreadyPaid = payments.reduce((sum, p) => sum + p.amount, 0);
                                   const remainingOrderTotal = total - totalAlreadyPaid;
-                                  
-                                  // The amount being paid in this entry (in USD)
-                                  const payingUsd = currentPaymentAmount === '' ? remainingOrderTotal : Number(currentPaymentAmount);
-                                  const received = Number(amountReceived);
+                                  const receivedUsd = Number(currentPaymentAmount);
                                   
                                   if (currentPaymentMethod === 'cash_usd') {
-                                    const changeUsd = Math.max(0, received - payingUsd);
-                                    return `$${formatUSD(changeUsd)}`;
+                                    const changeUsd = Math.max(0, receivedUsd - remainingOrderTotal);
+                                    return `Bs. ${formatBs(changeUsd * exchangeRate)}`;
                                   } else {
-                                    // cash_bs: payingUsd is in USD, received is in Bs
-                                    const payingBs = payingUsd * exchangeRate;
-                                    const changeBs = Math.max(0, received - payingBs);
+                                    const remainingBs = remainingOrderTotal * exchangeRate;
+                                    const receivedBs = receivedUsd * exchangeRate; // because currentPaymentAmount stores USD internally
+                                    const changeBs = Math.max(0, receivedBs - remainingBs);
                                     return `Bs. ${formatBs(changeBs)}`;
                                   }
                                 })()}
                               </div>
                             </div>
-                          </div>
-                          <div className="text-right">
-                             <p className="text-[10px] font-bold uppercase opacity-80 leading-none mb-1">
-                               {currentPaymentMethod === 'cash_usd' ? 'En Bs.' : 'En Dólares'}
-                             </p>
-                             <div className="font-bold">
-                               {(() => {
-                                  const totalAlreadyPaid = payments.reduce((sum, p) => sum + p.amount, 0);
-                                  const remainingOrderTotal = total - totalAlreadyPaid;
-                                  const payingUsd = currentPaymentAmount === '' ? remainingOrderTotal : Number(currentPaymentAmount);
-                                  const received = Number(amountReceived);
-                                  
-                                  if (currentPaymentMethod === 'cash_usd') {
-                                    const changeUsd = Math.max(0, received - payingUsd);
-                                    return `Bs. ${formatBs(changeUsd * exchangeRate)}`;
-                                  } else {
-                                    const payingBs = payingUsd * exchangeRate;
-                                    const changeBs = Math.max(0, received - payingBs);
-                                    return `$${formatUSD(changeBs / exchangeRate)}`;
-                                  }
-                               })()}
-                             </div>
+                            
+                            <div className="bg-emerald-700/50 p-3 rounded-xl border border-emerald-500/30">
+                               <p className="text-[10px] font-bold uppercase opacity-80 leading-none mb-1 text-emerald-100">Vuelto en Dólares</p>
+                               <div className="text-xl font-black font-mono">
+                                 {(() => {
+                                    const totalAlreadyPaid = payments.reduce((sum, p) => sum + p.amount, 0);
+                                    const remainingOrderTotal = total - totalAlreadyPaid;
+                                    const receivedUsd = Number(currentPaymentAmount);
+                                    
+                                    if (currentPaymentMethod === 'cash_usd') {
+                                      const changeUsd = Math.max(0, receivedUsd - remainingOrderTotal);
+                                      return `$${formatUSD(changeUsd)}`;
+                                    } else {
+                                      const changeUsd = Math.max(0, receivedUsd - remainingOrderTotal);
+                                      return `$${formatUSD(changeUsd)}`;
+                                    }
+                                 })()}
+                               </div>
+                            </div>
                           </div>
                         </div>
                       )}
@@ -1226,7 +1205,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
     const dayTotal = filteredSales.reduce((sum, sale) => sum + sale.total, 0);
     
     // Calculate pools
-    const usdMethods = ['cash_usd', 'zelle'];
+    const usdMethods = ['cash_usd', 'zelle', 'binance', 'paypal'];
     const bsMethods = ['cash_bs', 'pago_movil', 'pos'];
 
     const totalInUsdPool = filteredSales.reduce((acc, sale) => {
@@ -1396,7 +1375,7 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
               <div className="mt-8 space-y-6">
                 <h4 className="text-[11px] font-black text-gray-400 uppercase tracking-[0.2em] px-2">Desglose por Pasarela</h4>
                 <div className="space-y-3 px-1">
-                  {['cash_usd', 'zelle', 'cash_bs', 'pago_movil', 'pos'].map(method => {
+                  {['cash_usd', 'zelle', 'binance', 'paypal', 'cash_bs', 'pago_movil', 'pos'].map(method => {
                     // Sum only the specific amount for THIS method across all relevant sales
                     const methodTotal = filteredSales.reduce((acc, sale) => {
                       const methodAmount = (sale.paymentMethods || [])

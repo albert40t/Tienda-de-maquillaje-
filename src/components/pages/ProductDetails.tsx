@@ -132,14 +132,14 @@ export default function ProductDetails({ product, exchangeRate, onBack, onEdit, 
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Precio Unitario</p>
-                <p className="text-xl font-bold text-primary-600">{formatUSD(product.price)}</p>
-                <p className="text-xs font-medium text-gray-400">{formatBs(product.price, exchangeRate)}</p>
+                <p className="text-xl font-bold text-primary-600">${formatUSD(product.price)}</p>
+                <p className="text-xs font-medium text-gray-400">Bs. {formatBs(product.price * exchangeRate)}</p>
               </div>
               {!isSalesperson && product.costPrice && (
                 <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Costo Neto</p>
-                  <p className="text-xl font-bold text-gray-900">{formatUSD(product.costPrice)}</p>
-                  <p className="text-xs font-medium text-gray-400">{formatBs(product.costPrice, exchangeRate)}</p>
+                  <p className="text-xl font-bold text-gray-900">${formatUSD(product.costPrice)}</p>
+                  <p className="text-xs font-medium text-gray-400">Bs. {formatBs(product.costPrice * exchangeRate)}</p>
                 </div>
               )}
             </div>
