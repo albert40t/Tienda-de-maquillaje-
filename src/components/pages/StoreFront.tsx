@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { LayoutGrid, ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook, TrendingUp, Zap, ShieldCheck } from 'lucide-react';
+import { LayoutGrid, ShoppingBag, ArrowLeft, Plus, Minus, X, CheckCircle2, ChevronRight, CreditCard, Smartphone, Wallet, Landmark, Search, ChevronUp, Heart, Store, Truck, Tag, SlidersHorizontal, Info, Percent, Instagram, Facebook, TrendingUp, Zap, ShieldCheck, Palette, Sparkles, Diamond, Watch, Shirt, Layers } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Product, CartItem, BusinessInfo, Banner, Category } from '../../types';
 import { formatBs, formatUSD } from '../../lib/formatUtils';
@@ -19,6 +19,18 @@ type CheckoutStep = 'cart' | 'details' | 'payment' | 'summary';
 
 export default function StoreFront({ products, categories = [], exchangeRate, onBack, businessInfo, banners, isLoading = false }: StoreFrontProps) {
   const [cart, setCart] = useState<CartItem[]>([]);
+  
+  // Icon mapping for categories
+  const getCategoryIcon = (categoryName: string) => {
+    const lower = categoryName.toLowerCase();
+    if (lower.includes('maquillaje')) return <Palette size={20} />;
+    if (lower.includes('perfume')) return <Sparkles size={20} />;
+    if (lower.includes('joy') || lower.includes('oro')) return <Diamond size={20} />;
+    if (lower.includes('reloj')) return <Watch size={20} />;
+    if (lower.includes('ropa')) return <Shirt size={20} />;
+    return <Layers size={20} />;
+  };
+
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [step, setStep] = useState<CheckoutStep>('cart');
 
@@ -766,19 +778,22 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
           </div>
 
           {/* Categories Grid/Row */}
-          <div className="px-6 mt-6 overflow-x-auto hide-scrollbar pb-2">
-            <div className="flex space-x-6">
+          <div className="px-6 mt-8 overflow-x-auto hide-scrollbar pb-4">
+            <div className="flex space-x-6 items-start">
               <div 
-                className="flex flex-col items-center text-center cursor-pointer group"
+                className="flex flex-col items-center text-center cursor-pointer group shrink-0"
                 onClick={() => {
                   setSelectedCategory(null);
                   setSelectedBrand(null);
                 }}
               >
-                <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm mb-2 transition-all ${selectedCategory === null ? 'bg-black text-white border-none scale-105' : 'bg-white text-gray-400 group-hover:text-pink-500 border border-gray-100'}`}>
-                  <LayoutGrid size={20} />
+                <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-300 relative ${selectedCategory === null ? 'bg-black text-white shadow-xl shadow-gray-200 scale-110' : 'bg-gray-50 text-gray-400 group-hover:bg-gray-100 border border-gray-100'}`}>
+                  <LayoutGrid size={24} />
+                  {selectedCategory === null && (
+                    <div className="absolute -bottom-1 w-1.5 h-1.5 bg-black rounded-full" />
+                  )}
                 </div>
-                <span className={`text-[9px] font-bold uppercase transition-colors ${selectedCategory === null ? 'text-black' : 'text-gray-500 group-hover:text-gray-900'}`}>Todos</span>
+                <span className={`text-[10px] mt-2.5 font-black uppercase tracking-widest transition-colors ${selectedCategory === null ? 'text-black' : 'text-gray-400 font-bold'}`}>Todos</span>
               </div>
               
               {categories.map(category => {
@@ -792,16 +807,21 @@ export default function StoreFront({ products, categories = [], exchangeRate, on
                       setSelectedBrand(null);
                     }}
                   >
-                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm mb-2 transition-all overflow-hidden bg-white border ${isSelected ? 'border-pink-500 p-[2px] scale-105' : 'border-gray-100 p-1 group-hover:border-pink-200'}`}>
-                      <div className="w-full h-full rounded-[12px] bg-gray-50 flex items-center justify-center overflow-hidden">
+                    <div className={`w-16 h-16 rounded-full flex items-center justify-center transition-all duration-500 relative overflow-hidden bg-white border-2 ${isSelected ? 'border-pink-500 shadow-xl shadow-pink-100 scale-110' : 'border-gray-50 group-hover:border-pink-200 group-hover:scale-105'}`}>
+                      <div className="w-full h-full rounded-full overflow-hidden p-0.5 bg-white">
                         {category.image ? (
-                          <img src={category.image} alt={category.name} className="w-full h-full object-cover" />
+                          <img src={category.image} alt={category.name} className={`w-full h-full object-cover rounded-full transition-transform duration-700 ${isSelected ? 'scale-110' : 'group-hover:scale-110'}`} />
                         ) : (
-                          <span className="text-[10px] font-bold text-gray-300">N/A</span>
+                          <div className="w-full h-full rounded-full bg-pink-50 flex items-center justify-center text-pink-400 font-bold text-xs uppercase">
+                            {getCategoryIcon(category.name)}
+                          </div>
                         )}
                       </div>
+                      {isSelected && (
+                        <div className="absolute inset-0 bg-pink-500/10 mix-blend-overlay" />
+                      )}
                     </div>
-                    <span className={`text-[9px] font-bold uppercase leading-tight transition-colors px-1 text-center ${isSelected ? 'text-pink-600' : 'text-gray-500 group-hover:text-gray-900'}`}>
+                    <span className={`text-[10px] mt-2.5 font-black uppercase tracking-widest transition-colors ${isSelected ? 'text-pink-600 font-black' : 'text-gray-400 font-bold group-hover:text-gray-600'}`}>
                       {category.name}
                     </span>
                   </div>

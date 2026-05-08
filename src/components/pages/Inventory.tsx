@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw, FileDown, Award } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, Package, MoreVertical, Edit2, X, Camera, Loader2, Plus, Trash2, RefreshCcw, FileDown, Award, Palette, Sparkles, Diamond, Watch, Shirt, Layers, ChevronRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Product, Category, BusinessInfo } from '../../types';
 import { supabase } from '../../lib/supabase';
@@ -49,6 +49,18 @@ import { useTutorial } from '../TutorialProvider';
 
 export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline, businessInfo, userRole }: InventoryProps) {
   const { isActive: isTutorialActive, nextStep: tutorialNextStep } = useTutorial();
+  
+  // Icon mapping for categories
+  const getCategoryIcon = (categoryName: string) => {
+    const lower = categoryName.toLowerCase();
+    if (lower.includes('maquillaje')) return <Palette size={20} />;
+    if (lower.includes('perfume')) return <Sparkles size={20} />;
+    if (lower.includes('joy') || lower.includes('oro')) return <Diamond size={20} />;
+    if (lower.includes('reloj')) return <Watch size={20} />;
+    if (lower.includes('ropa')) return <Shirt size={20} />;
+    return <Layers size={20} />;
+  };
+
   const normalizedRole = userRole?.toLowerCase().trim();
   const isSalesperson = normalizedRole !== 'admin' && normalizedRole !== 'worker_inventory';
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
@@ -443,9 +455,9 @@ export default function Inventory({ onSelectCategory, products, categories, setC
         </div>
       </div>
 
-      <div className="p-4 grid grid-cols-1 gap-4 overflow-y-auto pb-24">
+      <div className="p-4 grid grid-cols-2 gap-4 overflow-y-auto pb-24">
         {categories.length === 0 ? (
-          <div className="text-center py-12 text-gray-500 bg-white rounded-3xl border border-dashed border-gray-200 p-8">
+          <div className="col-span-2 text-center py-12 text-gray-500 bg-white rounded-3xl border border-dashed border-gray-200 p-8">
             <Package size={48} className="mx-auto text-gray-200 mb-4" />
             <p className="font-medium text-gray-400">No hay categorías registradas.</p>
             <button 
@@ -456,7 +468,7 @@ export default function Inventory({ onSelectCategory, products, categories, setC
             </button>
           </div>
         ) : (
-          categories.map((category) => {
+          categories.map((category, index) => {
             const categoryStock = products
               .filter(p => 
                 p.category.trim().toLowerCase() === category.id.trim().toLowerCase() ||
@@ -464,22 +476,37 @@ export default function Inventory({ onSelectCategory, products, categories, setC
               )
               .reduce((total, p) => total + p.stock, 0);
 
+            // Bento logic: index 0 and 3 are larger
+            const isLarge = index === 0 || index === 3 || index === 6;
+
             return (
-              <div key={category.id} className="relative group animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <div key={category.id} className={`relative group animate-in fade-in slide-in-from-bottom-4 duration-500 ${isLarge ? 'col-span-2 h-56' : 'col-span-1 h-48'}`}>
                 <button
                   onClick={() => onSelectCategory(category.id)}
-                  className="w-full h-48 bg-gray-100 rounded-3xl overflow-hidden shadow-md border border-white hover:shadow-xl transition-all text-left block relative group"
+                  className="w-full h-full bg-gray-100 rounded-[2rem] overflow-hidden shadow-sm border-2 border-white hover:shadow-xl transition-all duration-500 text-left block relative group"
                 >
                   <img
                     src={category.image}
                     alt={category.name}
-                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-1000"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent flex flex-col justify-end p-6">
-                    <h3 className="text-white font-bold text-2xl tracking-wide mb-1 drop-shadow-sm">{category.name}</h3>
-                    <div className="flex items-center text-white/90 text-sm font-medium bg-black/20 self-start px-2.5 py-1 rounded-full backdrop-blur-sm">
-                      <Package size={14} className="mr-1.5 opacity-80" />
-                      <span>{categoryStock} en stock</span>
+                  
+                  {/* Subtle Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent transition-opacity duration-300 group-hover:opacity-90" />
+                  
+                  {/* Glass Content Card */}
+                  <div className="absolute bottom-4 left-4 right-4 bg-white/10 backdrop-blur-md border border-white/20 p-4 rounded-2xl flex flex-col justify-end">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="flex items-center space-x-2 text-white/70 mb-1">
+                          {getCategoryIcon(category.name)}
+                          <span className="text-[10px] font-black uppercase tracking-widest">{categoryStock} items</span>
+                        </div>
+                        <h3 className="text-white font-bold text-xl tracking-tight leading-none">{category.name}</h3>
+                      </div>
+                      <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity">
+                        <ChevronRight size={18} />
+                      </div>
                     </div>
                   </div>
                 </button>

@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock, Landmark, TrendingUp, TrendingDown, Calendar, PieChart as PieIcon, Package, DollarSign } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ShoppingBag, BarChart3, History, ArrowLeft, Search, Plus, Minus, X, CheckCircle2, ChevronRight, Wallet, Percent, Smartphone, CreditCard, Banknote, MessageCircle, User, ReceiptText, ShoppingCart, Lock, Landmark, TrendingUp, TrendingDown, Calendar, PieChart as PieIcon, Package, DollarSign, Sparkles, Diamond, Watch, Shirt, Palette, Heart, Layers } from 'lucide-react';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, BarChart, Bar, Legend } from 'recharts';
 import { toast } from 'react-hot-toast';
 import { Product, CartItem, Customer, PaymentMethod, Sale, BusinessInfo } from '../../types';
@@ -203,6 +203,25 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
   if (view === 'new_sale') {
     const categories = Array.from(new Set(products.map(p => p.category)));
     
+    // Icon mapping for categories
+    const getCategoryIcon = (categoryName: string) => {
+      const lower = categoryName.toLowerCase();
+      if (lower.includes('maquillaje')) return <Palette size={16} />;
+      if (lower.includes('perfume')) return <Sparkles size={16} />;
+      if (lower.includes('joy') || lower.includes('oro')) return <Diamond size={16} />;
+      if (lower.includes('reloj')) return <Watch size={16} />;
+      if (lower.includes('ropa')) return <Shirt size={16} />;
+      if (lower.includes('labial') || lower.includes('labio')) return <Heart size={16} />;
+      return <Layers size={16} />;
+    };
+
+    const categoriesWithHome = useMemo(() => {
+      return [
+        { id: null, name: 'Todos', icon: <Layers size={16} /> },
+        ...categories.map(c => ({ id: c, name: c, icon: getCategoryIcon(c) }))
+      ];
+    }, [categories]);
+
     // Get brands only if Perfumes is selected
     const brands = selectedCategory === 'Perfumes' 
       ? Array.from(new Set(products.filter(p => p.category === 'Perfumes' && p.brand).map(p => p.brand!.trim().toUpperCase())))
@@ -241,35 +260,25 @@ export default function POS({ exchangeRate, products, customers = [], sales = []
             </div>
             
             {/* Categories (Pills) */}
-            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sticky top-0 bg-white">
-              <div className="flex space-x-2.5 pb-2">
-                <button
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setSelectedBrand(null);
-                  }}
-                  className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
-                    selectedCategory === null 
-                      ? 'bg-gray-900 border-gray-900 text-white shadow-lg scale-105' 
-                      : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
-                  }`}
-                >
-                  Todos
-                </button>
-                {categories.map(category => (
+            <div className="overflow-x-auto hide-scrollbar -mx-4 px-4 sticky top-0 bg-white shadow-sm shadow-gray-50/50">
+              <div className="flex space-x-2.5 pb-3">
+                {categoriesWithHome.map(cat => (
                   <button
-                    key={category}
+                    key={cat.name}
                     onClick={() => {
-                      setSelectedCategory(category);
+                      setSelectedCategory(cat.id);
                       setSelectedBrand(null);
                     }}
-                    className={`shrink-0 px-5 py-2 rounded-xl text-xs font-bold uppercase tracking-wider transition-all border ${
-                      selectedCategory === category 
-                        ? 'bg-primary-600 border-primary-600 text-white shadow-lg scale-105' 
-                        : 'bg-white border-gray-200 text-gray-500 hover:border-gray-300'
+                    className={`shrink-0 flex items-center space-x-2 px-5 py-2.5 rounded-2xl text-xs font-bold uppercase tracking-wider transition-all duration-300 border ${
+                      selectedCategory === cat.id 
+                        ? 'bg-gray-900 border-gray-900 text-white shadow-xl shadow-gray-200 -translate-y-0.5' 
+                        : 'bg-white border-gray-100 text-gray-500 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
-                    {category}
+                    <span className={`${selectedCategory === cat.id ? 'text-primary-400' : 'text-gray-300'}`}>
+                      {cat.icon}
+                    </span>
+                    <span>{cat.name}</span>
                   </button>
                 ))}
               </div>
