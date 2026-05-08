@@ -22,7 +22,7 @@ type ModalMode = 'none' | 'details' | 'edit' | 'add' | 'stock' | 'delete';
 
 export default function CategoryInventory({ category, onBack, exchangeRate, products, setProducts, userRole }: CategoryInventoryProps) {
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole !== 'admin' && normalizedRole !== 'worker_inventory';
   const [search, setSearch] = useState('');
   const [brandFilter, setBrandFilter] = useState<string>('Todas');
   const [genderFilter, setGenderFilter] = useState<string>('Todos');

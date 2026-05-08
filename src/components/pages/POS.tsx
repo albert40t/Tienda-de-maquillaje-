@@ -25,7 +25,7 @@ import { useTutorial } from '../TutorialProvider';
 export default function POS({ exchangeRate, products, customers = [], sales = [], businessInfo, onProcessSale, userRole }: POSProps) {
   const { isActive: isTutorialActive, nextStep: tutorialNextStep } = useTutorial();
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker' || normalizedRole === 'worker_inventory';
   const [view, setView] = useState<ViewState>('menu');
   const { isOnline } = useOfflineSync();
   const [selectedSale, setSelectedSale] = useState<Sale | null>(null);

@@ -27,7 +27,7 @@ export default function Home({ onNavigate, exchangeRate, setExchangeRate, produc
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isLoadingLogs, setIsLoadingLogs] = useState(true);
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker' || normalizedRole === 'worker_inventory';
 
   useEffect(() => {
     const fetchLogs = async () => {

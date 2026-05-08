@@ -22,7 +22,7 @@ interface SettingsProps {
 export default function Settings({ businessInfo, setBusinessInfo, onNavigate, onSignOut, banners, setBanners, userRole }: SettingsProps) {
   const { startTutorial } = useTutorial();
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker' || normalizedRole === 'worker_inventory';
   const { isOnline } = useOfflineSync();
   const [activeView, setActiveView] = useState<'main' | 'business' | 'payments' | 'branding' | 'banners' | 'notifications'>('main');
   const [formData, setFormData] = useState<BusinessInfo>(businessInfo);

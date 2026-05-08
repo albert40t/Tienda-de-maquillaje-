@@ -428,7 +428,7 @@ export default function App() {
 
         // If a worker made the sale, notify admins
         const normalizedRole = session?.role?.toLowerCase().trim();
-        const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+        const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker' || normalizedRole === 'worker_inventory';
         
         if (isSalesperson) {
           notificationService.notifyAdmins(sale);
@@ -443,7 +443,7 @@ export default function App() {
   };
 
   const normalizedRole = session?.role?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker' || normalizedRole === 'worker_inventory';
 
   return (
     <div className="flex flex-col fixed inset-0 w-full max-w-md mx-auto bg-gray-50 shadow-2xl overflow-hidden">

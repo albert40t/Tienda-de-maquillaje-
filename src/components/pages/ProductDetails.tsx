@@ -16,7 +16,7 @@ interface ProductDetailsProps {
 
 export default function ProductDetails({ product, exchangeRate, onBack, onEdit, userRole, isCustomer = false, onAddToCart }: ProductDetailsProps) {
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole !== 'admin' && normalizedRole !== 'worker_inventory';
   
   const images = product.images?.length ? product.images : (product.image ? [product.image] : []);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);

@@ -50,7 +50,7 @@ import { useTutorial } from '../TutorialProvider';
 export default function Inventory({ onSelectCategory, products, categories, setCategories, isOnline, businessInfo, userRole }: InventoryProps) {
   const { isActive: isTutorialActive, nextStep: tutorialNextStep } = useTutorial();
   const normalizedRole = userRole?.toLowerCase().trim();
-  const isSalesperson = normalizedRole === 'vendedor' || normalizedRole === 'salesperson' || normalizedRole === 'worker';
+  const isSalesperson = normalizedRole !== 'admin' && normalizedRole !== 'worker_inventory';
   const [activeMenuId, setActiveMenuId] = useState<string | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isCreating, setIsCreating] = useState(false);
