@@ -186,8 +186,8 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
               className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-200 outline-none"
             >
               <option value="worker">Trabajador (Solo Ventas)</option>
-              <option value="worker_inventory">Trabajador (Ventas + Inventario)</option>
-              <option value="admin">Administrador</option>
+              <option value="worker_inventory" className="font-bold text-primary-600">Trabajador (Ventas + Inventario) ★</option>
+              <option value="admin">Administrador Full</option>
             </select>
           </div>
           <button
@@ -209,9 +209,11 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
               <p className="text-xs text-gray-500">{user.email}</p>
               <div className="flex items-center space-x-2 mt-1">
                 <span className={`inline-block px-2 py-0.5 rounded-md text-[10px] font-bold uppercase ${
-                  user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 'bg-blue-50 text-blue-600'
+                  user.role === 'admin' ? 'bg-purple-50 text-purple-600' : 
+                  user.role === 'worker_inventory' ? 'bg-emerald-50 text-emerald-600' : 
+                  'bg-blue-50 text-blue-600'
                 }`}>
-                  {user.role === 'admin' ? 'Administrador' : user.role === 'worker_inventory' ? 'Trabajador +Inv' : 'Trabajador'}
+                  {user.role === 'admin' ? 'Administrador' : user.role === 'worker_inventory' ? 'Ventas + Inventario' : 'Solo Ventas'}
                 </span>
                 <span className="text-[10px] text-gray-400 font-medium">ID: {user.id.substring(0, 5)}</span>
               </div>
@@ -334,7 +336,7 @@ export default function AdminUsers({ onBack }: AdminUsersProps) {
                       className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border border-gray-100 rounded-2xl text-sm font-semibold focus:ring-4 focus:ring-primary-100 focus:bg-white focus:border-primary-300 outline-none transition-all appearance-none disabled:opacity-50"
                     >
                       <option value="worker">Trabajador (Solo Ventas)</option>
-                      <option value="worker_inventory">Trabajador (Ventas + Inventario)</option>
+                      <option value="worker_inventory" className="font-bold text-primary-600">Trabajador (Ventas + Inventario) ★</option>
                       <option value="admin">Administrador Full</option>
                     </select>
                   </div>

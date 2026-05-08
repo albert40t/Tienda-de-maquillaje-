@@ -415,6 +415,53 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
     }
   ];
 
+  if (activeView === ('profile' as any)) {
+    return (
+      <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
+        <div className="px-4 py-3 bg-white sticky top-0 z-10 border-b border-gray-100 flex items-center space-x-2">
+          <button 
+            onClick={() => setActiveView('main')}
+            className="p-1.5 -ml-1.5 text-gray-600 hover:bg-gray-50 rounded-full transition-colors"
+          >
+            <ArrowLeft size={20} />
+          </button>
+          <h2 className="text-lg font-bold text-gray-900">Mi Perfil</h2>
+        </div>
+
+        <div className="p-6 space-y-6 flex-1 overflow-y-auto">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-gray-100 shadow-sm text-center space-y-4">
+            <div className="w-24 h-24 bg-primary-100 text-primary-600 rounded-full flex items-center justify-center mx-auto text-3xl font-black">
+              {businessInfo.name.substring(0, 1).toUpperCase()}
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-gray-900">{businessInfo.email}</h3>
+              <div className="flex justify-center mt-2">
+                <span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-widest ${
+                  normalizedRole === 'admin' ? 'bg-purple-100 text-purple-600' : 
+                  normalizedRole === 'worker_inventory' ? 'bg-emerald-100 text-emerald-600' : 
+                  'bg-blue-100 text-blue-600'
+                }`}>
+                  {normalizedRole === 'admin' ? 'Administrador' : normalizedRole === 'worker_inventory' ? 'Ventas + Inventario' : 'Solo Ventas'}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 p-5 rounded-3xl border border-blue-100">
+            <h4 className="text-sm font-bold text-blue-900 mb-2">Información de permisos</h4>
+            <p className="text-xs text-blue-800 leading-relaxed">
+              {normalizedRole === 'admin' 
+                ? 'Tienes acceso total a todas las funciones del sistema, incluyendo gestión de empleados, finanzas y reportes.' 
+                : normalizedRole === 'worker_inventory' 
+                  ? 'Puedes realizar ventas, gestionar el inventario de productos y ver el historial de actividad.' 
+                  : 'Tu acceso está limitado únicamente al registro de ventas y consulta básica de productos.'}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (activeView === 'payments') {
     return (
       <div className="h-full flex flex-col animate-in slide-in-from-right-8 fade-in duration-300 relative bg-gray-50">
@@ -1141,6 +1188,7 @@ export default function Settings({ businessInfo, setBusinessInfo, onNavigate, on
                     id={`setting-item-${item.id}`}
                     onClick={() => {
                       if (item.id === 'tutorial') startTutorial();
+                      if (item.id === 'profile') setActiveView('profile' as any);
                       if (item.id === 'users') onNavigate('admin-users');
                       if (item.id === 'business') setActiveView('business');
                       if (item.id === 'branding') setActiveView('branding');
